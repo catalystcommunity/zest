@@ -1,0 +1,25 @@
+{
+  "name": "@catalystsquad/zest",
+  "version": "0.1.0",
+  "description": "Library of separated standard web-components and helper libs for everywhere to enjoy, even in frameworks",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystsquad/zest.git"
+  },
+  "keywords": [
+    "webcomponents",
+    "typescript",
+    "vanilla",
+    "esbuild",
+    "minimalist"
+  ],
+  "author": "Catalyst Squad",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/catalystsquad/zest/issues"
+  },
+  "homepage": "https://github.com/catalystsquad/zest#README.md"
+}

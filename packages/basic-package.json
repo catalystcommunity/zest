@@ -1,0 +1,12 @@
+{
+  "name": "@catalystsquad/THINGHERE",
+  "version": "0.1.0",
+  "description": "REPLACEME",
+  "main": "dist/index.js",
+  "scripts": {
+    "compile": "tsc -b",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Catalyst Squad <opensource@catalystsquad.com> (https://catalystsquad.com)",
+  "license": "Apache-2.0"
+}
