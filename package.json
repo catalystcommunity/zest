@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/catalystsquad/zest/issues"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "homepage": "https://github.com/catalystsquad/zest#README.md"
 }
