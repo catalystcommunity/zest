@@ -1,0 +1,89 @@
+name: Pull Request
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'package.json'
+jobs:
+  validate-pr:
+    name: Validate Conventional Commits PR
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: crazy-max/ghaction-dump-context@v1
+      - uses: amannn/action-semantic-pull-request@v3.4.6
+        with:
+          types: |
+            fix
+            feat
+            norelease
+            chore
+          validateSingleCommit: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+  test:
+    if: github.event.pull_request.draft == false
+    needs:
+      - validate-pr
+    name: Compile
+    runs-on: ubuntu-latest
+    env:
+      GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: 
+            - '**/node_modules'
+          key: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
+          restore-keys:
+            - "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check changed files
+        id: changed_files
+        run: |
+          changed_packages=$(git diff --name-only HEAD~1 HEAD | grep -oP "^packages/\K(\w+)(?=\/)") || true
+          changed_src=$(git diff --name-only HEAD~1 HEAD | grep "^src/") || true
+          echo "changed_packages=${changed_packages}" >> $GIHUB_OUTPUT
+          echo "changed_src=${changed_src}" >> $GITHUB_OUTPUT
+
+      - name: Build and release changed packages
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          changed_packages="${{ steps.changed_files.outputs.changed_packages }}"
+          for package in $changed_packages; do
+            echo "Building and releasing $package"
+            cd packages/$package
+            npm run test
+            cd ../..
+          done
+
+      - name: Build and release umbrella package
+        if: steps.changed_files.outputs.changed_src
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Building and releasing umbrella package"
+          npm run test
+

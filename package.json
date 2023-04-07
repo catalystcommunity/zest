@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Library of separated standard web-components and helper libs for everywhere to enjoy, even in frameworks",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,12 @@
   "workspaces": [
     "packages/*"
   ],
-  "homepage": "https://github.com/catalystsquad/zest#README.md"
+  "homepage": "https://github.com/catalystsquad/zest#README.md",
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^9.0.1",
+    "@semantic-release/github": "^8.0.1",
+    "@semantic-release/npm": "^8.0.1",
+    "@semantic-release/release-notes-generator": "^10.0.1",
+    "semantic-release": "^18.0.1"
+  }
 }
