@@ -1,6 +1,6 @@
 console.log("Debug: Loading eventBroker/index");
 
 export function HelloThis(name: string): string {
-    return "Hello " + name;
+    return "Hello there, " + name;
 }
 
