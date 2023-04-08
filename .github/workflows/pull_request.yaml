@@ -59,7 +59,7 @@ jobs:
         run: |
           for package in $(ls -d packages/*/); do
             echo "Building and releasing $package"
-            cd packages/$package
+            cd $package
             npm run test
             cd ../..
           done
