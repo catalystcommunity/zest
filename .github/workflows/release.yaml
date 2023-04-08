@@ -40,7 +40,7 @@ jobs:
         run: |
           changed_packages=$(git diff --name-only HEAD~1 HEAD | grep -oP "^packages/\K(\w+)(?=\/)") || true
           changed_src=$(git diff --name-only HEAD~1 HEAD | grep "^src/") || true
-          echo "changed_packages=${changed_packages}" >> $GIHUB_OUTPUT
+          echo "changed_packages=${changed_packages}" >> $GITHUB_OUTPUT
           echo "changed_src=${changed_src}" >> $GITHUB_OUTPUT
 
       - name: Build and release changed packages
