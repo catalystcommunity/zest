@@ -52,21 +52,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check changed files
-        id: changed_files
-        run: |
-          changed_packages=$(git diff --name-only HEAD~1 HEAD | grep -oP "^packages\/\K(\w+)(?=\/)") || true
-          changed_src=$(git diff --name-only HEAD~1 HEAD | grep "^src/") || true
-          echo "changed_packages=${changed_packages}" >> $GITHUB_OUTPUT
-          echo "changed_src=${changed_src}" >> $GITHUB_OUTPUT
-
       - name: Test packages
         env:
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          changed_packages="${{ steps.changed_files.outputs.changed_packages }}"
-          for package in $changed_packages; do
+          for package in $(ls -d packages/*/); do
             echo "Building and releasing $package"
             cd packages/$package
             npm run test
@@ -74,7 +65,6 @@ jobs:
           done
 
       - name: Test umbrella package
-        if: steps.changed_files.outputs.changed_src
         env:
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

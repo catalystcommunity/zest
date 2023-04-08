@@ -35,30 +35,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check changed files
-        id: changed_files
-        run: |
-          changed_packages=$(git diff --name-only HEAD~1 HEAD | grep -oP "^packages\/\K(\w+)(?=\/)") || true
-          changed_src=$(git diff --name-only HEAD~1 HEAD | grep "^src/") || true
-          echo "changed_packages=${changed_packages}" >> $GITHUB_OUTPUT
-          echo "changed_src=${changed_src}" >> $GITHUB_OUTPUT
-
       - name: Build and release changed packages
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
         run: |
-          changed_packages="${{ steps.changed_files.outputs.changed_packages }}"
-          for package in $changed_packages; do
+          for package in $(ls -d packages/*/); do
             echo "Building and releasing $package"
-            cd packages/$package
+            cd $package
             npm ci
             npx semantic-release
             cd ../..
           done
 
       - name: Build and release umbrella package
-        if: steps.changed_files.outputs.changed_src
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
