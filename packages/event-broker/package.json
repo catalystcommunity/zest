@@ -1,0 +1,31 @@
+{
+  "name": "@catalystsquad/event-broker",
+  "version": "0.1.0",
+  "description": "A simple event publishing and subscription system using built-in events",
+  "keywords": [
+    "events",
+    "pubsub"
+  ],
+  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/event-broker#readme",
+  "license": "Apache-2.0",
+  "main": "lib/event-broker.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystsquad/zest.git"
+  },
+  "scripts": {
+    "tsc": "tsc",
+    "test": "node ./__tests__/event-broker.test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/catalystsquad/zest/issues"
+  }
+}

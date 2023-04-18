@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Library of separated standard web-components and helper libs for everywhere to enjoy, even in frameworks",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "semantic-release": "semantic-release"
+    "test": "npx lerna test"
   },
   "repository": {
     "type": "git",
@@ -13,11 +12,11 @@
   "keywords": [
     "webcomponents",
     "typescript",
+    "lerna",
     "vanilla",
-    "esbuild",
     "minimalist"
   ],
-  "author": "Catalyst Squad",
+  "author": "Catalyst Squad <opensource@catalystsquad.com>",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/catalystsquad/zest/issues"
@@ -27,6 +26,7 @@
   ],
   "homepage": "https://github.com/catalystsquad/zest#README.md",
   "devDependencies": {
+    "@types/node": "^18.15.11",
     "lerna": "^6.6.1",
     "semantic-release": "^21.0.1",
     "semantic-release-monorepo": "^7.0.5",

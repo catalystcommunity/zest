@@ -1,0 +1,35 @@
+{
+  "name": "@catalystsquad/simple-router",
+  "version": "0.1.0",
+  "description": "A simple router for when you only care about the first part of the path",
+  "keywords": [
+    "router",
+    "minimalist",
+    "history"
+  ],
+  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
+  "license": "Apache-2.0",
+  "main": "lib/simple-router.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystsquad/zest.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/catalystsquad/zest/issues"
+  }
+}
