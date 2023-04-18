@@ -53,23 +53,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test packages
-        env:
-          GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          for package in $(ls -d packages/*/); do
-            echo "Testing $package"
-            cd $package
-            npm run test
-            cd ../..
-          done
-
       - name: Test umbrella package
         env:
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Testing umbrella package"
-          npm run test
+          npx lerna run build,test
 

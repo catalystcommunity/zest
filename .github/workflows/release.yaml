@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'packages/**'
       - 'src/*'
+      - 'packages/**'
       - 'package.json'
 jobs:
   release:
@@ -33,25 +33,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and release changed packages
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
-        run: |
-          for package in $(ls -d packages/*/); do
-            echo "Building and releasing $package"
-            cd $package
-            npm ci
-            npx semantic-release
-            cd ../..
-          done
-
       - name: Build and release umbrella package
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
         run: |
           echo "Building and releasing umbrella package"
-          npx semantic-release
+          lerna exec --concurrency 1 -- npx --no-install semantic-release -e semantic-release-monorepo
 
 
