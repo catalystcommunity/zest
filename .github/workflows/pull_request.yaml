@@ -13,7 +13,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: crazy-max/ghaction-dump-context@v1
+      - uses: crazy-max/ghaction-dump-context@v2
       - uses: amannn/action-semantic-pull-request@v3.4.6
         with:
           types: |
@@ -21,6 +21,7 @@ jobs:
             feat
             norelease
             chore
+            build
           validateSingleCommit: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -58,7 +59,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for package in $(ls -d packages/*/); do
-            echo "Building and releasing $package"
+            echo "Testing $package"
             cd $package
             npm run test
             cd ../..
@@ -69,6 +70,6 @@ jobs:
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "Building and releasing umbrella package"
+          echo "Testing umbrella package"
           npm run test
 
