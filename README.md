@@ -1,5 +1,12 @@
 # zest
 Custom Elements or Web Components and associated helpers from Catalyst
 
+# status
 
-Part of the setup done from this, keeping it here until we know what we're doing: https://blog.logrocket.com/setting-up-monorepo-with-lerna-typescript/
+This is in heavy experiment mode. Use at your own risk.
+
+# Getting Started
+
+To use it, pick a package and import it, or import the umbrella package "@catalystsquad/zest"
+
+TODO: Talk about the dev workflow when we have it.
