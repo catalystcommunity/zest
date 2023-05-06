@@ -1,11 +1,11 @@
-# `SimpleRouter`
+# `REPLACEME`
 
 > TODO: description
 
 ## Usage
 
 ```
-import SimpleRouter from 'simple-router'
+import REPLACEME from 'KEBABME'
 
 // TODO: DEMONSTRATE API
 ```

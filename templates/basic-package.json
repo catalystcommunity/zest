@@ -1,9 +1,9 @@
 {
-  "name": "@catalystsquad/simple-router",
+  "name": "@catalystsquad/KEBABME",
   "version": "0.1.0",
-  "description": "SimpleRouter: Inital package config used. Update me! ",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
-  "main": "lib/simple-router.js",
+  "description": "REPLACEME: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/KEBABME#readme",
+  "main": "lib/KEBABME.js",
   "directories": {
     "lib": "lib",
     "test": "__tests__"

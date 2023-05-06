@@ -2,8 +2,15 @@
   "name": "@catalystsquad/zest",
   "version": "0.1.0",
   "description": "Library of separated standard web-components and helper libs for everywhere to enjoy, even in frameworks",
+  "type": "module",
   "scripts": {
-    "test": "npx lerna test"
+    "dev": "vite",
+    "typecheck": "npx lerna tsc --noEmit",
+    "vite:build": "tsc && vite build",
+    "preview": "vite preview",
+    "build": "npx lerna run build",
+    "test": "npx lerna run test",
+    "release": "npx lerna exec --concurrency 1 -- npx --no-install semantic-release --dry-run -e semantic-release-monorep"
   },
   "repository": {
     "type": "git",
@@ -27,9 +34,11 @@
   "homepage": "https://github.com/catalystsquad/zest#README.md",
   "devDependencies": {
     "@types/node": "^18.15.11",
+    "@vitejs/plugin-basic-ssl": "^1.0.1",
     "lerna": "^6.6.1",
     "semantic-release": "^21.0.1",
     "semantic-release-monorepo": "^7.0.5",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "vite": "^4.3.2"
   }
 }

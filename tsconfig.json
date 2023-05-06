@@ -1,20 +1,33 @@
 {
- "compilerOptions": {
-   "module": "esnext",
-   "declaration": true,
-   "noImplicitAny": false,
-   "removeComments": true,
-   "noLib": false,
-   "emitDecoratorMetadata": true,
-   "experimentalDecorators": true,
-   "target": "es6",
-   "sourceMap": true,
-   "lib": [
-     "es6"
-   ]
- },
- "exclude": [
-   "node_modules",
-   "**/*.spec.ts"
- ]
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "declaration": true,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "noLib": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+
+
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
 }
