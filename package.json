@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "build": "npx lerna run build",
     "test": "npx lerna run test",
-    "release": "npx lerna exec --concurrency 1 -- npx --no-install semantic-release --dry-run -e semantic-release-monorep"
+    "release": "npx lerna exec --concurrency 1 -- npx --no-install semantic-release --dry-run -e semantic-release-monorepo"
   },
   "repository": {
     "type": "git",
