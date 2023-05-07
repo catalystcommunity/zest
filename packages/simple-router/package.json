@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "description": "SimpleRouter: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
-  "main": "lib/simple-router.js",
+  "main": "src/index.ts",
+  "type": "module",
   "directories": {
-    "lib": "lib",
+    "src": "src",
     "test": "__tests__"
   },
   "files": [
-    "lib"
+    "src"
   ],
-  "main": "index.ts",
   "scripts": {
-    "tsc": "tsc",
+    "build": "vite build && tsc",
     "test": "jest"
   },
   "repository": {
