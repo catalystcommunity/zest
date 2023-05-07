@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "npx lerna tsc --noEmit",
-    "vite:build": "tsc && vite build",
+    "build": "vite build && tsc",
     "preview": "vite preview",
-    "build": "npx lerna run build",
-    "test": "npx lerna run test",
-    "release": "npx lerna exec --concurrency 1 -- npx --no-install semantic-release --dry-run -e semantic-release-monorepo"
+    "release": "semantic-release --dry-run -e semantic-release-monorepo",
+    "build:packages": "lerna run build",
+    "test:packages": "lerna run test",
+    "release:packages": "lerna exec --concurrency 1 -- npx --no-install semantic-release --dry-run -e semantic-release-monorepo"
   },
   "repository": {
     "type": "git",
@@ -40,5 +40,8 @@
     "semantic-release-monorepo": "^7.0.5",
     "typescript": "^5.0.4",
     "vite": "^4.3.2"
+  },
+  "dependencies": {
+    "@catalystsquad/event-broker": "^0.1.0"
   }
 }
