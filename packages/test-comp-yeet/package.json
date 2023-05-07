@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/event-broker",
+  "name": "@catalystsquad/test-comp-yeet",
   "version": "0.1.0",
-  "description": "EventBroker: Inital package config used. Update me! ",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/event-broker#readme",
+  "description": "TestCompYeet: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/test-comp-yeet#readme",
   "main": "src/index.ts",
   "type": "module",
   "directories": {

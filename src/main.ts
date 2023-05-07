@@ -1,21 +1,23 @@
 import './style.css'
 
 import EventBroker from '@catalystsquad/event-broker'
+import TestCompA from '@catalystsquad/test-comp-a';
 
+const eventBroker = EventBroker();
 
-let components : string[] = [
-  'test-comp-a',
-  'test-comp-b',
+let components: any[] = [
+  TestCompA,
 ]
 
-let appHtml: string = '<div>\n'
+let appDiv = document.createElement('div')
 
 for (let component of components) {
-  appHtml += '<div class="component">\n'
-  appHtml += `<${component}></${component}>\n`
-  appHtml += '</div>\n'
+  appDiv.appendChild(new component)
 }
+let foo = document.createElement('span')
+foo.innerHTML = eventBroker
+appDiv.appendChild(
+  foo
+)
 
-appHtml += '</div>\n'
-
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = appHtml
+document.querySelector<HTMLDivElement>('#app')!.appendChild(appDiv)

@@ -1,11 +1,11 @@
-# `EventBroker`
+# `TestCompB`
 
 > TODO: description
 
 ## Usage
 
 ```
-import EventBroker from 'event-broker'
+import TestCompB from 'test-comp-b'
 
 // TODO: DEMONSTRATE API
 ```
