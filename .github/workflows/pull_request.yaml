@@ -37,29 +37,28 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
+      - name: Get semver-tags
+        run: |
+          wget -c https://github.com/catalystsquad/semver-tags/releases/latestdownload/v0.3.0/semver-tags.tar.gz -O - | tar -xz
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-
       - name: Cache Node.js modules
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
           key: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
           restore-keys: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Test umbrella package
+      - name: Test it all
         env:
           GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Testing umbrella package"
           npm run build
-          npm run test
-
+          npm run build:packages
+          npm run test:packages

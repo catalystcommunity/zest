@@ -5,7 +5,7 @@ import TestCompA from '@catalystsquad/test-comp-a';
 
 const eventBroker = EventBroker();
 
-let components: any[] = [
+let components = [
   TestCompA,
 ]
 
@@ -20,4 +20,4 @@ appDiv.appendChild(
   foo
 )
 
-document.querySelector<HTMLDivElement>('#app')!.appendChild(appDiv)
+document.querySelector('#app').appendChild(appDiv)

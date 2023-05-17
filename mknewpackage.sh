@@ -27,8 +27,6 @@ mkdir ${PACKAGE_DIR}
 
 # Setup config stuff
 cp templates/basic-package.json "${PACKAGE_DIR}/package.json"
-cp templates/basic-tsconfig.json "${PACKAGE_DIR}/tsconfig.json"
-cp templates/basic-jest.config.ts "${PACKAGE_DIR}/jest.config.ts"
 cp templates/basic-vite.config.js "${PACKAGE_DIR}/vite.config.js"
 cp templates/basic-README.md "${PACKAGE_DIR}/README.md"
 sed -i.bak "s/REPLACEME/${ASTYPED}/" "${PACKAGE_DIR}/package.json"
@@ -40,9 +38,9 @@ sed -i.bak "s/KEBABME/${KEBABED}/" "${PACKAGE_DIR}/vite.config.js"
 
 # Setup actual code
 cp -a templates/template-src "${PACKAGE_DIR}/src"
-sed -i.bak "s/REPLACEME/${ASTYPED}/g" "${PACKAGE_DIR}/src/index.ts"
+sed -i.bak "s/REPLACEME/${ASTYPED}/g" "${PACKAGE_DIR}/src/index.js"
 cp -a templates/template-tests "${PACKAGE_DIR}/__tests__"
-sed -i.bak "s/REPLACEME/${ASTYPED}/g" "${PACKAGE_DIR}/__tests__/basic.spec.ts"
+sed -i.bak "s/REPLACEME/${ASTYPED}/g" "${PACKAGE_DIR}/__tests__/basic.spec.js"
 
 
 # Clean up
