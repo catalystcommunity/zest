@@ -39,7 +39,11 @@ jobs:
           fetch-depth: 0
       - name: Get semver-tags
         run: |
-          wget -c https://github.com/catalystsquad/semver-tags/releases/latestdownload/v0.3.0/semver-tags.tar.gz -O - | tar -xz
+          wget -c https://github.com/catalystsquad/semver-tags/releases/latestdownload/v0.3.2/semver-tags.tar.gz -O - | tar -xz
+      - name: Semver Tags Dry Run
+        id: semver-tags
+        run: |
+          ./semver-tags run --dry_run --github_action | yq -P -o=json "."
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
