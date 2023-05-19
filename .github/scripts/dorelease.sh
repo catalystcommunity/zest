@@ -8,6 +8,8 @@ PACKAGE_BASE="packages"
 PACKAGE_DIR="${PACKAGE_BASE}/"
 DRYRUN="false"
 
+GITHUB_OUTPUT=${GITHUB_OUTPUT:-$(mktemp)}
+
 # Modify for the help message
 usage() {
   echo "${THISSCRIPT} command"
@@ -52,7 +54,7 @@ fullrun() {
     IFS='/' read -r DIR NEW_TAG <<< ${NEW_TAGS_ARRAY[i]}
     LAST_VERSION=${LAST_TAGS_ARRAY[i]}
     NEW_VERSION=${NEW_TAG#*v}
-    NEEDS_NPM += "${PACKAGE_DIR}${DIR} "
+    NEEDS_NPM+="${PACKAGE_DIR}${DIR} "
     
     # Now update all the things
     # We use the "ci:" prefix because it doesn't count as a version bump
@@ -72,7 +74,7 @@ fullrun() {
       git tag ${NEW_TAGS_ARRAY[i]}
     fi
   done
-  echo "NEEDS_NPM=${NEEDS_NPM}" >> $GITHUB_OUTPUTS
+  echo "NEEDS_NPM=${NEEDS_NPM}" >> $GITHUB_OUTPUT
   
   if [[ "${DRYRUN}" == "true" ]]; then
     echo "Would git push here"
