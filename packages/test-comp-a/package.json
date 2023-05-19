@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/test-comp-a",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TestCompA: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/test-comp-a#readme",
   "main": "src/index.js",
