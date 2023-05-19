@@ -40,6 +40,7 @@ fullrun() {
   NEW_TAGS_ARRAY=($(echo $NEW_TAGS | tr "," "\n"))
   LAST_TAGS_ARRAY=($(echo $LAST_TAGS | tr "," "\n"))
   # This makes a run specific release not json file
+  # this will also be added only if there's a version to change
   printf "$JSON_RELEASE_NOTES" > "release_notes/${RUNDATE}-release-notes.json"
 
   # We need to know what packages to actually publish to NPM
@@ -64,14 +65,12 @@ fullrun() {
       echo "Would run :"
       echo " > git add \"$PACKAGE_DIR$DIR/package.json\""
       echo " > git commit -m \"ci: adding version ${NEW_TAG} to $PACKAGE_DIR$DIR/package.json\""
-      echo " > git tag ${NEW_TAGS_ARRAY[i]}"
     else
       echo "Changing version $LAST_VERSION to $NEW_VERSION in $PACKAGE_DIR$DIR/package.json"
       sed -i.bak "s/$LAST_VERSION/$NEW_VERSION/" "$PACKAGE_DIR$DIR/package.json"
       rm -rf "$PACKAGE_DIR$DIR/package.json.bak"
       git add "$PACKAGE_DIR$DIR/package.json"
       git commit -m "ci: adding version ${NEW_TAG} to $PACKAGE_DIR$DIR/package.json"
-      git tag ${NEW_TAGS_ARRAY[i]}
     fi
   done
   echo "NEEDS_NPM=${NEEDS_NPM}" >> $GITHUB_OUTPUT
