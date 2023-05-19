@@ -9,16 +9,17 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: setup git config
-        run: |
-          # setup the username and email. 'GitHub Actions Bot' with no email
-          git config user.name "Catalyst Squad Automation"
-          git config user.email "<opensource@catalystsquad.com>"
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.AUTOMATION_PAT }}
           fetch-depth: 0
+      # Commenting out until it's proven to be necessary
+      # - name: setup git config
+      #   run: |
+      #     # setup the username and email. 'GitHub Actions Bot' with no email
+      #     git config user.name "Catalyst Squad Automation"
+      #     git config user.email "<opensource@catalystsquad.com>"
       - name: Get semver-tags
         run: |
           wget -c https://github.com/catalystsquad/semver-tags/releases/download/v0.3.2/semver-tags.tar.gz -O - | tar -xz
