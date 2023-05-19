@@ -41,7 +41,7 @@ jobs:
         run: npm ci
       - name: Publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.AUTOMATION_NPM_TOKEN }}
         run: |
           echo "Building and Publishing packages"
           npm run build
