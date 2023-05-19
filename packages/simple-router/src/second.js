@@ -1,3 +1,5 @@
-export default function foo() {
-    console.log('Hello World')
+export default function foo(output = false) {
+    if (output) {
+        console.log('Hello World')
+    }
 }
