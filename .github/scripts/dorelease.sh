@@ -36,7 +36,7 @@ fullrun() {
   JSON_RELEASE_NOTES=$(yq -P ".New_release_notes_json" <<< $RESULT)
   RUNDATE=$(date +"%Y-%m-%d-%T")
 
-  PUBLISHED_ARRAY=($(echo $NEW_TAGS | tr "," "\n"))
+  PUBLISHED_ARRAY=($(echo $PUBLISHED | tr "," "\n"))
   NEW_TAGS_ARRAY=($(echo $NEW_TAGS | tr "," "\n"))
   LAST_TAGS_ARRAY=($(echo $LAST_TAGS | tr "," "\n"))
   # This makes a run specific release not json file
@@ -49,8 +49,6 @@ fullrun() {
   # For every new tag, update the package.json file so we can npm publish or whatnot
   for i in "${!NEW_TAGS_ARRAY[@]}"
   do
-    IFS='/' read -r DIR NEW_TAG <<< ${NEW_TAGS_ARRAY[i]}
-    echo "Published array for ${DIR} : ${PUBLISHED_ARRAY[i]}"
     if [[ "${PUBLISHED_ARRAY[i]}" == "false" ]]; then
       continue
     fi
