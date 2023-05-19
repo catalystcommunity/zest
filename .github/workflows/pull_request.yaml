@@ -26,7 +26,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
   test:
-    if: false
     name: Test 
     # if: github.event.pull_request.draft == false
     needs:
@@ -43,7 +42,7 @@ jobs:
       - name: Semver Tags Dry Run
         id: semver-tags
         run: |
-          ./semver-tags run --dry_run --github_action | yq -P -o=json "."
+          ./.github/scripts/dorelease.sh dryrun
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -58,11 +57,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Test it all
-        env:
-          GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Testing umbrella package"
           npm run build
           npm run build:packages
           npm run test:packages
+          for i in ${{ steps.version.outputs.NEEDS_NPM }}
+          do
+            echo "Would publish $i"
+          done

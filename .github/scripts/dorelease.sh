@@ -37,15 +37,22 @@ fullrun() {
   PUBLISHED_ARRAY=($(echo $NEW_TAGS | tr "," "\n"))
   NEW_TAGS_ARRAY=($(echo $NEW_TAGS | tr "," "\n"))
   LAST_TAGS_ARRAY=($(echo $LAST_TAGS | tr "," "\n"))
-  # This makes a version specific
+  # This makes a run specific release not json file
   printf "$JSON_RELEASE_NOTES" > "release_notes/${RUNDATE}-release-notes.json"
+
+  # We need to know what packages to actually publish to NPM
+  NEEDS_NPM=""
 
   # For every new tag, update the package.json file so we can npm publish or whatnot
   for i in "${!NEW_TAGS_ARRAY[@]}"
   do
+    if [[ "${PUBLISHED_ARRAY[i]}" == "false" ]]; then
+      continue
+    fi
     IFS='/' read -r DIR NEW_TAG <<< ${NEW_TAGS_ARRAY[i]}
     LAST_VERSION=${LAST_TAGS_ARRAY[i]}
     NEW_VERSION=${NEW_TAG#*v}
+    NEEDS_NPM += "${PACKAGE_DIR}${DIR} "
     
     # Now update all the things
     # We use the "ci:" prefix because it doesn't count as a version bump
@@ -65,7 +72,7 @@ fullrun() {
       git tag ${NEW_TAGS_ARRAY[i]}
     fi
   done
-
+  echo "NEEDS_NPM=${NEEDS_NPM}" >> $GITHUB_OUTPUTS
   
   if [[ "${DRYRUN}" == "true" ]]; then
     echo "Would git push here"

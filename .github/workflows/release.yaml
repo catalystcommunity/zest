@@ -16,29 +16,38 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
+      - name: Get semver-tags
+        run: |
+          wget -c https://github.com/catalystsquad/semver-tags/releases/latestdownload/v0.3.2/semver-tags.tar.gz -O - | tar -xz
+      - name: Semver Tags Dry Run
+        id: semver-tags
+        run: |
+          ./.github/scripts/dorelease.sh
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-
       - name: Cache Node.js modules
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
           key: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
           restore-keys: "${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}"
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build and release umbrella package
+      - name: Test it all
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GIT_PAT: ${{ secrets.AUTOMATION_PAT }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "Building and releasing umbrella package"
-          lerna exec --concurrency 1 -- npx --no-install semantic-release -e semantic-release-monorepo
-
-
+          echo "Testing umbrella package"
+          npm run build
+          npm run build:packages
+          npm run test:packages
+          for i in ${{ steps.version.outputs.NEEDS_NPM }}
+          do
+            echo "Publishing $i"
+            cd $i
+            npm publish
+            cd -
+          done
