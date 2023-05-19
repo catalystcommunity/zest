@@ -41,7 +41,12 @@ fullrun() {
   LAST_TAGS_ARRAY=($(echo $LAST_TAGS | tr "," "\n"))
   # This makes a run specific release not json file
   # this will also be added only if there's a version to change
-  printf "$JSON_RELEASE_NOTES" > "release_notes/${RUNDATE}-release-notes.json"
+  
+  if [[ "${DRYRUN}" == "true" ]]; then
+    echo "Ignoring release notes since this is a dry run"
+  else
+    printf "$JSON_RELEASE_NOTES" > "release_notes/${RUNDATE}-release-notes.json"
+  fi
 
   # We need to know what packages to actually publish to NPM
   NEEDS_NPM=""

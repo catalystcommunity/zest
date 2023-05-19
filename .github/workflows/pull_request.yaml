@@ -62,7 +62,7 @@ jobs:
           npm run build
           npm run build:packages
           npm run test:packages
-          for i in ${{ steps.version.outputs.NEEDS_NPM }}
+          for i in ${{ steps.semver-tags.outputs.NEEDS_NPM }}
           do
             echo "Would publish $i"
           done
