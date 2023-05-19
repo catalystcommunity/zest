@@ -8,10 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run packages",
-    "release": "echo 'unimplemented'",
     "build:packages": "npm run build --workspace=packages",
     "test:packages": "vitest run packages",
-    "release:packages": "echo 'unimplemented'"
   },
   "repository": {
     "type": "git",
