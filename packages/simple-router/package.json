@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/simple-router",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SimpleRouter: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
   "main": "src/index.js",
