@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
       - name: Get semver-tags
         run: |
-          wget -c https://github.com/catalystsquad/semver-tags/releases/latestdownload/v0.3.2/semver-tags.tar.gz -O - | tar -xz
+          wget -c https://github.com/catalystsquad/semver-tags/releases/download/v0.3.2/semver-tags.tar.gz -O - | tar -xz
       - name: Semver Tags Dry Run
         id: semver-tags
         run: |
