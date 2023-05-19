@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/simple-router",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "SimpleRouter: When you don't need much from a router.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
   "main": "src/index.js",
