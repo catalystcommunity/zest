@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run packages",
     "build:packages": "npm run build --workspace=packages",
-    "test:packages": "vitest run packages",
+    "test:packages": "vitest run packages"
   },
   "repository": {
     "type": "git",
