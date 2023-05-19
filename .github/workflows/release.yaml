@@ -4,12 +4,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'packages/**'
-      - 'package.json'
 jobs:
   release:
-    if: false
+    if: github.event.pull_request.merged == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
