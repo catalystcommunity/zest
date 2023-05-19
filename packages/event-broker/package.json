@@ -1,7 +1,7 @@
 {
   "name": "@catalystsquad/event-broker",
   "version": "0.2.0",
-  "description": "EventBroker: Inital package config used. Update me! ",
+  "description": "EventBroker: Meant to be an in-browser basic pub-sub using events",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/event-broker#readme",
   "main": "src/index.js",
   "type": "module",
