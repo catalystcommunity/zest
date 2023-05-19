@@ -49,6 +49,8 @@ fullrun() {
   # For every new tag, update the package.json file so we can npm publish or whatnot
   for i in "${!NEW_TAGS_ARRAY[@]}"
   do
+    IFS='/' read -r DIR NEW_TAG <<< ${NEW_TAGS_ARRAY[i]}
+    echo "Published array for ${DIR} : ${PUBLISHED_ARRAY[i]}"
     if [[ "${PUBLISHED_ARRAY[i]}" == "false" ]]; then
       continue
     fi
