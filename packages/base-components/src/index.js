@@ -132,7 +132,7 @@ class DataComponent extends BaseComponent {
         this.instanceId = generate_id(12);
     }
     connectedCallback(){
-        super();
+        super.connectedCallback();
         let unregisterFunc = this.#dataRegisterFunc(this.instanceId, this.registerData)
         if (unregisterFunc) {
             this.unregisterFunc = unregisterFunc;
@@ -150,7 +150,7 @@ class OpenShadowDataComponent extends DataComponent {
         super();
     }
     connectedCallback(){
-        super();
+        super.connectedCallback();
         this.shadow = this.attachShadow({ mode: 'open' });
     }
 }
