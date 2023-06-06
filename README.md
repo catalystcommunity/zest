@@ -22,3 +22,5 @@ Install any new packages:
 Make a new package, changing the package name from PascalCase to kebab-case where needed:
 
 `./mknewpackage SomePackageName`
+
+In testing, remember that you can use @vitest-environment for cases where you want to switch between jsdom or happy-dom https://vitest.dev/config/#environment

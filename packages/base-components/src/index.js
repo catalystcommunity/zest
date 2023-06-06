@@ -19,6 +19,9 @@ function getTemplate(templateId) {
         throw new Error(`Requested to get a templateId that does not exist: {templateId}`);
     }
 }
+// For converting to and from attributes to attributes, as the only helper we rely on
+function camelize(s) { return s.replace(/-./g, x=>x[1].toUpperCase()) }
+function kebabize(s) { return s.replace(/[A-Z]+(?![a-z])|[A-Z]/g, (x, ofs) => (ofs ? "-" : "") + x.toLowerCase()) }
 
 // Give us some of the basic functionality to reduce boilerplate
 class BaseComponent extends HTMLElement {
@@ -54,6 +57,7 @@ class BaseComponent extends HTMLElement {
     postObservedAttributeChange() { }
     // Called only once 
     connectedCallback() {
+        this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
         // This gets the template and styles, and if they aren't present they will be left alone
         let templateId = 'defaultTemplateId';
         if (this.overrideTemplateId) {
@@ -68,17 +72,35 @@ class BaseComponent extends HTMLElement {
             this.template = getTemplate(templateId);
         } catch(error) {
             if (error != `Requested to get a templateId that does not exist: {templateId}`) {
-                throw(error)
+                throw(error);
             }
         }
         try {
             this.styleTemplate = getTemplate(styleTemplateId);
         } catch(error) {
             if (error != `Requested to get a templateId that does not exist: {templateId}`) {
-                throw(error)
+                throw(error);
             }
         }
         // Normally one would call this.render() here, but we leave it out for components to call in their own
+    }
+    // Set attributes from kebab-case to camelCase properties
+    convertKebabAttributes(attributes=[]) {
+        for(let i = 0; i < attributes.length; i++) {
+            let attrVal = this.getAttribute(attributes[i]);
+            if (attrVal) {
+                this[camelize(attributes[i])] = attrVal
+            }
+        }
+    }
+    // Set properties from camelCase to kebab-case properties
+    convertCamelProperties(properties=[]) {
+        for(let i = 0; i < properties.length; i++) {
+            let propVal = this[properties[i]];
+            if (propVal) {
+                this.setAttribute(camelize(attributes[i]), propVal)
+            }
+        }
     }
     render() {
     }

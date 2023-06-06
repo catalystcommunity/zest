@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Basic BaseComponent Test</title>
+    <style>
+      base-component {
+      margin: 3em;
+      }
+    </style>
+  </head>
+  <body>
+    <template id="defaultStyleTemplateId">
+      <style>
+        :host {
+        margin: 2em;
+        }
+      </style>
+    </template>
+    <template id="secondStyleTemplateId">
+      <style>
+        :host {
+        margin: 4em;
+        }
+      </style>
+    </template>
+    <template id="defaultTemplateId">
+      <p id="testParagraphId" class="test-paragraph">Test Template</p>
+    </template>
+    <template id="secondTemplateId">
+      <p id="testSecondParagraphId" class="test-paragraph">Second Test Template</p>
+    </template>
+    <base-component id="testOverridesComp" override-template-id="secondTemplateId" foo="bar"></base-component>
+  </body>
+</html>
