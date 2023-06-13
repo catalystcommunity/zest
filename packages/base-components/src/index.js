@@ -1,3 +1,9 @@
+// We want to separate ourselves from "window" or whatever, so keep the "global" object
+// at the execution context level. If there's a closure, now we have an organization point
+// that anyone can use to isolate things how they want. Attach things by name to this
+// from anywhere and be happy
+const ZestGlobalObject = this
+
 // Should only be used for default IDs, not for anything sensitive
 function generate_id(length) {
     let result = '';
@@ -114,20 +120,23 @@ class BaseComponent extends HTMLElement {
 class DataComponent extends BaseComponent {
     // Randomly generated ID for the component, unless specified in attributes
     instanceId;
-    // The name of the data func registry
+    // The name of the data func registry, child components should have a default name
     registryName;
     // When we get the registry successfully, store it here so we don't keep checking things
     #registry;
     // The name of the function in the registry to call
     // This is separate from the registry so we can have multiple registries or data functions
     // and only have to override one
-    // Components should have default names for the dataRegisterFuncName
+    // Child components should have a default name for the dataRegisterFuncName
     dataRegisterFuncName;
     // Save the function internally
     #dataRegisterFunc;
     // This should be any data used to register the component except the ID
     // Note that depending on your component's API, you could pass callbacks to this
     registerData;
+    // The results from data registration, the only requirement of which is the property "unregisterFunc"
+    // if present is the unregister function called by the disconnectedCallback
+    registerResult;
     // If the dataRegisterFunc returns an unregisterFunc, we save it here
     // It isn't private because we want to allow different lifecycle controls for some scenarios
     unregisterFunc;
@@ -138,28 +147,39 @@ class DataComponent extends BaseComponent {
         super();
         // Always have a default no-op unregistration
         this.unregisterFunc = function() {}
-        // If this isn't a browser or there's no registry, fail miserably
-        if (window === undefined || window[this.registryName] === undefined) {
-            throw new Error('Component Data Registry not found');
-        }
-        this.#registry = window[this.registryName];
-        // If this isn't a registration function in that registry, fail miserably
-        if (this.#registry[this.dataRegisterFuncName] === undefined) {
-            throw new Error('Component Data Registry Function not found');
-        }
-        this.#dataRegisterFunc = this.#registry[this.dataRegisterFuncName];
-        // Don't register until connected, as components are only there for display, not fetching/processing
 
         // Make an ID, which will be overridden in connectedCallback if provided, or can be overridden as a property beforehand
         this.instanceId = generate_id(12);
     }
     connectedCallback(){
         super.connectedCallback();
-        let unregisterFunc = this.#dataRegisterFunc(this.instanceId, this.registerData)
-        if (unregisterFunc) {
-            this.unregisterFunc = unregisterFunc;
-        }
+        this.convertKebabAttributes(['instance-id', 'data-register-func-name', 'registry-name', 'register-data', 'unregister-func', 'unregister-data']);
     }
+    // This is a separate function not called in this so components can choose constructor or connected 
+    // execution as appropriate, or skip it entirely and implement their own thing
+    doDataRegistration(){
+        // If there's no registry, fail miserably
+        if (ZestGlobalObject === undefined || ZestGlobalObject[this.registryName] === undefined) {
+            console.log(this.registryName)
+            console.log(ZestGlobalObject)
+            throw new Error('Component Data Registry not found');
+        }
+        this.#registry = ZestGlobalObject[this.registryName];
+        // If this isn't a registration function in that registry, fail miserably
+        if (this.#registry[this.dataRegisterFuncName] === undefined) {
+            throw new Error('Component Data Registry Function not found');
+        }
+        this.#dataRegisterFunc = this.#registry[this.dataRegisterFuncName];
+        // Don't register until connected, as components are only there for display, not fetching/processing
+        this.registerResult = this.#dataRegisterFunc(this.instanceId, this.registerData)
+        if (this.registerResult && this.registerResult.unregisterFunc) {
+            this.unregisterFunc = this.registerResult.unregisterFunc;
+        }
+        this.postDataRegistration()
+    }
+    // This should be overridden where we care about behavior after a change
+    postDataRegistration() { }
+    // Even if it never registered data, now cleanup is a no-op
     disconnectedCallback() {
         this.unregisterFunc(this.instanceId, this.unregisterData)
     }
@@ -177,4 +197,4 @@ class OpenShadowDataComponent extends DataComponent {
     }
 }
 
-export { BaseComponent, DataComponent, OpenShadowDataComponent }
+export { ZestGlobalObject, BaseComponent, DataComponent, OpenShadowDataComponent }

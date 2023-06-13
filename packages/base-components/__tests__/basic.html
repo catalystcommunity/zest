@@ -8,6 +8,9 @@
       base-component {
       margin: 3em;
       }
+      data-component {
+      margin: 3em;
+      }
     </style>
   </head>
   <body>
@@ -31,6 +34,17 @@
     <template id="secondTemplateId">
       <p id="testSecondParagraphId" class="test-paragraph">Second Test Template</p>
     </template>
+    <template id="dataTemplateId">
+      <p id="testdataParagraphId" class="test-paragraph">Data Test Template</p>
+    </template>
     <base-component id="testOverridesComp" override-template-id="secondTemplateId" foo="bar"></base-component>
+    <!-- <data-component id="testDataComp" foo="bar"></data-component> -->
+    <data-component id="testDataOverridesComp"
+      instance-id="alwaysdata"
+      registry-name="differentRegistry"
+      data-register-func-name="customFunc"
+      register-data="myRegisterData2"
+      override-template-id="dataTemplateId"
+      foo="bar"></data-component>
   </body>
 </html>
