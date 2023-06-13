@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run packages",
+    "test:watch": "vitest run watch",
     "build:packages": "npm run build --workspace=packages",
     "test:packages": "vitest run packages"
   },
