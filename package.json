@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run packages",
-    "test:watch": "vitest run watch",
+    "test:watch": "vitest watch packages",
     "build:packages": "npm run build --workspace=packages",
     "test:packages": "vitest run packages"
   },
@@ -39,8 +39,15 @@
   },
   "dependencies": {
     "@catalystsquad/base-components": "^0.1.0",
+    "@catalystsquad/basic-data-registry": "^0.1.0",
     "@catalystsquad/event-broker": "^0.2.1",
+    "@catalystsquad/menu-gutter": "^0.1.0",
+    "@catalystsquad/menu-gutter-icon": "^0.1.0",
+    "@catalystsquad/menu-item": "^0.1.0",
+    "@catalystsquad/menu-logo": "^0.1.0",
+    "@catalystsquad/menu-section-header": "^0.1.0",
     "@catalystsquad/simple-router": "^0.2.2",
-    "@catalystsquad/test-comp-a": "^0.1.2"
+    "@catalystsquad/test-comp-a": "^0.1.2",
+    "@catalystsquad/two-tier-section-menu": "^0.1.0"
   }
 }

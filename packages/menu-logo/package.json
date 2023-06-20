@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/base-components",
+  "name": "@catalystsquad/menu-logo",
   "version": "0.1.0",
-  "description": "BaseComponents: core components for other Zest web components",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/base-components#readme",
+  "description": "MenuLogo: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-logo#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -31,5 +31,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@catalystsquad/base-components": "^0.1.0"
   }
 }

@@ -1,8 +1,14 @@
-// We want to separate ourselves from "window" or whatever, so keep the "global" object
+// We want to separate ourselves from "window" or whatever, so keep the "AppGlobal" object
 // at the execution context level. If there's a closure, now we have an organization point
 // that anyone can use to isolate things how they want. Attach things by name to this
-// from anywhere and be happy
-const ZestGlobalObject = this
+// from anywhere and be happy, otherwise we default back to "window"
+let ZestGlobalObject
+try {
+    ZestGlobalObject = AppGlobal
+}catch(e) {
+    ZestGlobalObject = window
+}
+
 
 // Should only be used for default IDs, not for anything sensitive
 function generate_id(length) {
@@ -22,7 +28,7 @@ function getTemplate(templateId) {
     if (templateId && document.getElementById(templateId)) {
         return document.getElementById(templateId).innerHTML || '';
     } else {
-        throw new Error(`Requested to get a templateId that does not exist: {templateId}`);
+        return null
     }
 }
 // For converting to and from attributes to attributes, as the only helper we rely on
@@ -33,13 +39,17 @@ function kebabize(s) { return s.replace(/[A-Z]+(?![a-z])|[A-Z]/g, (x, ofs) => (o
 class BaseComponent extends HTMLElement {
     // Attributes that we observe
     changeAttributes;
+    // Default template id, should be set in the constructor of child components
+    defaultTemplateId;
     // Override Id of the component template to use, if provided, otherwise defaulted
     overrideTemplateId;
-    // The actual template string
+    // The actual template string, which all components should provide a default for
     template;
+    // Default style template id, should be set in the constructor of the child components
+    defaultStyleTemplateId;
     // Override Id of the component style template to use, if provided
     overrideStyleTemplateId;
-    // The actual style template string
+    // The actual style template string, which all components should provide a default for
     styleTemplate;
 
     // Keep in mind that the constructor doesn't have access to attributes until DOM connection
@@ -47,6 +57,10 @@ class BaseComponent extends HTMLElement {
     constructor() {
         super();
         this.changeAttributes = [];
+        this.template = `<div class="defbasecomp">Default BaseComponent Template</div>`;
+        this.styleTemplate = `.defbasecomp {display:none;}`;
+        this.defaultTemplateId = 'defaultTemplateId';
+        this.defaultStyleTemplateId = 'defaultStyleTemplateId';
     }
     // changeAttributes must be setup in whatever child constructor, or attributeChangedCallback will never get called
     static get observedAttributes() {
@@ -61,32 +75,36 @@ class BaseComponent extends HTMLElement {
     }
     // This should be overridden where we care about behavior after a change
     postObservedAttributeChange() { }
-    // Called only once 
+    // Called only once and can be overloaded
     connectedCallback() {
+        // The precedence for components should be using an override template id if it is present
+        // and the HTML attribute overrides a setting in JS on the class
+        // then a default template id if it is present
+        // then the template string if neither of those work
+
+        // first get the override attributes from HTML into the JS world
         this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
         // This gets the template and styles, and if they aren't present they will be left alone
-        let templateId = 'defaultTemplateId';
-        if (this.overrideTemplateId) {
-            templateId = this.overrideTemplateId;
+        let template = null;
+        if (template === null && this.overrideTemplateId) {
+            template = getTemplate(this.overrideTemplateId);
         }
-        let styleTemplateId = 'defaultStyleTemplateId'
-        if (this.overrideStyleTemplateId) {
-            styleTemplateId = this.overrideStyleTemplateId;
+        if (template === null && this.defaultTemplateId){
+            template = getTemplate(this.defaultTemplateId);
         }
-        // Now we have the IDs to try, so attempt them
-        try {
-            this.template = getTemplate(templateId);
-        } catch(error) {
-            if (error != `Requested to get a templateId that does not exist: {templateId}`) {
-                throw(error);
-            }
+        if (template !== null) {
+            this.template = template
         }
-        try {
-            this.styleTemplate = getTemplate(styleTemplateId);
-        } catch(error) {
-            if (error != `Requested to get a templateId that does not exist: {templateId}`) {
-                throw(error);
-            }
+        // Now same thing for styles
+        let styleTemplate = null;
+        if (styleTemplate === null && this.overrideStyleTemplateId) {
+            styleTemplate = getTemplate(this.overrideStyleTemplateId);
+        }
+        if (styleTemplate === null && this.defaultStyleTemplateId){
+            styleTemplate = getTemplate(this.defaultStyleTemplateId);
+        }
+        if (styleTemplate !== null) {
+            this.styleTemplate = styleTemplate
         }
         // Normally one would call this.render() here, but we leave it out for components to call in their own
     }
@@ -104,11 +122,25 @@ class BaseComponent extends HTMLElement {
         for(let i = 0; i < properties.length; i++) {
             let propVal = this[properties[i]];
             if (propVal) {
-                this.setAttribute(camelize(attributes[i]), propVal)
+                this.setAttribute(kebabize(attributes[i]), propVal)
             }
         }
     }
+    // Something needs to generate the DOM tree of the component, so this is the suggested naming
+    // since it follows a lot of actual frameworks it should be easiest to override this and keep compatible
     render() {
+    }
+}
+
+// A simple addition to make the BaseComponent an open shadow root component with the same functionality
+class OpenShadowComponent extends BaseComponent {
+    shadow;
+    constructor() {
+        super();
+    }
+    connectedCallback(){
+        super.connectedCallback();
+        this.shadow = this.attachShadow({ mode: 'open' });
     }
 }
 
@@ -147,7 +179,6 @@ class DataComponent extends BaseComponent {
         super();
         // Always have a default no-op unregistration
         this.unregisterFunc = function() {}
-
         // Make an ID, which will be overridden in connectedCallback if provided, or can be overridden as a property beforehand
         this.instanceId = generate_id(12);
     }
@@ -185,7 +216,7 @@ class DataComponent extends BaseComponent {
     }
 }
 
-// At the moment we don't see a reason to have shadow components that aren't DataComponents
+// A simple addition to make the DataComponent an open shadow root component with the same functionality
 class OpenShadowDataComponent extends DataComponent {
     shadow;
     constructor() {
@@ -197,4 +228,4 @@ class OpenShadowDataComponent extends DataComponent {
     }
 }
 
-export { ZestGlobalObject, BaseComponent, DataComponent, OpenShadowDataComponent }
+export { ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent }

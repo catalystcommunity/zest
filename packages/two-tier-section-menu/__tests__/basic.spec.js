@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import TestCompA from '../src/index';
+import TwoTierSectionMenu from '../src';
 
 describe('basic test', () => {
     it('should get the hello', () => {
-        expect(TestCompA()).toBe('Hello from TestCompA');
+        expect(TwoTierSectionMenu()).toBe('Hello from TwoTierSectionMenu');
     })
 });
