@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/test-comp-a",
-  "version": "0.1.2",
-  "description": "TestCompA: Meant for testing the larger Zest library it is a part of",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/test-comp-a#readme",
+  "name": "@catalystsquad/menu-gutter-icon",
+  "version": "0.1.0",
+  "description": "MenuGutterIcon: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-gutter-icon#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -31,5 +31,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@catalystsquad/base-components": "^0.1.0"
   }
 }

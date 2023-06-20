@@ -1,11 +1,11 @@
-# `TestCompA`
+# `MenuGutterIcon`
 
 > TODO: description
 
 ## Usage
 
 ```
-import TestCompA from 'test-comp-a'
+import MenuGutterIcon from 'menu-gutter-icon'
 
 // TODO: DEMONSTRATE API
 ```
