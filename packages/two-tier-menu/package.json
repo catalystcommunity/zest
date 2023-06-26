@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/menu-section-header",
+  "name": "@catalystsquad/two-tier-menu",
   "version": "0.1.0",
-  "description": "MenuSectionHeader: Inital package config used. Update me! ",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-section-header#readme",
+  "description": "TwoTierMenu: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/two-tier-menu#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {

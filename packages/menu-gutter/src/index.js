@@ -1,18 +1,23 @@
-import { BaseComponent, OpenShadowComponent } from "@catalystsquad/base-components";
+import { BaseComponent } from "@catalystsquad/base-components";
 
-export default class MenuGutter extends BaseComponent {
+class MenuGutter extends BaseComponent {
     constructor(){
         super()
     }
+    connectedCallback(){
+        super.connectedCallback();
+    }
 }
 
-export class ShadowMenuGutter extends MenuGutter {
+class ShadowMenuGutter extends MenuGutter {
     shadow;
     constructor() {
         super();
+        this.shadow = this.attachShadow({ mode: 'open' });
+        this.root = this.shadow;
     }
     connectedCallback(){
         super.connectedCallback();
-        this.shadow = this.attachShadow({ mode: 'open' });
     }
 }
+export { MenuGutter, ShadowMenuGutter }
