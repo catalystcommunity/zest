@@ -45,9 +45,8 @@
     "@catalystsquad/menu-gutter-icon": "^0.1.0",
     "@catalystsquad/menu-item": "^0.1.0",
     "@catalystsquad/menu-logo": "^0.1.0",
-    "@catalystsquad/menu-section-header": "^0.1.0",
     "@catalystsquad/simple-router": "^0.2.2",
     "@catalystsquad/test-comp-a": "^0.1.2",
-    "@catalystsquad/two-tier-section-menu": "^0.1.0"
+    "@catalystsquad/two-tier-menu": "^0.1.0"
   }
 }

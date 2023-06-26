@@ -1,4 +1,4 @@
-import { BaseComponent, OpenShadowComponent } from "@catalystsquad/base-components";
+import { BaseComponent } from "@catalystsquad/base-components";
 
 export default class MenuGutterIcon extends BaseComponent {
     constructor(){
@@ -6,8 +6,10 @@ export default class MenuGutterIcon extends BaseComponent {
     }
 }
 
-export class ShadowMenuGutterIcon extends MenuGutterIcon {
+class ShadowMenuGutterIcon extends MenuGutterIcon {
     constructor(){
         super()
     }
 }
+
+export { MenuGutterIcon, ShadowMenuGutterIcon }

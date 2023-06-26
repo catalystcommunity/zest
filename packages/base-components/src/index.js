@@ -26,6 +26,7 @@ function generate_id(length) {
 // This should just safely make sure the template exists and retrieve it
 function getTemplate(templateId) {
     if (templateId && document.getElementById(templateId)) {
+        // console.log(document.getElementById(templateId).innerHTML);
         return document.getElementById(templateId).innerHTML || '';
     } else {
         return null
@@ -51,6 +52,9 @@ class BaseComponent extends HTMLElement {
     overrideStyleTemplateId;
     // The actual style template string, which all components should provide a default for
     styleTemplate;
+    // It is helpful to have a reference to either the shadow root or the self for rendering
+    // consistently between shadow or nonshadow instances without complex reflection
+    root;
 
     // Keep in mind that the constructor doesn't have access to attributes until DOM connection
     // most functionality should start in connectedCallback
@@ -61,6 +65,7 @@ class BaseComponent extends HTMLElement {
         this.styleTemplate = `.defbasecomp {display:none;}`;
         this.defaultTemplateId = 'defaultTemplateId';
         this.defaultStyleTemplateId = 'defaultStyleTemplateId';
+        this.root = this;
     }
     // changeAttributes must be setup in whatever child constructor, or attributeChangedCallback will never get called
     static get observedAttributes() {
@@ -117,14 +122,21 @@ class BaseComponent extends HTMLElement {
             }
         }
     }
-    // Set properties from camelCase to kebab-case properties
+    // Set properties from camelCase to kebab-case attributes
     convertCamelProperties(properties=[]) {
         for(let i = 0; i < properties.length; i++) {
             let propVal = this[properties[i]];
             if (propVal) {
-                this.setAttribute(kebabize(attributes[i]), propVal)
+                this.setAttribute(kebabize(properties[i]), propVal)
             }
         }
+    }
+    // Often we want to be able to append an HTML string as if it were elements. This helper converts the string.
+    stringToElement(html) {
+        var template = document.createElement('template');
+        html = html.trim(); // Never return a text node of whitespace as the result
+        template.innerHTML = html;
+        return template.content.firstChild;
     }
     // Something needs to generate the DOM tree of the component, so this is the suggested naming
     // since it follows a lot of actual frameworks it should be easiest to override this and keep compatible
@@ -133,14 +145,16 @@ class BaseComponent extends HTMLElement {
 }
 
 // A simple addition to make the BaseComponent an open shadow root component with the same functionality
+// This is also only really useful if you want to skip extending the BaseComponent
 class OpenShadowComponent extends BaseComponent {
     shadow;
     constructor() {
         super();
+        this.shadow = this.attachShadow({ mode: 'open' });
+        this.root = this.shadow;
     }
     connectedCallback(){
         super.connectedCallback();
-        this.shadow = this.attachShadow({ mode: 'open' });
     }
 }
 
@@ -221,10 +235,11 @@ class OpenShadowDataComponent extends DataComponent {
     shadow;
     constructor() {
         super();
+        this.shadow = this.attachShadow({ mode: 'open' });
+        this.root = this.shadow;
     }
     connectedCallback(){
         super.connectedCallback();
-        this.shadow = this.attachShadow({ mode: 'open' });
     }
 }
 

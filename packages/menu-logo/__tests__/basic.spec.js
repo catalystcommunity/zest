@@ -1,8 +1,20 @@
-import { describe, it, expect } from 'vitest';
-import MenuLogo from '../src';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import {readFileSync} from 'fs';
+import {resolve} from 'path';
+import {MenuLogo} from '../src';
 
-describe('basic test', () => {
-    it('should get the hello', () => {
-        expect(MenuLogo()).toBe('Hello from MenuLogo');
-    })
+const html = readFileSync(resolve(__dirname, './basic.html'), 'utf8');
+
+describe('MenuLogo', () => {
+    beforeAll(() => {
+        customElements.define('menu-logo', MenuLogo );
+    });
+    beforeEach(() => {
+        document.documentElement.innerHTML = html.toString();
+    });
+
+    it("should initialize correctly", () => {
+        const comp = new MenuLogo();
+        expect(comp).toBeInstanceOf(MenuLogo);
+    });
 });

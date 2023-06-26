@@ -2,12 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/caldo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zest Components Demo</title>
   </head>
   <body>
-    <header>Zest Components Demo and Dev Server</header>
+    <template id="demo-menu-styles">
+      <style>
+        :host {
+            display: flex;
+            flex-direction: column;
+            justify-content: start;
+            height: 100vh;
+            width: 15em;
+            border-right: 1px solid #D7DBDD;
+            font-family: sans-serif;
+            background: #3224f4
+        }
+        :host .items {
+            flex-grow: 3;
+        }
+                
+        menu-logo {
+          display: inline-block;
+          padding: 10px 20px;
+          color: white;
+          font-size: 2em;
+          margin: auto;
+        }
+        .items {
+            display: flex;
+            flex-direction: column;
+            justify-content: start;
+        }
+        menu-item {
+          padding: 10px 20px;
+          color: white;
+          font-size: 20px;
+        }
+        menu-item.section-header {
+          padding: 10px;
+          width: 12em;
+        }
+        menu-item.section-header img {
+          width: 2em;
+        }
+        
+        :host img {
+          width: 2em;
+        }
+      </style>
+    </template>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
