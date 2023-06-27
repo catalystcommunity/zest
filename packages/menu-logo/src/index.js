@@ -31,7 +31,7 @@ export default class MenuLogo extends BaseComponent {
         if (this.logo) {
             let img = document.createElement('img');
             img.src = this.logo;
-            img.alt = this.alt ? this.alt : "";
+            img.alt = this.alt ? this.alt : "Logo image";
             coreNode.appendChild(img);
         }
         if (this.logoText) {
