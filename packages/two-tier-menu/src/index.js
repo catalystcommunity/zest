@@ -1,7 +1,4 @@
 import { DataComponent } from "@catalystsquad/base-components";
-import MenuGutter from "@catalystsquad/menu-gutter";
-import MenuItem from "@catalystsquad/menu-item";
-import MenuLogo from "@catalystsquad/menu-logo";
 
 const defaultStyles = `<style>
 two-tier-menu, :host {
@@ -112,12 +109,12 @@ export class TwoTierMenu extends DataComponent {
             }
         }
         if(this.menuConfig.gutter) {
-            this.gutter = new MenuGutter();
+            this.gutter = document.createElement('menu-gutter');
             // Only the behavior wanted is needed here
-            this.gutter.templateId = this.manuConfig.gutter.templateId;
-            this.gutter.overrideTemplateId = this.manuConfig.gutter.overrideTemplateId;
-            this.gutter.styleTemplateId = this.manuConfig.gutter.styleTemplateId;
-            this.gutter.overrideStyleTemplateId = this.manuConfig.gutter.overrideStyleTemplateId;
+            this.gutter.templateId = this.menuConfig.gutter.templateId;
+            this.gutter.overrideTemplateId = this.menuConfig.gutter.overrideTemplateId;
+            this.gutter.styleTemplateId = this.menuConfig.gutter.styleTemplateId;
+            this.gutter.overrideStyleTemplateId = this.menuConfig.gutter.overrideStyleTemplateId;
             this.root.appendChild(this.gutter);
         }
         if (this.styleTemplate) { 

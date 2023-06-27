@@ -83,8 +83,6 @@ let components = [
 let appDiv = document.createElement('div');
 appDiv.id = 'inner-app-div';
 appDiv.setAttribute('id', 'inner-app');
-appDiv.setAttribute('foo', 'bar');
-appDiv.foo = "baz";
 
 // First define them all so there's no dependency issues
 for (let component of components) {
