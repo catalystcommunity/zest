@@ -1,6 +1,6 @@
 import { BaseComponent } from "@catalystsquad/base-components";
 
-class MenuGutter extends BaseComponent {
+export default class MenuGutter extends BaseComponent {
     constructor(){
         super()
     }
