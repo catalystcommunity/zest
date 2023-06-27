@@ -46,7 +46,7 @@ menu-item.section-header img {
 }
 </style>`
 
-export class TwoTierMenu extends DataComponent {
+export default class TwoTierMenu extends DataComponent {
     menuconfig;
     gutter;
 
@@ -123,7 +123,7 @@ export class TwoTierMenu extends DataComponent {
     }
 }
 
-export class ShadowTwoTierMenu extends TwoTierMenu {
+class ShadowTwoTierMenu extends TwoTierMenu {
     shadow;
     constructor() {
         super();
@@ -134,3 +134,5 @@ export class ShadowTwoTierMenu extends TwoTierMenu {
         super.connectedCallback();
     }
 }
+
+export {TwoTierMenu, ShadowTwoTierMenu};
