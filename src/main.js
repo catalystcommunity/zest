@@ -20,11 +20,11 @@ AppGlobal[dataRegistryName].AddDataFunction('demoMenuDataFunc', function menuDat
       logo: {img: 'cslogo.png'},
       sections: [
         {
-          display: "Home Section",
+          display: "Demo Home",
           icon: "caldo.svg",
           link: "/home",
           items: [
-            {display: "Home Again", link: "/home/again"},
+            {display: "Home Item", link: "/home/again"},
             {display: "Item 2", icon: "icons8-open-source-150.png"},
             {display: "Item 3"}
           ]
@@ -72,13 +72,21 @@ AppGlobal[dataRegistryName].AddDataFunction('menuDataFunc', function menuDataFun
 })
 
 let components = [
-  {compTag: 'two-tier-menu', compClass: ShadowTwoTierMenu, styleClass: "demo", dataFunc: 'demoMenuDataFunc', styleOverride: 'demo-menu-styles'},
   {compTag: 'two-tier-menu', compClass: ShadowTwoTierMenu, dataFunc: 'menuDataFunc'},
   {compTag: 'menu-item', compClass: MenuItem},
   {compTag: 'menu-logo', compClass: MenuLogo},
   {compTag: 'menu-gutter-icon', compClass: MenuGutterIcon},
   {compTag: 'menu-gutter', compClass: MenuGutter},
 ]
+
+// We want this to be the menu, so we pull it out of the inner-app div
+// {compTag: 'two-tier-menu', compClass: ShadowTwoTierMenu, styleClass: "demo", dataFunc: 'demoMenuDataFunc', styleOverride: 'demo-menu-styles'},
+customElements.define('two-tier-menu', ShadowTwoTierMenu);
+let menu = new ShadowTwoTierMenu();
+menu.setAttribute('override-style-template-id', 'demo-menu-styles');
+menu.setAttribute('class', 'demo');
+menu.registryName = dataRegistryName;
+menu.dataRegisterFuncName = 'demoMenuDataFunc';
 
 let appDiv = document.createElement('div');
 appDiv.id = 'inner-app-div';
@@ -94,16 +102,22 @@ for (let component of components) {
 for (let component of components) {
   let theComponent = new component.compClass();
   if (component.styleOverride) {
-    theComponent.setAttribute('override-style-template-id', 'demo-menu-styles');
+    theComponent.setAttribute('override-style-template-id', component.styleOverride);
+  }
+  if (component.templateOverride) {
+    theComponent.setAttribute('override-template-id', component.templateOverride);
   }
   if (component.styleClass){
     theComponent.setAttribute("class", component.styleClass);
+  } else {
+    theComponent.setAttribute("class", component.compTag);
   }
   if (component.dataFunc) {
-    theComponent.registryName = dataRegistryName
+    theComponent.registryName = dataRegistryName;
     theComponent.dataRegisterFuncName = component.dataFunc;
   }
-  appDiv.appendChild(theComponent)
+  appDiv.appendChild(theComponent);
 }
 
-document.querySelector('#app').appendChild(appDiv)
+document.querySelector('#app').appendChild(menu);
+document.querySelector('#app').appendChild(appDiv);

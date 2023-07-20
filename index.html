@@ -5,6 +5,41 @@
     <link rel="icon" type="image/svg+xml" href="/caldo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zest Components Demo</title>
+    <style>
+      body {
+        overflow: hidden;
+        height: 100vh;
+      }
+      #app {
+        display: flex;
+        height: 100%;
+      }
+      #inner-app {
+        overflow-y: auto;
+      }
+      two-tier-menu.demo {
+        flex: 0 0 10%;
+      }
+      two-tier-menu:not(.demo) {
+        height: 60%;
+        width: 90%;
+        margin: 20px;
+      }
+
+
+
+      @media (max-width: 500px) {
+        .wrapper {
+          flex-direction: column-reverse;
+        }
+        ul {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        
+      }
+    </style>
   </head>
   <body>
     <template id="demo-menu-styles">
@@ -14,7 +49,6 @@
             flex-direction: column;
             justify-content: start;
             height: 100vh;
-            width: 15em;
             border-right: 1px solid #D7DBDD;
             font-family: sans-serif;
             background: #3224f4
@@ -36,7 +70,7 @@
             justify-content: start;
         }
         menu-item {
-          padding: 10px 20px;
+          padding: 10px 10px 0 50px;
           color: white;
           font-size: 20px;
         }
@@ -45,7 +79,10 @@
           width: 12em;
         }
         menu-item.section-header img {
-          width: 2em;
+          width: 10%;
+        }
+        .items .section-header, .items .section-header {
+          padding-left: 20px;
         }
         
         :host img {
