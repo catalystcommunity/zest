@@ -5,23 +5,29 @@ two-tier-menu, :host {
     display: flex;
     flex-direction: column;
     justify-content: start;
-    height: 100vh;
+    height: 130vh;
     width: 15em;
     border-right: 1px solid #D7DBDD;
     font-family: sans-serif;
-    background: #34495e
+    background: #34495e;
+    align-items: flex-end;
 }
 
 two-tier-menu .items, :host .items {
     flex-grow: 3;
 }
-        
+
+two-tier-menu .items .section-header, :host .items .section-header {
+    padding-left: 20px;
+}
+
 menu-logo {
   display: inline-block;
   padding: 10px 20px;
   color: white;
   font-size: 2em;
   margin: auto;
+  flex-grow: 1;
 }
 .items {
     display: flex;
@@ -41,6 +47,9 @@ menu-item.section-header img {
   width: 2em;
 }
 
+menu-gutter {
+    flex-grow: 1;
+}
 :host img {
   width: 2em;
 }
