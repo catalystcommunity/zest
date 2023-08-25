@@ -62,7 +62,7 @@ class BaseComponent extends HTMLElement {
         super();
         this.changeAttributes = [];
         this.template = `<div class="defbasecomp">Default BaseComponent Template</div>`;
-        this.styleTemplate = `.defbasecomp {display:none;}`;
+        this.styleTemplate = `<style>.defbasecomp {display:none;}</style>`;
         this.defaultTemplateId = 'defaultTemplateId';
         this.defaultStyleTemplateId = 'defaultStyleTemplateId';
         this.root = this;
@@ -136,7 +136,7 @@ class BaseComponent extends HTMLElement {
         var template = document.createElement('template');
         html = html.trim(); // Never return a text node of whitespace as the result
         template.innerHTML = html;
-        return template.content.firstChild;
+        return template.content;
     }
     // Something needs to generate the DOM tree of the component, so this is the suggested naming
     // since it follows a lot of actual frameworks it should be easiest to override this and keep compatible

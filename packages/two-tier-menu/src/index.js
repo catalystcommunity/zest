@@ -120,9 +120,7 @@ export default class TwoTierMenu extends DataComponent {
         if(this.menuConfig.gutter) {
             this.gutter = document.createElement('menu-gutter');
             // Only the behavior wanted is needed here
-            this.gutter.templateId = this.menuConfig.gutter.templateId;
             this.gutter.overrideTemplateId = this.menuConfig.gutter.overrideTemplateId;
-            this.gutter.styleTemplateId = this.menuConfig.gutter.styleTemplateId;
             this.gutter.overrideStyleTemplateId = this.menuConfig.gutter.overrideStyleTemplateId;
             this.root.appendChild(this.gutter);
         }

@@ -1,11 +1,11 @@
-# `MenuGutterIcon`
+# `DateTimePicker`
 
 > TODO: description
 
 ## Usage
 
 ```
-import MenuGutterIcon from 'menu-gutter-icon'
+import DateTimePicker from 'date-time-picker'
 
 // TODO: DEMONSTRATE API
 ```
