@@ -4,10 +4,10 @@ import './style.css';
 // import EventBroker from '@catalystsquad/event-broker'
 import BasicDataRegistry from '@catalystsquad/basic-data-registry';
 import {ShadowTwoTierMenu} from '@catalystsquad/two-tier-menu';
+import DateTimePicker from '@catalystsquad/date-time-picker';
 import MenuItem from '@catalystsquad/menu-item';
 import MenuLogo from '@catalystsquad/menu-logo';
 import MenuGutter from '@catalystsquad/menu-gutter';
-import MenuGutterIcon from '@catalystsquad/menu-gutter-icon';
 
 const dataRegistryName = 'appDataRegistry'
 
@@ -37,7 +37,10 @@ AppGlobal[dataRegistryName].AddDataFunction('demoMenuDataFunc', function menuDat
             {display: "Item 3", icon: "icons8-open-source-150.png"}
           ]
         }
-      ]
+      ],
+      gutter: {
+        overrideTemplateId: "demo-gutter"
+      }
     }
   }
 })
@@ -75,8 +78,8 @@ let components = [
   {compTag: 'two-tier-menu', compClass: ShadowTwoTierMenu, dataFunc: 'menuDataFunc'},
   {compTag: 'menu-item', compClass: MenuItem},
   {compTag: 'menu-logo', compClass: MenuLogo},
-  {compTag: 'menu-gutter-icon', compClass: MenuGutterIcon},
   {compTag: 'menu-gutter', compClass: MenuGutter},
+  {compTag: 'date-time-picker', compClass: DateTimePicker, label: "Date and/or Time Picker"},
 ]
 
 // We want this to be the menu, so we pull it out of the inner-app div
@@ -116,7 +119,14 @@ for (let component of components) {
     theComponent.registryName = dataRegistryName;
     theComponent.dataRegisterFuncName = component.dataFunc;
   }
-  appDiv.appendChild(theComponent);
+  if (component.label) {
+    let label = document.createElement("span");
+    label.innerHTML = component.label + ":";
+    appDiv.appendChild(label);
+  }
+  let compDiv = document.createElement('div');
+  compDiv.appendChild(theComponent);
+  appDiv.appendChild(compDiv);
 }
 
 document.querySelector('#app').appendChild(menu);

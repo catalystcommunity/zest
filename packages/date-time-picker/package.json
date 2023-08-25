@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/menu-gutter-icon",
+  "name": "@catalystsquad/date-time-picker",
   "version": "0.1.0",
-  "description": "MenuGutterIcon: Inital package config used. Update me! ",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-gutter-icon#readme",
+  "description": "DateTimePicker: Inital package config used. Update me! ",
+  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/date-time-picker#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
