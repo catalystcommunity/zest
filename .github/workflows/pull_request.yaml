@@ -59,8 +59,8 @@ jobs:
       - name: Test it all
         run: |
           echo "Testing umbrella package"
-          npm run build
           npm run build:packages
+          npm run build
           npm run test
           for i in ${{ steps.semver-tags.outputs.NEEDS_NPM }}
           do
