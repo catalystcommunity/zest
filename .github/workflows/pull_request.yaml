@@ -61,7 +61,7 @@ jobs:
           echo "Testing umbrella package"
           npm run build
           npm run build:packages
-          npm run test:packages
+          npm run test
           for i in ${{ steps.semver-tags.outputs.NEEDS_NPM }}
           do
             echo "Would publish $i"
