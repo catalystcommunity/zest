@@ -7,10 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run packages",
-    "test:watch": "vitest watch packages",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "build:packages": "npm run build --workspace=packages",
-    "test:packages": "vitest run packages"
+    "test:packages": "vitest run"
   },
   "repository": {
     "type": "git",
