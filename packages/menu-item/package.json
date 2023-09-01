@@ -1,7 +1,7 @@
 {
   "name": "@catalystsquad/menu-item",
   "version": "0.1.2",
-  "description": "MenuItem: Inital package config used. Update me! ",
+  "description": "MenuItem: Semantic way of adding entries to a Zest menu.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-item#readme",
   "main": "src/index.js",
   "type": "module",
