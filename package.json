@@ -48,5 +48,8 @@
     "@catalystsquad/menu-logo": ">=0.1.1 <1.0.0",
     "@catalystsquad/simple-router": ">=0.1.2 <1.0.0",
     "@catalystsquad/two-tier-menu": ">=0.1.0 <1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
