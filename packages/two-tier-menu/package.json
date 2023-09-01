@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/two-tier-menu",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "TwoTierMenu: A semantic way of treating a menu as an isolated component usable anywhere.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/two-tier-menu#readme",
   "main": "src/index.js",
