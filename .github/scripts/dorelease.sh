@@ -20,14 +20,13 @@ usage() {
 fullrun() {
   # Build the semver-tags command based on inputs
   COMMAND_STRING="./semver-tags run " # --github_action "
-  if [[ "${DRYRUN}" == "true" ]]; then
-    COMMAND_STRING+="--dry_run "
-  fi
+  COMMAND_STRING+="--directories ./ "
 
   # This just adds all the package directories to the flags
   for dir in packages/*; do COMMAND_STRING+="--directories ${dir} "; done
 
-  RESULT=$($COMMAND_STRING)
+  # We do a dry run first because we don't want tags to happen before we've modified json files accordingly
+  RESULT=$("$COMMAND_STRING --dry_run ")
 
   # Parse the results out to get the versions we need to update and the release notes
   PUBLISHED=$(yq -P ".New_release_published" <<< $RESULT)
@@ -46,6 +45,8 @@ fullrun() {
     echo "Ignoring release notes since this is a dry run"
   else
     printf "$JSON_RELEASE_NOTES" > "release_notes/${RUNDATE}-release-notes.json"
+    git add release_notes
+    git commit -m "ci: adding release_notes/${RUNDATE}-release-notes.json"
   fi
 
   # We need to know what packages to actually publish to NPM
@@ -83,6 +84,7 @@ fullrun() {
   if [[ "${DRYRUN}" == "true" ]]; then
     echo "Would git push here"
   else
+    RESULT=$("$COMMAND_STRING --dry_run ")
     git push
   fi
 }
