@@ -7,6 +7,7 @@ THISSCRIPT=$(basename $0)
 PACKAGE_BASE="packages"
 PACKAGE_DIR="${PACKAGE_BASE}/"
 DRYRUN="false"
+ROOT_PACKAGE_NAME="zest"
 
 GITHUB_OUTPUT=${GITHUB_OUTPUT:-$(mktemp)}
 
@@ -64,12 +65,10 @@ fullrun() {
     NEW_VERSION=${NEW_TAG#*v}
     PROJBASE="${PACKAGE_DIR}${DIR}"
     echo "Will look at $PROJBASE as a projbase, and $DIR as a dir"
-    if [[ "${DIR}" == "zest" ]]; then
-      NEEDS_NPM+="./ "
-      PROJBASE="./"
-    else
-      NEEDS_NPM+="${PACKAGE_DIR}${DIR} "
+    if [[ "${DIR}" == "${ROOT_PACKAGE_NAME}" ]]; then
+      PROJBASE="."
     fi
+    NEEDS_NPM+="${PROJBASE} "
     
     # Now update all the things
     # We use the "ci:" prefix because it doesn't count as a version bump
