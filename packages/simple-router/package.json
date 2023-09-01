@@ -1,7 +1,7 @@
 {
   "name": "@catalystsquad/simple-router",
   "version": "0.2.3",
-  "description": "SimpleRouter: When you don't need much from a router, which most of us don't.",
+  "description": "SimpleRouter: When you don't need much from a router, which most of us really don't.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
   "main": "src/index.js",
   "type": "module",

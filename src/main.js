@@ -1,13 +1,29 @@
 const AppGlobal = window;
 import './style.css';
 
-// import EventBroker from '@catalystsquad/event-broker'
+import {ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent} from '@catalystsquad/base-components';
 import BasicDataRegistry from '@catalystsquad/basic-data-registry';
-import {ShadowTwoTierMenu} from '@catalystsquad/two-tier-menu';
-import DateTimePicker from '@catalystsquad/date-time-picker';
-import MenuItem from '@catalystsquad/menu-item';
-import MenuLogo from '@catalystsquad/menu-logo';
-import MenuGutter from '@catalystsquad/menu-gutter';
+import BasicDataService from '@catalystsquad/basic-data-service';
+import {DateTimePicker, ShadowDateTimePicker} from '@catalystsquad/date-time-picker';
+import EventBroker from '@catalystsquad/event-broker';
+import {MenuGutter, ShadowMenuGutter} from '@catalystsquad/menu-gutter';
+import {MenuItem, ShadowMenuItem} from '@catalystsquad/menu-item';
+import {MenuLogo, ShadowMenuLogo} from '@catalystsquad/menu-logo';
+import SimpleRouter from '@catalystsquad/simple-router';
+import {TwoTierMenu, ShadowTwoTierMenu} from '@catalystsquad/two-tier-menu';
+
+export { 
+  ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent,
+  BasicDataRegistry,
+  BasicDataService,
+  DateTimePicker, ShadowDateTimePicker,
+  EventBroker,
+  MenuGutter, ShadowMenuGutter,
+  MenuItem, ShadowMenuItem,
+  MenuLogo, ShadowMenuLogo,
+  TwoTierMenu, ShadowTwoTierMenu,
+  SimpleRouter,
+}
 
 const dataRegistryName = 'appDataRegistry'
 
@@ -131,3 +147,4 @@ for (let component of components) {
 
 document.querySelector('#app').appendChild(menu);
 document.querySelector('#app').appendChild(appDiv);
+

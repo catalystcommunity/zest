@@ -1,7 +1,7 @@
 {
   "name": "@catalystsquad/menu-logo",
   "version": "0.1.3",
-  "description": "MenuLogo: The best way to add a top level item in a Zest menu where the logo goes.",
+  "description": "MenuLogo: A convenient way to add a top level item in a Zest menu where the logo goes.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-logo#readme",
   "main": "src/index.js",
   "type": "module",
