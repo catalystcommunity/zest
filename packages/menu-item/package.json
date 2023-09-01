@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/menu-item",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MenuItem: Semantic way of adding entries to a Zest menu.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-item#readme",
   "main": "src/index.js",
