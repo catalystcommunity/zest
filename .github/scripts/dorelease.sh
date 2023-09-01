@@ -84,7 +84,7 @@ fullrun() {
   if [[ "${DRYRUN}" == "true" ]]; then
     echo "Would git push here"
   else
-    RESULT=$("$COMMAND_STRING --dry_run ")
+    RESULT=$($COMMAND_STRING)
     git push
   fi
 }
