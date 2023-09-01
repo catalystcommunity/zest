@@ -80,7 +80,7 @@ fullrun() {
       echo " > git commit -m \"ci: adding version ${NEW_TAG} to $PROJBASE/package.json\""
     else
       echo "Changing version $LAST_VERSION to $NEW_VERSION in $PROJBASE/package.json"
-      sed -i.bak "s/$LAST_VERSION/$NEW_VERSION/" "PROJBASE/package.json"
+      sed -i.bak "s/$LAST_VERSION/$NEW_VERSION/" "$PROJBASE/package.json"
       rm -rf "$PROJBASE/package.json.bak"
       git add "$PROJBASE/package.json"
       git commit -m "ci: adding version ${NEW_TAG} to $PROJBASE/package.json"
