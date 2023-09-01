@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/menu-gutter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MenuGutter: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-gutter#readme",
   "main": "src/index.js",
@@ -33,6 +33,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@catalystsquad/base-components": ">=0.2.0 <1.0.0"
+    "@catalystsquad/base-components": ">=0.2.1 <1.0.0"
   }
 }
