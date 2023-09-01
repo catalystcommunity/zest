@@ -2,11 +2,17 @@ name: Release
 
 on:
   pull_request:
+    branches:
+      - main
     types:
       - closed
+    paths:
+      - 'src/*'
+      - 'packages/**'
+      - 'package.json'
 jobs:
   release:
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

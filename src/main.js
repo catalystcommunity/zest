@@ -24,7 +24,7 @@ AppGlobal[dataRegistryName].AddDataFunction('demoMenuDataFunc', function menuDat
           icon: "caldo.svg",
           link: "/home",
           items: [
-            {display: "Home Item", link: "/home/again"},
+            {display: "Home A1", link: "/home/again"},
             {display: "Section A2", icon: "icons8-open-source-150.png"},
             {display: "Section A3"}
           ]
