@@ -19,7 +19,8 @@
   "keywords": [
     "webcomponents",
     "vanilla",
-    "minimalist"
+    "minimalist",
+    "agnostic"
   ],
   "author": "Catalyst Squad <opensource@catalystsquad.com>",
   "license": "Apache-2.0",
