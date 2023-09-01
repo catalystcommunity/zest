@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/menu-item",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MenuItem: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-item#readme",
   "main": "src/index.js",
