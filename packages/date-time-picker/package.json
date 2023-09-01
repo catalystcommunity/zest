@@ -1,7 +1,7 @@
 {
   "name": "@catalystsquad/date-time-picker",
   "version": "0.2.2",
-  "description": "DateTimePicker: The last Date, Time, or DateTime Picker we will ever use.",
+  "description": "DateTimePicker: The last Date, Time, or DateTime Picker we will ever use in web UI.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/date-time-picker#readme",
   "main": "src/index.js",
   "type": "module",
