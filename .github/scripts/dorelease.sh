@@ -62,7 +62,13 @@ fullrun() {
     IFS='/' read -r DIR NEW_TAG <<< ${NEW_TAGS_ARRAY[i]}
     LAST_VERSION=${LAST_TAGS_ARRAY[i]}
     NEW_VERSION=${NEW_TAG#*v}
-    NEEDS_NPM+="${PACKAGE_DIR}${DIR} "
+    PROJBASE="${PACKAGE_DIR}${DIR}"
+    if [[ "${DIR}" == "zest" ]]; then
+      NEEDS_NPM+="./ "
+      PROJBASE="./"
+    else
+      NEEDS_NPM+="${PACKAGE_DIR}${DIR} "
+    fi
     
     # Now update all the things
     # We use the "ci:" prefix because it doesn't count as a version bump

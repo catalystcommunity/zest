@@ -25,8 +25,8 @@ AppGlobal[dataRegistryName].AddDataFunction('demoMenuDataFunc', function menuDat
           link: "/home",
           items: [
             {display: "Home Item", link: "/home/again"},
-            {display: "Section 2", icon: "icons8-open-source-150.png"},
-            {display: "Section 3"}
+            {display: "Section A2", icon: "icons8-open-source-150.png"},
+            {display: "Section A3"}
           ]
         },
         {
