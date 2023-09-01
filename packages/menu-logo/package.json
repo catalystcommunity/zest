@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/menu-logo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MenuLogo: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-logo#readme",
   "main": "src/index.js",
