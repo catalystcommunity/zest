@@ -74,16 +74,16 @@ fullrun() {
     # We use the "ci:" prefix because it doesn't count as a version bump
     # but we do need to tag all these and commit the changes. We could break this up to a second loop I guess.
     if [[ "${DRYRUN}" == "true" ]]; then
-      echo "Would be changing version $LAST_VERSION to $NEW_VERSION in $PACKAGE_DIR$DIR/package.json"
+      echo "Would be changing version $LAST_VERSION to $NEW_VERSION in $PROJBASE/package.json"
       echo "Would run :"
-      echo " > git add \"$PACKAGE_DIR$DIR/package.json\""
-      echo " > git commit -m \"ci: adding version ${NEW_TAG} to $PACKAGE_DIR$DIR/package.json\""
+      echo " > git add \"$PROJBASE/package.json\""
+      echo " > git commit -m \"ci: adding version ${NEW_TAG} to $PROJBASE/package.json\""
     else
-      echo "Changing version $LAST_VERSION to $NEW_VERSION in $PACKAGE_DIR$DIR/package.json"
-      sed -i.bak "s/$LAST_VERSION/$NEW_VERSION/" "$PACKAGE_DIR$DIR/package.json"
-      rm -rf "$PACKAGE_DIR$DIR/package.json.bak"
-      git add "$PACKAGE_DIR$DIR/package.json"
-      git commit -m "ci: adding version ${NEW_TAG} to $PACKAGE_DIR$DIR/package.json"
+      echo "Changing version $LAST_VERSION to $NEW_VERSION in $PROJBASE/package.json"
+      sed -i.bak "s/$LAST_VERSION/$NEW_VERSION/" "PROJBASE/package.json"
+      rm -rf "$PROJBASE/package.json.bak"
+      git add "$PROJBASE/package.json"
+      git commit -m "ci: adding version ${NEW_TAG} to $PROJBASE/package.json"
     fi
   done
   echo "NEEDS_NPM=${NEEDS_NPM}" >> $GITHUB_OUTPUT
