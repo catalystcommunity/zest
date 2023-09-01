@@ -26,7 +26,8 @@ fullrun() {
   for dir in packages/*; do COMMAND_STRING+="--directories ${dir} "; done
 
   # We do a dry run first because we don't want tags to happen before we've modified json files accordingly
-  RESULT=$("$COMMAND_STRING --dry_run ")
+  COMMAND_DRY="${COMMAND_STRING} --dry_run "
+  RESULT=$($COMMAND_DRY)
 
   # Parse the results out to get the versions we need to update and the release notes
   PUBLISHED=$(yq -P ".New_release_published" <<< $RESULT)
