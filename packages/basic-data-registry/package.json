@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/basic-data-registry",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "BasicDataRegistry: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/basic-data-registry#readme",
   "main": "src/index.js",
