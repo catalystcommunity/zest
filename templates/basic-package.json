@@ -33,6 +33,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@catalystsquad/base-components": "^0.1.0"
+    "@catalystsquad/base-components": ">=0.1.0 <1.0.0"
   }
 }
