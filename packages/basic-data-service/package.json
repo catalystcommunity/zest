@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/basic-data-service",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "BasicDataService: Inital package config used. Update me! ",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/basic-data-service#readme",
   "main": "src/index.js",
