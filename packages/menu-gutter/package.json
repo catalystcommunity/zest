@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/menu-gutter",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "MenuGutter: Container for items that go in the bottom of a Zest menu.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-gutter#readme",
   "main": "src/index.js",
