@@ -64,7 +64,6 @@ fullrun() {
     LAST_VERSION=${LAST_TAGS_ARRAY[i]}
     NEW_VERSION=${NEW_TAG#*v}
     PROJBASE="${PACKAGE_DIR}${DIR}"
-    echo "Will look at $PROJBASE as a projbase, and $DIR as a dir"
     if [[ "${DIR}" == "${ROOT_PACKAGE_NAME}" ]]; then
       PROJBASE="."
     fi
