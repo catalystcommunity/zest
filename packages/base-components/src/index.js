@@ -36,6 +36,17 @@ function getTemplate(templateId) {
 function camelize(s) { return s.replace(/-./g, x=>x[1].toUpperCase()) }
 function kebabize(s) { return s.replace(/[A-Z]+(?![a-z])|[A-Z]/g, (x, ofs) => (ofs ? "-" : "") + x.toLowerCase()) }
 
+// A function to simplify cleanup since Javascript doesn't have destructors. It will
+// simply check if a cleanup function exists, and call it if there is.
+function CheckCleanupCall(thing){
+    if ((typeof thing === "function" || typeof thing === "object") 
+        && thing['cleanup'] 
+        && typeof thing['cleanup'] === "function") {
+
+        thing.cleanup();
+    }
+}
+
 // Give us some of the basic functionality to reduce boilerplate
 class BaseComponent extends HTMLElement {
     // Attributes that we observe
@@ -243,4 +254,4 @@ class OpenShadowDataComponent extends DataComponent {
     }
 }
 
-export { ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent }
+export { ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent, CheckCleanupCall }
