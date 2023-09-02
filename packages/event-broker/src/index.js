@@ -10,6 +10,14 @@ export default class EventBroker {
             removed: 0,
         };
     }
+    cleanup(){
+        for(const [eventName, subs] of this.events){
+            for(const [_, callback] of subs){
+                document.removeEventListener(eventName, callback)
+            }
+        }
+        this.events = new Map();
+    }
 
     SubscribeEvent(eventName, subscriber, callback) {
         if(typeof eventName !== "string" || typeof subscriber !== "string" || typeof callback !== "function"){
