@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/event-broker",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "EventBroker: Meant to be an in-browser basic pub-sub using custom events.",
   "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/event-broker#readme",
   "main": "src/index.js",
