@@ -46,11 +46,11 @@ export default class SimpleRouter {
         this.defaultRoute();
     }
     urlChangeRouter() {
-        sendChangedEvent(this.getRouteData(), {}, 'urlchange');
+        this.sendChangedEvent(this.getRouteData(), {}, 'urlchange');
         this.route('urlchange');
     };
     popstateRouter(e) {
-        sendChangedEvent(this.getRouteData(), e.state, 'popstate');
+        this.sendChangedEvent(this.getRouteData(), e.state, 'popstate');
         this.route('popstate');
     };
     sendChangedEvent(routeData, state = {}, changeType = "unknown") {
