@@ -1,6 +1,6 @@
 {
   "name": "@catalystsquad/zest",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Library of separated standard web-components, tools, and helper libs for everywhere to enjoy, even in frameworks if preferred.",
   "type": "module",
   "scripts": {
