@@ -1,6 +1,7 @@
-import { BaseComponent } from "@catalystsquad/base-components";
+import { BaseComponent } from "@catalystcommunity/base-components";
 
 export default class MenuItem extends BaseComponent {
+    static changeAttributes = ['href', 'display', 'icon'];
     href;
     display;
     icon;
@@ -11,6 +12,9 @@ export default class MenuItem extends BaseComponent {
         this.display = null;
         this.icon = null;
         this.styleTemplate = null;
+    }
+    postObservedAttributeChange() {
+        if (this.isConnected) { this.render(); }
     }
     connectedCallback(){
         super.connectedCallback();
@@ -29,12 +33,12 @@ export default class MenuItem extends BaseComponent {
         if (this.icon) {
             let img = document.createElement('img');
             img.setAttribute('src', this.icon);
-            img.setAttribute('alt',  'Icon for ' + this.display);
+            img.setAttribute('alt', this.display ? 'Icon for ' + this.display : 'Icon');
             coreNode.appendChild(img);
         }
         let textSpan = document.createElement('span');
         textSpan.setAttribute('class', 'display');
-        textSpan.innerHTML = this.display;
+        textSpan.textContent = this.display;
         coreNode.appendChild(textSpan);
         if (this.styleTemplate) {
             this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));

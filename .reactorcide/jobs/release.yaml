@@ -1,0 +1,21 @@
+name: zest-release
+description: "Compute the next version of each package from the commits, tag them, and stage them on npm."
+job:
+  image: containers.catalystsquad.com/public/reactorcide/runnerbase:latest
+  command: "runnerlib run --job-command true"
+  timeout: 1800
+  priority: 20
+  working_dir: /job
+  resources:
+    cpu:
+      request: "1"
+      limit: "2"
+    memory:
+      limit: "2Gi"
+  # A secret-bearing job must not run on a developer machine, where a secret
+  # reference would resolve against whatever is lying around.
+  disable_run_local: true
+environment:
+  ZEST_JOB: release
+  GITHUB_PAT: "${secret:catalystcommunity/ci:githubpat}"
+  NPM_TOKEN: "${secret:catalystcommunity/ci:npmpublish}"

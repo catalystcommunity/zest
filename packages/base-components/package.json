@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/base-components",
+  "name": "@catalystcommunity/base-components",
   "version": "0.2.3",
   "description": "BaseComponents: core components for other Zest style web components.",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/base-components#readme",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/base-components#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -19,15 +19,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catalystsquad/zest.git"
+    "url": "git+https://github.com/catalystcommunity/zest.git"
   },
   "keywords": [
     "ignore"
   ],
-  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/catalystsquad/zest/issues"
+    "url": "https://github.com/catalystcommunity/zest/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -14,14 +14,15 @@ if [ -z "$1" ]; then
     exit 0
 fi
 
-if [ -e "$1" ]; then
-    echo "Can't create $1 as it already exists"
-fi
-
 PACKAGE_BASE="packages"
 KEBABED=$(echo "$1" | sed 's/\([A-Z]\)/-\L\1/g;s/^-//')
 ASTYPED=$1
 PACKAGE_DIR="${PACKAGE_BASE}/${KEBABED}"
+
+if [ -e "${PACKAGE_DIR}" ]; then
+    echo "Can't create ${PACKAGE_DIR} as it already exists"
+    exit 1
+fi
 
 mkdir ${PACKAGE_DIR}
 
@@ -48,3 +49,9 @@ rm -rf "${PACKAGE_DIR}"/*.bak
 rm -f "${PACKAGE_DIR}"/src/*.bak
 rm -f "${PACKAGE_DIR}"/__tests__/*.bak
 
+echo "Created ${PACKAGE_DIR}. To finish:"
+echo "  1. Run: npm install"
+echo "  2. Export it from src/index.js, and add it to the dependencies in the root package.json."
+echo "  3. Add a section for it to demo/gallery.js."
+echo "npm test and npm run test:e2e fail until you do steps 2 and 3."
+echo "A maintainer publishes a new package one time, by hand: ./tools.sh release first-publish"

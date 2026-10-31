@@ -5,7 +5,7 @@
 ## Usage
 
 ```
-import REPLACEME from 'KEBABME'
+import REPLACEME from '@catalystcommunity/KEBABME'
 
 // TODO: DEMONSTRATE API
 ```

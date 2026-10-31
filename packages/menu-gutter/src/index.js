@@ -1,4 +1,4 @@
-import { BaseComponent } from "@catalystsquad/base-components";
+import { BaseComponent } from "@catalystcommunity/base-components";
 
 const defaultStyles = `<style>
 menu-gutter, :host {

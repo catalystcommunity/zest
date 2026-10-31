@@ -1,0 +1,30 @@
+# The ID is this workflow's security identity, and a secret grant matches on the
+# workflow node name inside it. Keep both stable.
+id: zest-release
+name: Zest Release
+description: "On a merge to main: run each check, then tag and stage each package that the commits release."
+
+on:
+  events:
+    - pull_request_merged
+  branches:
+    - main
+
+# The release job is the one place where CI writes to the source tree. Nothing is
+# tagged or staged until each check passes.
+jobs:
+  zest-test:
+    job_file: test.yaml
+
+  zest-test-e2e:
+    job_file: test-e2e.yaml
+
+  zest-audit:
+    job_file: audit.yaml
+
+  zest-release:
+    job_file: release.yaml
+    depends_on:
+      - zest-test
+      - zest-test-e2e
+      - zest-audit

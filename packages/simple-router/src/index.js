@@ -1,3 +1,23 @@
+// A path with a leading slash and no trailing slash, so that paths compare the same way
+function normalizePath(path) {
+    let normalized = path.startsWith('/') ? path : '/' + path;
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+        normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+}
+
+// A route matches its own path and the paths under it, on whole segments. So /home matches
+// /home/again but not /homepage, and the root route matches only the root.
+function pathMatches(currentPath, routePath) {
+    const current = normalizePath(currentPath);
+    const route = normalizePath(routePath);
+    if (route === '/') {
+        return current === '/';
+    }
+    return current === route || current.startsWith(route + '/');
+}
+
 export default class SimpleRouter {
     // The routes we have to functions we wish to call
     routes;
@@ -6,52 +26,77 @@ export default class SimpleRouter {
     // Things that map to the same route, so maybe / and /home are the same
     routeEquivalents;
     // Location provider should be window.location but let it be set afterward for testing
-    locationProvider
+    locationProvider;
+    // Sends the url-changed event. By default it goes on the document, where an EventBroker
+    // subscriber hears it. Replace this to send it somewhere else.
+    eventSender;
+    // The last URL that a browser event routed, because a hash navigation fires popstate and hashchange
+    #lastEventHref;
 
     constructor(){
         this.routes = new Map();
         this.defaultRoute = function(){};
         this.routeEquivalents = new Map();
         this.locationProvider = window;
+        this.eventSender = (name, detail) => {
+            document.dispatchEvent(new CustomEvent(name, {detail: detail}));
+        };
+        // The browser calls these with no "this", and cleanup needs the same function references
+        this.urlChangeRouter = this.urlChangeRouter.bind(this);
+        this.hashChangeRouter = this.hashChangeRouter.bind(this);
+        this.popstateRouter = this.popstateRouter.bind(this);
         window.addEventListener('load', this.urlChangeRouter);
-        window.addEventListener('hashchange', this.urlChangeRouter);
+        window.addEventListener('hashchange', this.hashChangeRouter);
         window.addEventListener('popstate', this.popstateRouter);
     }
     cleanup(){
-        window.removeEventListener('load', this.router);
-        window.removeEventListener('hashchange', this.router);
+        window.removeEventListener('load', this.urlChangeRouter);
+        window.removeEventListener('hashchange', this.hashChangeRouter);
         window.removeEventListener('popstate', this.popstateRouter);
     }
 
     // The actual router, get the current URL and generate the corresponding template
-    route(changeType) {
+    route(changeType, state) {
         if(!changeType) { changeType = 'direct';}
-        let routeData = this.getRouteData();
-        for(const [path, renderFunc] of this.routes){
-            let found = routeData.path.indexOf(path);
-            // We found the path, call the renderFunc with the data and changetype
-            if(found == 0 || found == 1) {
-                renderFunc(this.getRouteData(), undefined, changeType);
-                return;
-            }
-            // Look for equivalents
-            for(const [_, mainpath] of this.routeEquivalents){
-                if(path == mainpath) {
-                    renderFunc(this.getRouteData(), undefined, changeType);
-                    return;
-                }
-            }
-        }
+        const routeData = this.getRouteData();
+        const renderFunc = this.findRoute(routeData.path);
         // No registered route is found, so render the default, which by default is a no-op of course
-        this.defaultRoute();
+        (renderFunc || this.defaultRoute)(routeData, state, changeType);
+    }
+    // The render function for a path. The longest match wins, so registration order does not matter.
+    findRoute(path) {
+        let best = null;
+        let bestLength = -1;
+        const consider = (routePath, mainPath) => {
+            if (pathMatches(path, routePath) && routePath.length > bestLength && this.routes.has(mainPath)) {
+                best = this.routes.get(mainPath);
+                bestLength = routePath.length;
+            }
+        };
+        for(const routePath of this.routes.keys()) {
+            consider(routePath, routePath);
+        }
+        for(const [other, mainPath] of this.routeEquivalents) {
+            consider(other, mainPath);
+        }
+        return best;
     }
     urlChangeRouter() {
+        this.#lastEventHref = this.locationProvider.location.href;
         this.sendChangedEvent(this.getRouteData(), {}, 'urlchange');
-        this.route('urlchange');
+        this.route('urlchange', {});
+    };
+    hashChangeRouter() {
+        if (this.locationProvider.location.href === this.#lastEventHref) {
+            return;
+        }
+        this.urlChangeRouter();
     };
     popstateRouter(e) {
-        this.sendChangedEvent(this.getRouteData(), e.state, 'popstate');
-        this.route('popstate');
+        const state = e.state ?? {};
+        this.#lastEventHref = this.locationProvider.location.href;
+        this.sendChangedEvent(this.getRouteData(), state, 'popstate');
+        this.route('popstate', state);
     };
     sendChangedEvent(routeData, state = {}, changeType = "unknown") {
         this.eventSender('url-changed', {routeData: routeData, state: state, changeType: changeType});
@@ -60,7 +105,7 @@ export default class SimpleRouter {
     // The path needs to be including the /
     registerRoute(path, renderFunc, otherPaths = [], isdefault = false) {
         if(typeof renderFunc !== "function") {
-            throw new Error('Passed renderFunc to registerRoute that is not a function: ', renderFunc);
+            throw new Error(`Passed renderFunc to registerRoute that is not a function: ${renderFunc}`);
         }
         this.routes.set(path, renderFunc);
         for(const other of otherPaths) {
@@ -77,11 +122,11 @@ export default class SimpleRouter {
             foundFunc = this.routes.get(path);
             this.routes.delete(path);
         }
-        this.routeEquivalents.forEach((other, route) => { console.log('other:', other, 'route:', route)
-            if (route === path) {
+        for(const [other, mainPath] of this.routeEquivalents) {
+            if (mainPath === path) {
                 this.routeEquivalents.delete(other);
             }
-        });
+        }
         // If we're taking out the route that is default, we should set the defaultRoute to a no-op
         if (foundFunc === this.defaultRoute) {
             this.defaultRoute = function(){};
@@ -106,14 +151,25 @@ export default class SimpleRouter {
     }
 
     changePage(path, state = {}) {
-        let firstPath = url.split('/')[1]
-        if (routeEquivalents.has(firstPath)) {
-          url = url.replace(firstPath, routeEquivalents.get(firstPath) || firstPath);
-        }
-        this.locationProvider.history.pushState(state, "", path);
-        sendChangedEvent(this.locationProvider.location.pathname, state);
+        const target = this.mainPathFor(path);
+        this.locationProvider.history.pushState(state, "", target);
+        this.#lastEventHref = this.locationProvider.location.href;
+        this.sendChangedEvent(this.getRouteData(), state, 'pushstate');
+        this.route('pushstate', state);
     };
-      
+    // Write an equivalent path as its main path, and keep what follows it
+    mainPathFor(path) {
+        const pathEnd = path.search(/[?#]/);
+        const pathOnly = pathEnd === -1 ? path : path.slice(0, pathEnd);
+        const rest = pathEnd === -1 ? '' : path.slice(pathEnd);
+        for(const [other, mainPath] of this.routeEquivalents) {
+            if (pathMatches(pathOnly, other)) {
+                return mainPath + normalizePath(pathOnly).slice(normalizePath(other).length) + rest;
+            }
+        }
+        return path;
+    }
+
     getRouteData() {
         const url = new URL(this.locationProvider.location.href);
         const params = new Map();

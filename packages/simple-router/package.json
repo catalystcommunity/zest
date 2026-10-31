@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/simple-router",
+  "name": "@catalystcommunity/simple-router",
   "version": "0.3.1",
   "description": "SimpleRouter: When you don't need much from a router, which most of us really don't.",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/simple-router#readme",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/simple-router#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -19,15 +19,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catalystsquad/zest.git"
+    "url": "git+https://github.com/catalystcommunity/zest.git"
   },
   "keywords": [
     "ignore"
   ],
-  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/catalystsquad/zest/issues"
+    "url": "https://github.com/catalystcommunity/zest/issues"
   },
   "publishConfig": {
     "access": "public"

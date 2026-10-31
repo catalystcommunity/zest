@@ -14,6 +14,8 @@ export default class EventBroker {
         for(const [eventName, subs] of this.events){
             for(const [_, callback] of subs){
                 document.removeEventListener(eventName, callback)
+                this.subscriberStats.count--;
+                this.subscriberStats.removed++;
             }
         }
         this.events = new Map();
@@ -29,6 +31,8 @@ export default class EventBroker {
         if (this.events.get(eventName) === undefined || this.events.get(eventName) === null) {
             this.events.set(eventName, new Map());
         }
+        // A subscriber has one callback for an event, so a repeated subscribe replaces the old one
+        this.UnsubscribeEvent(eventName, subscriber);
         this.events.get(eventName).set(subscriber, handler);
         this.subscriberStats.count++;
         this.subscriberStats.added++;
@@ -39,10 +43,8 @@ export default class EventBroker {
         if(typeof eventName !== "string" || typeof subscriber !== "string"){
             throw new Error(`UnsubscribeEvent failed because of bad inputs. eventName: ${eventName}, subscriber: ${subscriber}`);
         }
-        let callback = this.events.get(eventName).get(subscriber);
+        let callback = this.events.get(eventName)?.get(subscriber);
         if (callback) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           document.removeEventListener(eventName, callback);
           this.events.get(eventName).delete(subscriber);
           this.subscriberStats.count--;

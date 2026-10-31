@@ -1,0 +1,21 @@
+# The ID is this workflow's security identity, and a secret grant matches on the
+# workflow node name inside it. Keep both stable.
+id: zest-main
+name: Zest Main
+description: "Check the merged result of a direct push to main. The release workflow publishes."
+
+on:
+  events:
+    - push
+  branches:
+    - main
+
+jobs:
+  zest-test:
+    job_file: test.yaml
+
+  zest-test-e2e:
+    job_file: test-e2e.yaml
+
+  zest-audit:
+    job_file: audit.yaml

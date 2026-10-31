@@ -1,0 +1,25 @@
+# The ID is this workflow's security identity, and a secret grant matches on the
+# workflow node name inside it. Keep both stable.
+id: zest-pr
+name: Zest PR
+description: "Check a pull request. Nothing here needs a secret."
+
+on:
+  events:
+    - pull_request_opened
+    - pull_request_updated
+  branches:
+    - main
+
+jobs:
+  zest-conventional-commits:
+    job_file: conventional-commits.yaml
+
+  zest-test:
+    job_file: test.yaml
+
+  zest-test-e2e:
+    job_file: test-e2e.yaml
+
+  zest-audit:
+    job_file: audit.yaml

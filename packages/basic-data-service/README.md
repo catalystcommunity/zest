@@ -1,11 +1,12 @@
 # `BasicDataService`
 
-> TODO: description
+A minimal holder of encapsulated data, so that components do not hold state.
 
 ## Usage
 
-```
-import BasicDataService from 'basic-data-service'
+```js
+import BasicDataService from '@catalystcommunity/basic-data-service';
 
-// TODO: DEMONSTRATE API
+const service = new BasicDataService();
+service.data.count = 1;
 ```

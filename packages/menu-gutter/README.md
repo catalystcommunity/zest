@@ -1,11 +1,16 @@
 # `MenuGutter`
 
-> TODO: description
+A container for items at the bottom of a Zest menu.
 
 ## Usage
 
-```
-import MenuGutter from 'menu-gutter'
+```js
+import { MenuGutter, ShadowMenuGutter } from '@catalystcommunity/menu-gutter';
 
-// TODO: DEMONSTRATE API
+customElements.define('menu-gutter', MenuGutter);
+```
+
+```html
+<template id="my-gutter"><span>&copy; Me</span></template>
+<menu-gutter override-template-id="my-gutter"></menu-gutter>
 ```
