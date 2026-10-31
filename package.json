@@ -1,20 +1,29 @@
 {
-  "name": "@catalystsquad/zest",
+  "name": "@catalystcommunity/zest",
   "version": "0.3.9",
   "description": "Library of separated standard web-components, tools, and helper libs for everywhere to enjoy, even in frameworks if preferred.",
   "type": "module",
+  "main": "src/index.js",
+  "files": [
+    "src/index.js"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite build && vite preview",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "build:packages": "npm run build --workspace=packages",
-    "test:packages": "vitest run"
+    "test:e2e": "playwright test",
+    "test:e2e:browsers": "ZEST_E2E_BROWSERS=chromium,firefox,webkit playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm test && npm run test:e2e",
+    "build:packages": "npm run build --workspaces",
+    "e2e:install": "playwright install chromium"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catalystsquad/zest.git"
+    "url": "git+https://github.com/catalystcommunity/zest.git"
   },
   "keywords": [
     "webcomponents",
@@ -22,33 +31,34 @@
     "minimalist",
     "agnostic"
   ],
-  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/catalystsquad/zest/issues"
+    "url": "https://github.com/catalystcommunity/zest/issues"
   },
   "workspaces": [
     "packages/*"
   ],
-  "homepage": "https://github.com/catalystsquad/zest#README.md",
+  "homepage": "https://github.com/catalystcommunity/zest#README.md",
   "devDependencies": {
-    "@vitejs/plugin-basic-ssl": "^2.0.0",
-    "happy-dom": "^20.8.9",
-    "jsdom": "^26.1.0",
-    "vite": "^6.4.2",
-    "vitest": "^3.2.6"
+    "@playwright/test": "^1.64.1",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "happy-dom": "^21.0.4",
+    "jsdom": "^30.1.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
-    "@catalystsquad/base-components": ">=0.1.0 <1.0.0",
-    "@catalystsquad/basic-data-registry": ">=0.1.1 <1.0.0",
-    "@catalystsquad/basic-data-service": ">=0.1.0 <1.0.0",
-    "@catalystsquad/date-time-picker": ">=0.1.0 <1.0.0",
-    "@catalystsquad/event-broker": ">=0.1.0 <1.0.0",
-    "@catalystsquad/menu-gutter": ">=0.1.0 <1.0.0",
-    "@catalystsquad/menu-item": ">=0.1.1 <1.0.0",
-    "@catalystsquad/menu-logo": ">=0.1.1 <1.0.0",
-    "@catalystsquad/simple-router": ">=0.1.2 <1.0.0",
-    "@catalystsquad/two-tier-menu": ">=0.1.0 <1.0.0"
+    "@catalystcommunity/base-components": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/basic-data-registry": ">=0.1.1 <1.0.0",
+    "@catalystcommunity/basic-data-service": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/date-time-picker": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/event-broker": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/menu-gutter": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/menu-item": ">=0.1.1 <1.0.0",
+    "@catalystcommunity/menu-logo": ">=0.1.1 <1.0.0",
+    "@catalystcommunity/simple-router": ">=0.1.2 <1.0.0",
+    "@catalystcommunity/two-tier-menu": ">=0.1.0 <1.0.0"
   },
   "publishConfig": {
     "access": "public"

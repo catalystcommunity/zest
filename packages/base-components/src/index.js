@@ -39,7 +39,8 @@ function kebabize(s) { return s.replace(/[A-Z]+(?![a-z])|[A-Z]/g, (x, ofs) => (o
 // A function to simplify cleanup since Javascript doesn't have destructors. It will
 // simply check if a cleanup function exists, and call it if there is.
 function CheckCleanupCall(thing){
-    if ((typeof thing === "function" || typeof thing === "object") 
+    if (thing
+        && (typeof thing === "function" || typeof thing === "object") 
         && thing['cleanup'] 
         && typeof thing['cleanup'] === "function") {
 
@@ -49,8 +50,9 @@ function CheckCleanupCall(thing){
 
 // Give us some of the basic functionality to reduce boilerplate
 class BaseComponent extends HTMLElement {
-    // Attributes that we observe
-    changeAttributes;
+    // Attributes that we observe. The browser reads this one time, when the element is defined,
+    // so a child class must declare it as a static field: static changeAttributes = ['some-attr'];
+    static changeAttributes = [];
     // Default template id, should be set in the constructor of child components
     defaultTemplateId;
     // Override Id of the component template to use, if provided, otherwise defaulted
@@ -71,14 +73,13 @@ class BaseComponent extends HTMLElement {
     // most functionality should start in connectedCallback
     constructor() {
         super();
-        this.changeAttributes = [];
         this.template = `<div class="defbasecomp">Default BaseComponent Template</div>`;
         this.styleTemplate = `<style>.defbasecomp {display:none;}</style>`;
         this.defaultTemplateId = 'defaultTemplateId';
         this.defaultStyleTemplateId = 'defaultStyleTemplateId';
         this.root = this;
     }
-    // changeAttributes must be setup in whatever child constructor, or attributeChangedCallback will never get called
+    // changeAttributes must be declared as a static field on the child class, or attributeChangedCallback will never get called
     static get observedAttributes() {
         return this.changeAttributes;
     }
@@ -86,12 +87,12 @@ class BaseComponent extends HTMLElement {
     // We would change the name, but this was set by the browser API
     attributeChangedCallback(property, oldValue, newValue) {
         if (oldValue === newValue) return;
-        this[property] = newValue;
+        this[camelize(property)] = newValue;
         this.postObservedAttributeChange();
     }
     // This should be overridden where we care about behavior after a change
     postObservedAttributeChange() { }
-    // Called only once and can be overloaded
+    // Called every time the element is connected, which can be more than one time, and can be overloaded
     connectedCallback() {
         // The precedence for components should be using an override template id if it is present
         // and the HTML attribute overrides a setting in JS on the class
@@ -128,7 +129,8 @@ class BaseComponent extends HTMLElement {
     convertKebabAttributes(attributes=[]) {
         for(let i = 0; i < attributes.length; i++) {
             let attrVal = this.getAttribute(attributes[i]);
-            if (attrVal) {
+            // A boolean attribute has an empty value, so only a missing attribute is skipped
+            if (attrVal !== null) {
                 this[camelize(attributes[i])] = attrVal
             }
         }
@@ -137,7 +139,7 @@ class BaseComponent extends HTMLElement {
     convertCamelProperties(properties=[]) {
         for(let i = 0; i < properties.length; i++) {
             let propVal = this[properties[i]];
-            if (propVal) {
+            if (propVal !== undefined && propVal !== null && propVal !== false) {
                 this.setAttribute(kebabize(properties[i]), propVal)
             }
         }
@@ -216,14 +218,12 @@ class DataComponent extends BaseComponent {
     doDataRegistration(){
         // If there's no registry, fail miserably
         if (ZestGlobalObject === undefined || ZestGlobalObject[this.registryName] === undefined) {
-            console.log(this.registryName)
-            console.log(ZestGlobalObject)
-            throw new Error('Component Data Registry not found');
+            throw new Error(`Component Data Registry not found: ${this.registryName}`);
         }
         this.#registry = ZestGlobalObject[this.registryName];
         // If this isn't a registration function in that registry, fail miserably
         if (this.#registry[this.dataRegisterFuncName] === undefined) {
-            throw new Error('Component Data Registry Function not found');
+            throw new Error(`Component Data Registry Function not found: ${this.dataRegisterFuncName}`);
         }
         this.#dataRegisterFunc = this.#registry[this.dataRegisterFuncName];
         // Don't register until connected, as components are only there for display, not fetching/processing
@@ -231,13 +231,26 @@ class DataComponent extends BaseComponent {
         if (this.registerResult && this.registerResult.unregisterFunc) {
             this.unregisterFunc = this.registerResult.unregisterFunc;
         }
+        // The unregister-func attribute is the name of a function in the registry
+        if (typeof this.unregisterFunc === 'string') {
+            const unregisterName = this.unregisterFunc;
+            if (typeof this.#registry[unregisterName] !== 'function') {
+                throw new Error(`Component Data Registry Function not found: ${unregisterName}`);
+            }
+            this.unregisterFunc = this.#registry[unregisterName];
+        }
         this.postDataRegistration()
     }
     // This should be overridden where we care about behavior after a change
     postDataRegistration() { }
     // Even if it never registered data, now cleanup is a no-op
     disconnectedCallback() {
-        this.unregisterFunc(this.instanceId, this.unregisterData)
+        const unregisterFunc = this.unregisterFunc;
+        // Each registration gets one unregistration. A reconnect registers again.
+        this.unregisterFunc = function() {}
+        if (typeof unregisterFunc === 'function') {
+            unregisterFunc(this.instanceId, this.unregisterData)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
-import { BaseComponent, OpenShadowComponent } from "@catalystsquad/base-components";
+import { BaseComponent } from "@catalystcommunity/base-components";
 
 export default class MenuLogo extends BaseComponent {
+    static changeAttributes = ['logo', 'alt', 'logo-text', 'href'];
     logo;
     logoText;
     alt;
@@ -13,6 +14,9 @@ export default class MenuLogo extends BaseComponent {
         this.alt = null;
         this.href = null;
         this.styleTemplate = null;
+    }
+    postObservedAttributeChange() {
+        if (this.isConnected) { this.render(); }
     }
     connectedCallback(){
         super.connectedCallback();
@@ -36,12 +40,12 @@ export default class MenuLogo extends BaseComponent {
         }
         if (this.logoText) {
             let textSpan = document.createElement('span');
-            textSpan.class = "logoText";
-            textSpan.innerHTML = this.logoText;
+            textSpan.className = "logoText";
+            textSpan.textContent = this.logoText;
             coreNode.appendChild(textSpan);
         }
         if (this.styleTemplate) {
-            this.root.innerHTML += `${this.styleTemplate}`;
+            this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));
         }
     }
 }

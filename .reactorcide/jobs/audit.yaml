@@ -1,0 +1,18 @@
+name: zest-audit
+description: "Fail on a known advisory in what a consumer installs."
+job:
+  image: containers.catalystsquad.com/public/reactorcide/runnerbase:latest
+  command: "runnerlib run --job-command true"
+  timeout: 600
+  priority: 5
+  working_dir: /job
+  resources:
+    cpu:
+      request: "1"
+      limit: "4"
+    memory:
+      limit: "4Gi"
+environment:
+  ZEST_JOB: audit
+run_local:
+  user: host

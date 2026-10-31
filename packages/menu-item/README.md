@@ -1,11 +1,17 @@
 # `MenuItem`
 
-> TODO: description
+One entry in a Zest menu.
 
 ## Usage
 
-```
-import MenuItem from 'menu-item'
+```js
+import { MenuItem, ShadowMenuItem } from '@catalystcommunity/menu-item';
 
-// TODO: DEMONSTRATE API
+customElements.define('menu-item', MenuItem);
 ```
+
+```html
+<menu-item href="/home" icon="/home.png" display="Home"></menu-item>
+```
+
+`display` is text, not HTML. The element renders again when an attribute changes.

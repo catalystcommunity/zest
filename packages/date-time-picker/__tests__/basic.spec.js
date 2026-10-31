@@ -28,7 +28,7 @@ describe('DateTimePicker', () => {
         const diffMins = Math.round(diffMs / 60000);
         expect(diffMins).toBeLessThanOrEqual(5);
         const compInput = comp.input;
-        expect(compInput.placeholder).toEqual(now.toDateString());
+        expect(compInput.placeholder).toEqual(new Intl.DateTimeFormat('en-US', {dateStyle: 'medium'}).format(now));
     });
 
     it("should have no user selected state at initial setup", () => {
@@ -44,10 +44,10 @@ describe('DateTimePicker', () => {
         const comp = new DateTimePicker();
         const now = new Date();
         const compInput = comp.input;
-        comp.selectDate = now;
+        comp.selectedDate = now;
         expect(compInput.placeholder).toEqual("");
         comp.initInput();
-        expect(compInput.placeholder).toEqual(now.toDateString());
+        expect(compInput.placeholder).toEqual(new Intl.DateTimeFormat('en-US', {dateStyle: 'medium'}).format(now));
     });
 
 

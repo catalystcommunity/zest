@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/basic-data-service",
+  "name": "@catalystcommunity/basic-data-service",
   "version": "0.2.3",
   "description": "BasicDataService: As minimal a data API as we can make, evolving slowly.",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/basic-data-service#readme",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/basic-data-service#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -19,15 +19,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catalystsquad/zest.git"
+    "url": "git+https://github.com/catalystcommunity/zest.git"
   },
   "keywords": [
     "ignore"
   ],
-  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/catalystsquad/zest/issues"
+    "url": "https://github.com/catalystcommunity/zest/issues"
   },
   "publishConfig": {
     "access": "public"

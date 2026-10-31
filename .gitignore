@@ -129,3 +129,16 @@ dist-ssr
 .idea
 .vscode
 
+
+# Playwright
+test-results
+playwright-report
+
+# Pinned tools that ./tools.sh fetches, and its Python environment
+.deps
+tools/.venv
+__pycache__
+
+# What the release job packs, and what `reactorcide run-local` writes
+dist-release
+reactorcide-workflow-summary.json

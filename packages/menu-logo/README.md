@@ -1,11 +1,17 @@
 # `MenuLogo`
 
-> TODO: description
+The top item of a Zest menu, where the logo goes.
 
 ## Usage
 
-```
-import MenuLogo from 'menu-logo'
+```js
+import { MenuLogo, ShadowMenuLogo } from '@catalystcommunity/menu-logo';
 
-// TODO: DEMONSTRATE API
+customElements.define('menu-logo', MenuLogo);
 ```
+
+```html
+<menu-logo logo="/logo.png" alt="My company" logo-text="Company" href="/"></menu-logo>
+```
+
+`logo-text` is text, not HTML. The element renders again when an attribute changes.

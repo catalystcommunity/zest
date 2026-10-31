@@ -1,0 +1,18 @@
+name: zest-test-e2e
+description: "Run the browser tests against the demo and the gallery, in headless Chromium."
+job:
+  image: containers.catalystsquad.com/public/reactorcide/runnerbase:latest
+  command: "runnerlib run --job-command true"
+  timeout: 1800
+  priority: 10
+  working_dir: /job
+  resources:
+    cpu:
+      request: "1"
+      limit: "4"
+    memory:
+      limit: "4Gi"
+environment:
+  ZEST_JOB: test-e2e
+run_local:
+  user: host

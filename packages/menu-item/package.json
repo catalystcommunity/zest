@@ -1,8 +1,8 @@
 {
-  "name": "@catalystsquad/menu-item",
+  "name": "@catalystcommunity/menu-item",
   "version": "0.1.4",
   "description": "MenuItem: Semantic way of adding single entries to a Zest menu.",
-  "homepage": "https://github.com/catalystsquad/zest/tree/main/packages/menu-item#readme",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/menu-item#readme",
   "main": "src/index.js",
   "type": "module",
   "directories": {
@@ -19,20 +19,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catalystsquad/zest.git"
+    "url": "git+https://github.com/catalystcommunity/zest.git"
   },
   "keywords": [
     "ignore"
   ],
-  "author": "Catalyst Squad <opensource@catalystsquad.com>",
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/catalystsquad/zest/issues"
+    "url": "https://github.com/catalystcommunity/zest/issues"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@catalystsquad/base-components": ">=0.2.0 <1.0.0"
+    "@catalystcommunity/base-components": ">=0.2.0 <1.0.0"
   }
 }

@@ -1,62 +1,64 @@
-import { DataComponent } from "@catalystsquad/base-components";
+import { DataComponent } from "@catalystcommunity/base-components";
 
 const defaultStyles = `<style>
 two-tier-menu, :host {
     display: flex;
     flex-direction: column;
     justify-content: start;
-    height: 130vh;
+    box-sizing: border-box;
+    height: 100%;
     width: 15em;
+    overflow-y: auto;
     border-right: 1px solid #D7DBDD;
     font-family: sans-serif;
     background: #34495e;
-    align-items: flex-end;
+    color: white;
 }
 
 two-tier-menu .items, :host .items {
-    flex-grow: 3;
-}
-
-two-tier-menu .items .section-header, :host .items .section-header {
-    padding-left: 20px;
-}
-
-menu-logo {
-  display: inline-block;
-  padding: 10px 20px;
-  color: white;
-  font-size: 2em;
-  margin: auto;
-  flex-grow: 1;
-}
-.items {
     display: flex;
     flex-direction: column;
     justify-content: start;
-}
-menu-item {
-  padding: 10px 20px;
-  color: white;
-  font-size: 20px;
-}
-menu-item.section-header {
-  padding: 10px;
-  width: 12em;
-}
-menu-item.section-header img {
-  width: 2em;
+    flex-grow: 3;
 }
 
-menu-gutter {
-    flex-grow: 1;
+two-tier-menu menu-logo, :host menu-logo {
+  display: block;
+  flex: 0 0 auto;
+  padding: 10px 20px;
+  font-size: 2em;
+  text-align: center;
 }
-:host img {
-  width: 2em;
+two-tier-menu menu-logo img, :host menu-logo img {
+  width: 100%;
+  margin: 0;
+}
+two-tier-menu menu-item, :host menu-item {
+  display: block;
+  padding: 6px 20px 6px 36px;
+}
+two-tier-menu menu-item.section-header, :host menu-item.section-header {
+  padding: 10px 20px;
+  font-size: 1.2em;
+}
+two-tier-menu menu-gutter, :host menu-gutter {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    padding: 10px;
+    gap: 8px;
+}
+two-tier-menu img, :host img {
+  width: 1.25em;
+  margin-right: 0.25em;
+  vertical-align: middle;
+}
+two-tier-menu a, :host a {
+  color: inherit;
 }
 </style>`
 
 export default class TwoTierMenu extends DataComponent {
-    menuconfig;
+    menuConfig;
     gutter;
 
     constructor(){
@@ -70,25 +72,29 @@ export default class TwoTierMenu extends DataComponent {
         this.doDataRegistration()
     }
     postDataRegistration(){
-        this.unregisterFunc = this.registerResult.unregisterFunc;
-        this.menuConfig = this.registerResult.menuConfig;
+        // The base class has already saved the unregisterFunc, if the result has one
+        this.menuConfig = this.registerResult?.menuConfig || {};
         this.render()
+    }
+    // Attributes and not properties, because the element class sets its properties again when it
+    // upgrades. That happens when menu-item is defined after this menu renders.
+    setItemAttributes(element, item) {
+        if (item.link) { element.setAttribute('href', item.link); }
+        if (item.icon) { element.setAttribute('icon', item.icon); }
+        if (item.display) { element.setAttribute('display', item.display); }
     }
     render() {
         this.root.innerHTML = "";
         if (this.menuConfig.logo) {
-            if (!this.menuConfig.logo.alt){ this.menuConfig.logo.alt = "Logo"}
-            if (!this.menuConfig.logo.img){ 
-                console.log("logo img not set!");
-                if (!this.menuConfig.logo.text){
-                    console.log("neither are set in logo!");
-                    this.menuConfig.logo.text = "Zest";
-                }
-            }
+            let logo = this.menuConfig.logo;
             let menuLogo = document.createElement('menu-logo');
-            menuLogo.logo = this.menuConfig.logo.img;
-            menuLogo.alt = this.menuConfig.logo.alt;
-            menuLogo.logoText = this.menuConfig.logo.text;
+            menuLogo.setAttribute('alt', logo.alt || "Logo");
+            if (logo.img) { menuLogo.setAttribute('logo', logo.img); }
+            if (logo.text) {
+                menuLogo.setAttribute('logo-text', logo.text);
+            } else if (!logo.img) {
+                menuLogo.setAttribute('logo-text', "Zest");
+            }
             this.root.appendChild(menuLogo);
         }
         let itemContainer = document.createElement('div');
@@ -99,18 +105,14 @@ export default class TwoTierMenu extends DataComponent {
                 let section = this.menuConfig.sections[i];
                 let sectionHeader = document.createElement('menu-item');
                 sectionHeader.setAttribute("class", "section-header");
-                if (section.link) {sectionHeader.href = section.link;}
-                if (section.icon) {sectionHeader.icon = section.icon;}
-                if (section.display) {sectionHeader.display = section.display;}
+                this.setItemAttributes(sectionHeader, section);
                 itemContainer.appendChild(sectionHeader);
                 if(section.items && Array.isArray(section.items)) {
                     for(let j = 0; j < section.items.length; j++ ) {
                         let item = section.items[j];
                         let menuItem = document.createElement('menu-item');
                         menuItem.setAttribute("class", "item");
-                        if (item.link) {menuItem.href = item.link;}
-                        if (item.icon) {menuItem.icon = item.icon;}
-                        if (item.display) {menuItem.display = item.display;}
+                        this.setItemAttributes(menuItem, item);
                         itemContainer.appendChild(menuItem);
                         // This is where we could go one deeper, but that should really be a thing we refactor to a second function
                     }
@@ -120,8 +122,12 @@ export default class TwoTierMenu extends DataComponent {
         if(this.menuConfig.gutter) {
             this.gutter = document.createElement('menu-gutter');
             // Only the behavior wanted is needed here
-            this.gutter.overrideTemplateId = this.menuConfig.gutter.overrideTemplateId;
-            this.gutter.overrideStyleTemplateId = this.menuConfig.gutter.overrideStyleTemplateId;
+            if (this.menuConfig.gutter.overrideTemplateId) {
+                this.gutter.setAttribute('override-template-id', this.menuConfig.gutter.overrideTemplateId);
+            }
+            if (this.menuConfig.gutter.overrideStyleTemplateId) {
+                this.gutter.setAttribute('override-style-template-id', this.menuConfig.gutter.overrideStyleTemplateId);
+            }
             this.root.appendChild(this.gutter);
         }
         if (this.styleTemplate) { 
