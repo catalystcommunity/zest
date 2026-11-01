@@ -6,6 +6,53 @@ const dt = (year, month, day, hour = 0, minute = 0, second = 0) => ({year, month
 const t = (hour, minute = 0, second = 0) => ({hour, minute, second});
 const rules = (options = {}, kind = 'date') => model.buildRules(options, kind);
 
+// Counts each formatter that is made while `work` runs
+function formattersMadeBy(work) {
+    const names = ['DateTimeFormat', 'NumberFormat', 'RelativeTimeFormat'];
+    const originals = names.map(name => Intl[name]);
+    let made = 0;
+    names.forEach((name, index) => {
+        Intl[name] = new Proxy(originals[index], {
+            construct(target, args) { made += 1; return new target(...args); },
+        });
+    });
+    try {
+        work();
+    } finally {
+        names.forEach((name, index) => { Intl[name] = originals[index]; });
+    }
+    return made;
+}
+
+describe('formatters', () => {
+    const useThemAll = (locale) => {
+        model.monthNames(locale);
+        model.weekdayNames(locale);
+        model.formatNumber(5, locale, 2);
+        model.formatDisplay(d(2024, 3, 15), 'date', {locale});
+        model.dayPeriods(locale);
+        model.parseText('tomorrow', 'date', {locale, reference: d(2024, 3, 15)});
+    };
+
+    it('makes each one time, because a page can hold many pickers', () => {
+        expect(formattersMadeBy(() => useThemAll('pt-PT'))).toBeGreaterThan(0);
+        expect(formattersMadeBy(() => useThemAll('pt-PT'))).toBe(0);
+    });
+
+    it('does not share one between locales or options', () => {
+        expect(model.monthNames('fr', 'long')[2]).toBe('mars');
+        expect(model.monthNames('de', 'long')[2]).toBe('März');
+        expect(model.monthNames('de', 'short')[2]).not.toBe('März');
+        expect(model.formatDisplay(d(2024, 3, 15), 'date', {locale: 'en-US', format: 'short'}))
+            .not.toBe(model.formatDisplay(d(2024, 3, 15), 'date', {locale: 'en-US', format: 'long'}));
+    });
+
+    it('does not keep a formatter for a time zone that does not exist', () => {
+        expect(() => model.fromInstant(new Date(0), 'Not/AZone')).toThrow();
+        expect(() => model.fromInstant(new Date(0), 'Not/AZone')).toThrow();
+    });
+});
+
 describe('calendar math', () => {
     it('knows leap years', () => {
         expect(model.daysInMonth(2024, 2)).toBe(29);

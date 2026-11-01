@@ -1695,7 +1695,7 @@ export default class DateTimePicker extends DataComponent {
         return row;
     }
     #nowLabel() {
-        const relative = new Intl.RelativeTimeFormat(this.locale, {numeric: 'auto'});
+        const relative = model.relativeFormat(this.locale, {numeric: 'auto'});
         const text = {
             date: relative.format(0, 'day'), datetime: relative.format(0, 'second'), time: relative.format(0, 'second'),
             month: relative.format(0, 'month'), week: relative.format(0, 'week'), year: relative.format(0, 'year'),
