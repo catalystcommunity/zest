@@ -5,6 +5,22 @@
 // Wall clock parts and not a Date, because a local Date cannot hold 02:30 on a day when the
 // clocks skip it, and a date must not move when the viewer's time zone changes.
 
+// A page can hold many pickers, each one asks for hundreds of formatters, and making a formatter
+// is slow. A formatter holds no state, so all pickers share one for each locale and options.
+const formatters = new Map();
+
+function formatter(Type, locale, options) {
+    const key = `${Type.name}|${locale}|${JSON.stringify(options)}`;
+    if (!formatters.has(key)) {
+        formatters.set(key, new Type(locale, options));
+    }
+    return formatters.get(key);
+}
+
+const dateFormat = (locale, options) => formatter(Intl.DateTimeFormat, locale, options);
+const numberFormat = (locale, options) => formatter(Intl.NumberFormat, locale, options);
+export const relativeFormat = (locale, options) => formatter(Intl.RelativeTimeFormat, locale, options);
+
 const pad = (value, width = 2) => String(value).padStart(width, '0');
 
 const hasDate = (kind) => kind !== 'time';
@@ -134,7 +150,7 @@ function validTime(hour, minute, second) {
 
 function zoneParts(date, timeZone) {
     const found = {};
-    const format = new Intl.DateTimeFormat('en-US', {
+    const format = dateFormat('en-US', {
         timeZone, calendar: 'gregory', numberingSystem: 'latn', hourCycle: 'h23',
         year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
     });
@@ -261,23 +277,23 @@ export function firstDayOfWeek(locale) {
 }
 
 export function usesTwentyFourHours(locale) {
-    const cycle = new Intl.DateTimeFormat(locale, {hour: 'numeric'}).resolvedOptions().hourCycle;
+    const cycle = dateFormat(locale, {hour: 'numeric'}).resolvedOptions().hourCycle;
     return cycle === 'h23' || cycle === 'h24';
 }
 
 export function monthNames(locale, style = 'long') {
-    const format = new Intl.DateTimeFormat(locale, {...GREGORIAN, timeZone: 'UTC', month: style});
+    const format = dateFormat(locale, {...GREGORIAN, timeZone: 'UTC', month: style});
     return Array.from({length: 12}, (_, index) => format.format(toUtc({year: 2024, month: index + 1})));
 }
 
 // Index 0 is Sunday. January 7, 2024 was a Sunday.
 export function weekdayNames(locale, style = 'short') {
-    const format = new Intl.DateTimeFormat(locale, {...GREGORIAN, timeZone: 'UTC', weekday: style});
+    const format = dateFormat(locale, {...GREGORIAN, timeZone: 'UTC', weekday: style});
     return Array.from({length: 7}, (_, index) => format.format(toUtc({year: 2024, month: 1, day: 7 + index})));
 }
 
 export function formatNumber(value, locale, width = 1) {
-    return new Intl.NumberFormat(locale, {useGrouping: false, minimumIntegerDigits: width}).format(value);
+    return numberFormat(locale, {useGrouping: false, minimumIntegerDigits: width}).format(value);
 }
 
 // What a person reads. `format` is iso, short, medium, long, or full.
@@ -285,8 +301,8 @@ export function formatDisplay(parts, kind, {locale, format = 'medium', twentyFou
     if (format === 'iso' || kind === 'week') { return formatValue(parts, kind, includeSeconds); }
     const base = {...GREGORIAN, timeZone: 'UTC'};
     const instant = toUtc(parts);
-    if (kind === 'year') { return new Intl.DateTimeFormat(locale, {...base, year: 'numeric'}).format(instant); }
-    if (kind === 'month') { return new Intl.DateTimeFormat(locale, {...base, year: 'numeric', month: format === 'short' ? 'numeric' : 'long'}).format(instant); }
+    if (kind === 'year') { return dateFormat(locale, {...base, year: 'numeric'}).format(instant); }
+    if (kind === 'month') { return dateFormat(locale, {...base, year: 'numeric', month: format === 'short' ? 'numeric' : 'long'}).format(instant); }
     const options = {...base};
     if (hasDate(kind)) { options.dateStyle = format; }
     if (hasTime(kind)) {
@@ -294,13 +310,13 @@ export function formatDisplay(parts, kind, {locale, format = 'medium', twentyFou
         options.timeStyle = includeSeconds || parts.second ? 'medium' : 'short';
         if (twentyFourHours !== undefined) { options.hourCycle = twentyFourHours ? 'h23' : 'h12'; }
     }
-    return new Intl.DateTimeFormat(locale, options).format(instant);
+    return dateFormat(locale, options).format(instant);
 }
 
 // Reading what a person types
 
 function digitNormalizer(locale) {
-    const format = new Intl.NumberFormat(locale, {useGrouping: false});
+    const format = numberFormat(locale, {useGrouping: false});
     const digits = new Map();
     for (let digit = 0; digit <= 9; digit++) {
         digits.set(format.format(digit), String(digit));
@@ -310,7 +326,7 @@ function digitNormalizer(locale) {
 
 function numericOrder(locale, withYear = true) {
     const options = {...GREGORIAN, timeZone: 'UTC', month: 'numeric', day: 'numeric', ...(withYear ? {year: 'numeric'} : {})};
-    return new Intl.DateTimeFormat(locale, options).formatToParts(toUtc({year: 2024, month: 3, day: 15}))
+    return dateFormat(locale, options).formatToParts(toUtc({year: 2024, month: 3, day: 15}))
         .map(part => part.type)
         .filter(type => ['year', 'month', 'day'].includes(type));
 }
@@ -329,7 +345,7 @@ function monthForms(locale) {
     for (const [index] of monthNames(locale).entries()) {
         const instant = toUtc({year: 2024, month: index + 1, day: 5});
         for (const dateStyle of ['full', 'long', 'medium']) {
-            const parts = new Intl.DateTimeFormat(locale, {...style, dateStyle}).formatToParts(instant);
+            const parts = dateFormat(locale, {...style, dateStyle}).formatToParts(instant);
             const position = parts.findIndex(item => item.type === 'month');
             if (position === -1) { continue; }
             // Letters joined to the month belong to the word: Hebrew writes "in March" as one word
@@ -419,13 +435,13 @@ function readDate(text, kind, {locale, reference}) {
 }
 
 export function dayPeriods(locale) {
-    const format = new Intl.DateTimeFormat(locale, {...GREGORIAN, timeZone: 'UTC', hour: 'numeric', hourCycle: 'h12'});
+    const format = dateFormat(locale, {...GREGORIAN, timeZone: 'UTC', hour: 'numeric', hourCycle: 'h12'});
     const name = (hour) => format.formatToParts(toUtc({year: 2024, month: 1, day: 1, hour})).find(part => part.type === 'dayPeriod')?.value;
     return {am: ['am', 'a.m.', 'a', name(9)].filter(Boolean), pm: ['pm', 'p.m.', 'p', name(21)].filter(Boolean)};
 }
 
 function timeSeparatorPattern(locale) {
-    const format = new Intl.DateTimeFormat(locale, {...GREGORIAN, timeZone: 'UTC', hour: 'numeric', minute: 'numeric', hourCycle: 'h23'});
+    const format = dateFormat(locale, {...GREGORIAN, timeZone: 'UTC', hour: 'numeric', minute: 'numeric', hourCycle: 'h23'});
     return format.formatToParts(toUtc({year: 2024, month: 1, day: 1, hour: 10, minute: 30})).find(part => part.type === 'literal')?.value === '.' ? '[:.]' : ':';
 }
 
@@ -472,7 +488,7 @@ function convertHour(hour, period) {
 
 function keyword(text, kind, {locale, reference}) {
     const clean = text.trim().toLocaleLowerCase(locale);
-    const relative = new Intl.RelativeTimeFormat(locale, {numeric: 'auto'});
+    const relative = relativeFormat(locale, {numeric: 'auto'});
     const words = {
         today: [0, 'today', relative.format(0, 'day')],
         tomorrow: [1, 'tomorrow', relative.format(1, 'day')],

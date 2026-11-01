@@ -24,6 +24,18 @@ describe('DateTimePicker', () => {
         return comp.picker.querySelector(`.day:not(.other-month)[data-day="${day}"]`);
     }
 
+    it('makes no new formatter for another picker in the same locale', () => {
+        makePicker({locale: 'nl-NL', mode: 'datetime', 'initial-date': '2024-03-15'});
+        const names = ['DateTimeFormat', 'NumberFormat', 'RelativeTimeFormat'];
+        const spies = names.map(name => vi.spyOn(Intl, name));
+        try {
+            makePicker({locale: 'nl-NL', mode: 'datetime', 'initial-date': '2024-03-15'});
+            spies.forEach(spy => expect(spy).not.toHaveBeenCalled());
+        } finally {
+            spies.forEach(spy => spy.mockRestore());
+        }
+    });
+
     describe('initial date', () => {
         it('reads a date with no time as a local date, so that it does not move a day', () => {
             const comp = makePicker({'initial-date': '2024-03-15'});

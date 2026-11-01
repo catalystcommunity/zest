@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 import unittest
@@ -41,6 +42,11 @@ class GateTests(unittest.TestCase):
     """The gate against real commits, because a job with none to read proves nothing."""
 
     def setUp(self):
+        # A Reactorcide job has its own base, which is not a commit in this repository
+        environment = mock.patch.dict("os.environ")
+        environment.start()
+        self.addCleanup(environment.stop)
+        os.environ.pop("REACTORCIDE_DIFF_BASE", None)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)

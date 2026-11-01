@@ -21,8 +21,10 @@ test.describe('the demo application', () => {
         await expect(page.getByTestId('section-menu-item')).toBeVisible();
         await expect(page.getByTestId('section-menu-logo')).toHaveCount(0);
         await page.goBack();
+        await expect(page).toHaveURL(/\/gallery$/);
         await expect(page.getByRole('heading', {name: 'Component gallery'})).toBeVisible();
         await page.goBack();
+        await expect(page).toHaveURL(/\/$/);
         await expect(page.getByRole('heading', {name: 'Zest demo'})).toBeVisible();
         expect(await page.evaluate(() => window.noReloadMark)).toEqual(true);
     });
