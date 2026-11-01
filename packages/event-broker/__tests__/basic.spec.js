@@ -78,3 +78,21 @@ describe('EventBroker', () => {
         expect(trackedDetail.someField).toStrictEqual(7);
     });
 });
+
+describe('a broker with its own target', () => {
+    it('does not use the document', () => {
+        const eb = new EventBroker(new EventTarget());
+        const heard = [];
+        const page = [];
+        eb.SubscribeEvent('own-target', 'a', (name, detail) => heard.push(detail));
+        const listener = (e) => page.push(e.detail);
+        document.addEventListener('own-target', listener);
+        eb.FireEvent('own-target', 1);
+        document.dispatchEvent(new CustomEvent('own-target', {detail: 2}));
+        document.removeEventListener('own-target', listener);
+        eb.cleanup();
+        eb.FireEvent('own-target', 3);
+        expect(heard).toEqual([1]);
+        expect(page).toEqual([2]);
+    });
+});

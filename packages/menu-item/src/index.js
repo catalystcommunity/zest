@@ -1,6 +1,15 @@
 import { BaseComponent } from "@catalystcommunity/base-components";
 
+// An image must not make the item wider than its parent
+const defaultStyles = `
+menu-item img, :host img {
+    max-width: 100%;
+    height: auto;
+}
+`;
+
 export default class MenuItem extends BaseComponent {
+    static styles = defaultStyles;
     static changeAttributes = ['href', 'display', 'icon'];
     href;
     display;
@@ -11,7 +20,6 @@ export default class MenuItem extends BaseComponent {
         this.href = null;
         this.display = null;
         this.icon = null;
-        this.styleTemplate = null;
     }
     postObservedAttributeChange() {
         if (this.isConnected) { this.render(); }
@@ -33,16 +41,15 @@ export default class MenuItem extends BaseComponent {
         if (this.icon) {
             let img = document.createElement('img');
             img.setAttribute('src', this.icon);
-            img.setAttribute('alt', this.display ? 'Icon for ' + this.display : 'Icon');
+            // The text says what the item is, so a screen reader must not read the icon too
+            img.setAttribute('alt', this.display ? '' : 'Icon');
             coreNode.appendChild(img);
         }
         let textSpan = document.createElement('span');
         textSpan.setAttribute('class', 'display');
         textSpan.textContent = this.display;
         coreNode.appendChild(textSpan);
-        if (this.styleTemplate) {
-            this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));
-        }
+        this.applyStyles();
     }
 }
 

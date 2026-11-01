@@ -9,6 +9,9 @@ export default defineConfig({
     build: {
         outDir: '../dist',
         emptyOutDir: true,
+        // With older targets, the build rewrites light-dark() to a media query for the whole page,
+        // and then `color-scheme` on a part of the page does nothing
+        cssTarget: ['chrome123', 'firefox120', 'safari17.5'],
     },
     server: {
         port: 4173,

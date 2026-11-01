@@ -50,6 +50,7 @@ class ReleaseRepository(unittest.TestCase):
         git(self.root, "config", "user.name", "Test")
         write_package(self.root, "packages/alpha", "@scope/alpha", "0.1.0")
         write_package(self.root, "packages/beta", "@scope/beta", "0.2.0", {"@scope/alpha": ">=0.1.0 <1.0.0"})
+        (self.root / "LICENSE").write_text("The license\n")
         (self.root / "src").mkdir()
         (self.root / "src" / "index.js").write_text("export * from '@scope/alpha';\n")
         (self.root / "package.json").write_text(json.dumps({
@@ -263,6 +264,16 @@ class FullFlowTests(ReleaseRepository):
             release.tag(self.root)
 
 
+class LicenseTests(ReleaseRepository):
+    def test_each_tarball_holds_the_root_license_and_the_tree_stays_clean(self):
+        for package in release.find_packages(self.root):
+            tarball = release._pack_one(package, package.manifest["version"], self.artifacts, self.root)
+            with tarfile.open(tarball) as archive:
+                self.assertEqual(archive.extractfile("package/LICENSE").read().decode(), "The license\n")
+        self.assertEqual((self.root / "LICENSE").read_text(), "The license\n")
+        self.assertEqual(git_output(self.root, "status", "--porcelain"), "")
+
+
 class GuardTests(unittest.TestCase):
     def test_the_writing_steps_refuse_without_the_release_environment(self):
         with mock.patch.dict(os.environ):
@@ -290,7 +301,12 @@ class TarballTests(unittest.TestCase):
         self.good = {"name": "@s/a", "version": "1.2.3", "main": "src/index.js"}
 
     def test_accepts_a_good_tarball(self):
-        release.check_tarball(self.tarball(self.temporary.name, self.good, {"src/index.js": ""}), "@s/a", "1.2.3")
+        files = {"src/index.js": "", "LICENSE": ""}
+        release.check_tarball(self.tarball(self.temporary.name, self.good, files), "@s/a", "1.2.3")
+
+    def test_refuses_a_missing_license(self):
+        with self.assertRaisesRegex(ToolFailed, "LICENSE"):
+            release.check_tarball(self.tarball(self.temporary.name, self.good, {"src/index.js": ""}), "@s/a", "1.2.3")
 
     def test_refuses_a_missing_main_file(self):
         with self.assertRaisesRegex(ToolFailed, "main file"):

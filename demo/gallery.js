@@ -126,18 +126,67 @@ function dataRegistrySection() {
 
 function dataServiceSection() {
   const service = new BasicDataService();
-  service.data.count = 0;
+  service.set('counters', 'count', 0);
   const readerA = el('div', {'data-testid': 'service-reader-a'}, 'Reader A: 0');
-  const readerB = el('div', {'data-testid': 'service-reader-b'}, 'Reader B: 0');
+  const readerB = el('div', {'data-testid': 'service-reader-b'}, 'Reader B: no even number yet');
+  const log = makeLog('service-log');
+  service.subscribe(({changes}) => {
+    readerA.textContent = `Reader A: ${changes[0].newValue}`;
+  }, {collection: 'counters', keys: ['count']});
+  service.subscribe(({changes}) => {
+    readerB.textContent = `Reader B: ${changes[0].newValue}`;
+  }, {collection: 'counters', keys: ['count'], filter: change => change.newValue % 2 === 0});
+  service.subscribe(({collection, changes}) => {
+    log.add(`${collection}: ${changes.map(change => `${change.key} ${change.oldValue} -> ${change.newValue}`).join(', ')}`);
+  });
+
+  const bus = new EventTarget();
+  service.listen(bus, 'counter-reset', (detail, store) => {
+    store.set('counters', 'count', detail.to);
+    store.set('counters', 'resets', (store.get('counters', 'resets') ?? 0) + 1);
+  });
   return [
-    card('service', 'One service, two readers', 
-      button('service-increment', 'Add one to the service data', () => {
-        service.data.count++;
-        readerA.textContent = `Reader A: ${service.data.count}`;
-        readerB.textContent = `Reader B: ${service.data.count}`;
-      }),
-      readerA, readerB,
+    card('service', 'One store, and readers that decide what they care about',
+      el('div', {class: 'controls'},
+        button('service-increment', 'Add one to the store', () => {
+          service.set('counters', 'count', service.get('counters', 'count') + 1);
+        }),
+        button('service-reset', 'Send a reset event', () => {
+          bus.dispatchEvent(new CustomEvent('counter-reset', {detail: {to: 0}}));
+        }),
+      ),
+      readerA, readerB, log,
     ),
+  ];
+}
+
+const TOKEN_COLORS = [
+  ['window', 'window-text'], ['face', 'face-text'], ['field', 'field-text'], ['highlight', 'highlight-text'],
+];
+
+function swatches() {
+  return el('div', {class: 'swatches'}, ...TOKEN_COLORS.map(([background, text]) => {
+    const swatch = el('div', {class: 'swatch'}, `--zest-color-${background}`);
+    swatch.style.background = `var(--zest-color-${background})`;
+    swatch.style.color = `var(--zest-color-${text})`;
+    return swatch;
+  }));
+}
+
+function designTokensSection() {
+  const sample = (attributes = {}) => el('div', {class: 'controls', ...attributes},
+    el('date-time-picker', {label: 'Sample date', value: '2026-03-14'}),
+    el('button', {type: 'button'}, 'A button'),
+  );
+  const dark = el('div', {'data-testid': 'tokens-dark', style: 'color-scheme: dark; background: var(--zest-color-window); color: var(--zest-color-window-text); padding: 1em;'}, swatches(), sample());
+  const light = el('div', {'data-testid': 'tokens-light', style: 'color-scheme: light; background: var(--zest-color-window); color: var(--zest-color-window-text); padding: 1em;'}, swatches(), sample());
+  return [
+    card('tokens-light-card', 'Light, on one part of the page', light),
+    card('tokens-dark-card', 'Dark, on one part of the page', dark),
+    card('tokens-override', 'A parent element changes one token',
+      sample({'data-testid': 'tokens-override-sample', style: '--zest-color-highlight: #7a2e8e; --zest-color-focus: #7a2e8e;'})),
+    card('tokens-small', 'A smaller font makes each control smaller',
+      sample({'data-testid': 'tokens-small-sample', style: 'font-size: 0.875rem;'})),
   ];
 }
 
@@ -410,6 +459,7 @@ export const sections = [
   {id: 'basic-data-registry', title: 'Basic data registry', render: dataRegistrySection},
   {id: 'basic-data-service', title: 'Basic data service', render: dataServiceSection},
   {id: 'date-time-picker', title: 'Date time picker', render: dateTimePickerSection},
+  {id: 'design-tokens', title: 'Design tokens', render: designTokensSection},
   {id: 'event-broker', title: 'Event broker', render: eventBrokerSection},
   {id: 'menu-gutter', title: 'Menu gutter', render: menuGutterSection},
   {id: 'menu-item', title: 'Menu item', render: menuItemSection},

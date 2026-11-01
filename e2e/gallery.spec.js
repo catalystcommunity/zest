@@ -90,6 +90,17 @@ test.describe('basic-data-service', () => {
         await expect(content.getByTestId('service-reader-a')).toHaveText('Reader A: 2');
         await expect(content.getByTestId('service-reader-b')).toHaveText('Reader B: 2');
     });
+
+    test('lets each reader filter, and updates from an event in one change for each collection', async ({page}) => {
+        const content = await open(page, 'basic-data-service');
+        await content.getByTestId('service-increment').click();
+        await expect(content.getByTestId('service-reader-a')).toHaveText('Reader A: 1');
+        await expect(content.getByTestId('service-reader-b')).toHaveText('Reader B: no even number yet');
+        await content.getByTestId('service-reset').click();
+        await expect(content.getByTestId('service-reader-a')).toHaveText('Reader A: 0');
+        await expect(content.getByTestId('service-reader-b')).toHaveText('Reader B: 0');
+        await expect(content.getByTestId('service-log')).toHaveText('counters: count 0 -> 1\ncounters: count 1 -> 0, resets undefined -> 1\n');
+    });
 });
 
 test.describe('event-broker', () => {
@@ -131,7 +142,8 @@ test.describe('menu-item', () => {
         const content = await open(page, 'menu-item');
         const card = content.getByTestId('item-link');
         await expect(card.locator('a')).toHaveAttribute('href', '/gallery/menu-item#linked');
-        await expect(card.locator('img')).toHaveAttribute('alt', 'Icon for Linked item');
+        // The text names the item, so the icon is decoration
+        await expect(card.locator('img')).toHaveAttribute('alt', '');
         await expect(card.locator('.display')).toHaveText('Linked item');
     });
 
@@ -226,7 +238,7 @@ test.describe('two-tier-menu', () => {
             await expect(card.getByTestId('gutter-override-content')).toBeVisible();
             await expect(card.locator('menu-item.section-header a').first()).toHaveAttribute('href', /first$/);
             const background = await card.locator('two-tier-menu, shadow-two-tier-menu').evaluate(element => getComputedStyle(element).backgroundColor);
-            expect(background).toEqual('rgb(52, 73, 94)');
+            expect(background).not.toEqual('rgba(0, 0, 0, 0)');
             const items = await card.locator('.items').evaluate(element => getComputedStyle(element).display);
             expect(items).toEqual('flex');
             // The menu fills its box, and the box does not grow past its own height
@@ -249,7 +261,9 @@ test.describe('two-tier-menu', () => {
         test(`${name}: shows the gutter text in a color that the menu sets`, async ({page}) => {
             const content = await open(page, 'two-tier-menu');
             const text = content.getByTestId(testId).getByTestId('gutter-override-content');
-            expect(await text.evaluate(element => getComputedStyle(element).color)).toEqual('rgb(255, 255, 255)');
+            const host = content.getByTestId(testId).locator('two-tier-menu, shadow-two-tier-menu');
+            const menuColor = await host.evaluate(element => getComputedStyle(element).color);
+            expect(await text.evaluate(element => getComputedStyle(element).color)).toEqual(menuColor);
         });
     }
 

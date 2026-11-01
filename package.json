@@ -41,6 +41,7 @@
   ],
   "homepage": "https://github.com/catalystcommunity/zest#README.md",
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.64.1",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "happy-dom": "^21.0.4",
@@ -53,6 +54,7 @@
     "@catalystcommunity/basic-data-registry": ">=0.1.1 <1.0.0",
     "@catalystcommunity/basic-data-service": ">=0.1.0 <1.0.0",
     "@catalystcommunity/date-time-picker": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/design-tokens": ">=0.1.0 <1.0.0",
     "@catalystcommunity/event-broker": ">=0.1.0 <1.0.0",
     "@catalystcommunity/menu-gutter": ">=0.1.0 <1.0.0",
     "@catalystcommunity/menu-item": ">=0.1.1 <1.0.0",

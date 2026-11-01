@@ -70,6 +70,7 @@ class ReleaseJobTests(unittest.TestCase):
         git(self.root, "config", "user.name", "Test")
         write_package(self.root, "packages/alpha", "@scope/alpha", "0.1.0")
         write_package(self.root, "packages/beta", "@scope/beta", "0.2.0", {"@scope/alpha": ">=0.1.0 <1.0.0"})
+        (self.root / "LICENSE").write_text("The license\n")
         (self.root / "src").mkdir()
         (self.root / "src" / "index.js").write_text("export * from '@scope/alpha';\n")
         (self.root / "package.json").write_text(json.dumps({

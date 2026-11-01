@@ -7,67 +7,8 @@
     <title>Zest Components Demo</title>
   </head>
   <body>
-    <template id="demo-menu-styles">
-      <style>
-        :host {
-            display: flex;
-            flex-direction: column;
-            justify-content: start;
-            height: 100vh;
-            border-right: 1px solid #D7DBDD;
-            font-family: sans-serif;
-            background: #3224f4;
-            overflow-y: auto;
-        }
-        :host .items {
-            flex-grow: 3;
-        }
-        menu-logo {
-          display: inline-block;
-          padding: 10px 20px;
-          color: white;
-          font-size: 2em;
-          margin: 0 auto;
-        }
-        .items {
-            display: flex;
-            flex-direction: column;
-            justify-content: start;
-        }
-        menu-item {
-          padding: 6px 10px 0 40px;
-          color: white;
-          font-size: 16px;
-        }
-        menu-item.section-header {
-          padding: 14px 10px 0 20px;
-          font-size: 20px;
-        }
-        menu-item a {
-          color: inherit;
-          text-decoration: none;
-        }
-        menu-item a:hover {
-          text-decoration: underline;
-        }
-        menu-gutter {
-          padding: 10px;
-          color: white;
-          gap: 8px;
-          font-size: 12px;
-        }
-        :host img {
-          width: 1.5em;
-          vertical-align: middle;
-          margin-right: 4px;
-        }
-        menu-logo img {
-          width: 9em;
-        }
-      </style>
-    </template>
     <template id="demo-gutter">
-      <img src="/caldo.svg" alt="catalyst squad logo">
+      <img src="/caldo.svg" alt="">
       <span>&copy; Catalyst Squad</span>
     </template>
     <template id="gallery-gutter">
@@ -75,7 +16,7 @@
       <img src="/caldo.svg" alt="" width="24">
     </template>
     <template id="gallery-red-styles">
-      <style>:host, .red-text { color: #c0392b; font-weight: bold; }</style>
+      <style>:host, .red-text { color: light-dark(#c0392b, #ff9a8f); font-weight: bold; }</style>
     </template>
     <template id="gallery-base-template">
       <p data-testid="base-override-content">This text comes from an override template.</p>

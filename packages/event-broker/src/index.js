@@ -1,8 +1,11 @@
 export default class EventBroker {
     events;
     subscriberStats;
+    target;
 
-    constructor(){
+    // The target holds the events. A broker with its own EventTarget hears nothing from the page.
+    constructor(target = document){
+        this.target = target;
         this.events = new Map();
         this.subscriberStats = {
             count: 0,
@@ -13,7 +16,7 @@ export default class EventBroker {
     cleanup(){
         for(const [eventName, subs] of this.events){
             for(const [_, callback] of subs){
-                document.removeEventListener(eventName, callback)
+                this.target.removeEventListener(eventName, callback)
                 this.subscriberStats.count--;
                 this.subscriberStats.removed++;
             }
@@ -36,7 +39,7 @@ export default class EventBroker {
         this.events.get(eventName).set(subscriber, handler);
         this.subscriberStats.count++;
         this.subscriberStats.added++;
-        document.addEventListener(eventName, handler);
+        this.target.addEventListener(eventName, handler);
     }
     
     UnsubscribeEvent(eventName, subscriber) {
@@ -45,7 +48,7 @@ export default class EventBroker {
         }
         let callback = this.events.get(eventName)?.get(subscriber);
         if (callback) {
-          document.removeEventListener(eventName, callback);
+          this.target.removeEventListener(eventName, callback);
           this.events.get(eventName).delete(subscriber);
           this.subscriberStats.count--;
           this.subscriberStats.removed++;
@@ -56,6 +59,6 @@ export default class EventBroker {
     
     // Anyone could fire it directly, we just provide convenience for wrapping it with metadata, which is limited at the moment obviously
     FireEvent(eventName, data) {
-        document.dispatchEvent(new CustomEvent(eventName, {detail: data}));
+        this.target.dispatchEvent(new CustomEvent(eventName, {detail: data}));
     }
 }

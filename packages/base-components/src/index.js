@@ -48,8 +48,38 @@ function CheckCleanupCall(thing){
     }
 }
 
+// One stylesheet for each class that declares styles, which each instance shares
+const styleEntries = new WeakMap();
+
+function styleEntry(componentClass) {
+    let owner = componentClass;
+    while (!Object.hasOwn(owner, 'styles')) { owner = Object.getPrototypeOf(owner); }
+    if (!styleEntries.has(owner)) {
+        styleEntries.set(owner, {owner, added: '', sheet: null});
+    }
+    return styleEntries.get(owner);
+}
+
+// The defaults are in a layer, so any page style or added style without a layer wins over them
+function styleText(entry) {
+    const defaults = entry.owner.styles ? `@layer zest {\n${entry.owner.styles}\n}\n` : '';
+    return defaults + entry.added;
+}
+
+function canAdopt(target) {
+    return 'adoptedStyleSheets' in target && typeof CSSStyleSheet?.prototype?.replaceSync === 'function';
+}
+
 // Give us some of the basic functionality to reduce boilerplate
 class BaseComponent extends HTMLElement {
+    // The default CSS of the component as text. A child class declares it as a static field.
+    static styles = '';
+    // Adds CSS to each instance of this class, also the instances that are already on the page
+    static addStyles(css) {
+        const entry = styleEntry(this);
+        entry.added += `${css}\n`;
+        entry.sheet?.replaceSync(styleText(entry));
+    }
     // Attributes that we observe. The browser reads this one time, when the element is defined,
     // so a child class must declare it as a static field: static changeAttributes = ['some-attr'];
     static changeAttributes = [];
@@ -68,13 +98,15 @@ class BaseComponent extends HTMLElement {
     // It is helpful to have a reference to either the shadow root or the self for rendering
     // consistently between shadow or nonshadow instances without complex reflection
     root;
+    #lifetime = null;
+    #invalidated = false;
 
     // Keep in mind that the constructor doesn't have access to attributes until DOM connection
     // most functionality should start in connectedCallback
     constructor() {
         super();
         this.template = `<div class="defbasecomp">Default BaseComponent Template</div>`;
-        this.styleTemplate = `<style>.defbasecomp {display:none;}</style>`;
+        this.styleTemplate = this.constructor.styles ? null : `<style>.defbasecomp {display:none;}</style>`;
         this.defaultTemplateId = 'defaultTemplateId';
         this.defaultStyleTemplateId = 'defaultStyleTemplateId';
         this.root = this;
@@ -99,6 +131,8 @@ class BaseComponent extends HTMLElement {
         // then a default template id if it is present
         // then the template string if neither of those work
 
+        this.#lifetime?.abort();
+        this.#lifetime = new AbortController();
         // first get the override attributes from HTML into the JS world
         this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
         // This gets the template and styles, and if they aren't present they will be left alone
@@ -124,6 +158,58 @@ class BaseComponent extends HTMLElement {
             this.styleTemplate = styleTemplate
         }
         // Normally one would call this.render() here, but we leave it out for components to call in their own
+    }
+    // Stops everything that uses this.lifetime
+    disconnectedCallback() {
+        this.#lifetime?.abort();
+        this.#lifetime = null;
+    }
+    // An AbortSignal for the time that the element is connected: addEventListener(name, handler, {signal: this.lifetime})
+    get lifetime() {
+        return this.#lifetime?.signal ?? AbortSignal.abort();
+    }
+    // Sends an event that a parent can hear, also from inside a shadow root
+    emit(name, detail) {
+        return this.dispatchEvent(new CustomEvent(name, {detail, bubbles: true, composed: true}));
+    }
+    // Renders one time after the current work, however many times this is called
+    invalidate() {
+        if (this.#invalidated) { return; }
+        this.#invalidated = true;
+        queueMicrotask(() => {
+            this.#invalidated = false;
+            if (this.isConnected) { this.render(); }
+        });
+    }
+    // An instance style template replaces the defaults of the class. Call this from render().
+    // A browser with no adopted stylesheets gets a style element in the container.
+    applyStyles(container = this.root) {
+        if (this.styleTemplate) {
+            container.appendChild(this.stringToElement(`${this.styleTemplate}`));
+            return;
+        }
+        const entry = styleEntry(this.constructor);
+        const text = styleText(entry);
+        if (!text) { return; }
+        const target = this.root.getRootNode();
+        if (canAdopt(target)) {
+            try {
+                if (!entry.sheet) {
+                    entry.sheet = new CSSStyleSheet();
+                    entry.sheet.replaceSync(text);
+                }
+                if (!target.adoptedStyleSheets.includes(entry.sheet)) {
+                    target.adoptedStyleSheets = [...target.adoptedStyleSheets, entry.sheet];
+                }
+                return;
+            } catch (e) {
+                // A sheet can only join the document that made it, so an element in a frame continues below
+                if (e.name !== 'NotAllowedError') { throw e; }
+            }
+        }
+        const style = document.createElement('style');
+        style.textContent = text;
+        container.appendChild(style);
     }
     // Set attributes from kebab-case to camelCase properties
     convertKebabAttributes(attributes=[]) {
@@ -245,6 +331,7 @@ class DataComponent extends BaseComponent {
     postDataRegistration() { }
     // Even if it never registered data, now cleanup is a no-op
     disconnectedCallback() {
+        super.disconnectedCallback();
         const unregisterFunc = this.unregisterFunc;
         // Each registration gets one unregistration. A reconnect registers again.
         this.unregisterFunc = function() {}

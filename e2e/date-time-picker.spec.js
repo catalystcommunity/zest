@@ -94,6 +94,29 @@ test.describe('where the panel goes', () => {
         expect(box.y).toBeGreaterThanOrEqual(0);
     });
 
+    test('scrolls and does not cover the input when it fits on neither side', async ({page}) => {
+        await page.setViewportSize({width: 1000, height: 420});
+        const card = (await open(page)).getByTestId('picker-initial');
+        const input = card.locator('input');
+        await input.evaluate((element) => {
+            const scroller = document.getElementById('page');
+            scroller.scrollTop += element.getBoundingClientRect().top - 190;
+        });
+        await input.click();
+        const panel = card.locator('.picker');
+        const box = await panel.boundingBox();
+        const inputBox = await input.boundingBox();
+        expect(box.y >= inputBox.y + inputBox.height || box.y + box.height <= inputBox.y).toBe(true);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height).toBeLessThanOrEqual(420);
+        expect(await panel.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+        // A person can scroll to the end, and the panel stays there
+        await panel.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+        await expect.poll(() => panel.evaluate(element => Math.ceil(element.scrollTop + element.clientHeight) >= element.scrollHeight)).toBe(true);
+        await page.waitForTimeout(100);
+        expect(await panel.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    });
+
     test('follows the input when the page scrolls', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
         const input = card.locator('input');

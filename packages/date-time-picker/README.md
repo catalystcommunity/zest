@@ -183,10 +183,14 @@ The element is form-associated. It submits under its `name`, works with `require
 
 The panel uses the top layer through the Popover API, so an `overflow: hidden` box or a modal dialog does not clip it. The panel goes above the input if there is no space below, and it stays in the viewport.
 
-The default colors are system colors, so they follow `color-scheme`. To change them, set these on the element or on a parent:
+With no tokens on the page, the colors are system colors, so they follow `color-scheme`. To use the Zest design system, load `@catalystcommunity/design-tokens`. Each value falls back in this order: the widget token, the family token, the global token, the system color.
 
-`--zest-dtp-accent`, `--zest-dtp-accent-text`, `--zest-dtp-background`, `--zest-dtp-text`, `--zest-dtp-muted`, `--zest-dtp-range`, `--zest-dtp-radius`, `--zest-dtp-day-size`
+To change one picker or a group of pickers, set these on the element or on a parent:
 
-`ShadowDateTimePicker` also has these parts for `::part()`: `input`, `toggle`, `picker`, `calendar`, `day`, `time`.
+`--zest-date-time-picker-window`, `-window-text`, `-field`, `-field-text`, `-face`, `-face-text`, `-face-hover`, `-fill`, `-highlight`, `-highlight-text`, `-range-face`, `-secondary-text`, `-disabled-text`, `-border`, `-invalid`, `-focus`, `-radius`, `-height`, `-day-size`
+
+`ShadowDateTimePicker` also has these parts for `::part()`: `input`, `toggle`, `picker`, `calendar`, `day`, `time`. While the panel is open, `:state(open)` matches the element.
+
+To add rules to each picker, call `DateTimePicker.addStyles(css)`. These rules win over the defaults, which are in the `zest` layer.
 
 To replace all the styles, use `override-style-template-id`. The class names to style are `.day`, `.selected`, `.in-range`, `.in-range-preview`, `.today`, `.other-month`, `.unavailable`, `.cell`, `.slot`, and `.badge`.

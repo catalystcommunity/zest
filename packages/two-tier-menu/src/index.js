@@ -1,7 +1,18 @@
 import { DataComponent } from "@catalystcommunity/base-components";
 
-const defaultStyles = `<style>
+const defaultStyles = `
 two-tier-menu, :host {
+    --_face: var(--zest-two-tier-menu-face, var(--zest-menu-face, var(--zest-color-face, ButtonFace)));
+    --_face-text: var(--zest-two-tier-menu-face-text, var(--zest-menu-face-text, var(--zest-color-face-text, ButtonText)));
+    --_border: var(--zest-two-tier-menu-border, var(--zest-menu-border, var(--zest-color-border, ButtonBorder)));
+    --_highlight: var(--zest-two-tier-menu-highlight, var(--zest-menu-highlight, var(--zest-color-highlight, Highlight)));
+    --_hover-face: var(--zest-two-tier-menu-face-hover, var(--zest-menu-face-hover, color-mix(in srgb, var(--_highlight) 12%, transparent)));
+    --_focus: var(--zest-two-tier-menu-focus, var(--zest-menu-focus, var(--zest-color-focus, Highlight)));
+    --_focus-width: var(--zest-focus-width, 2px);
+    --_height: var(--zest-two-tier-menu-item-height, var(--zest-menu-item-height, var(--zest-control-height, 2.5em)));
+    --_gap: var(--zest-gap-related, 0.5em);
+    --_padding: var(--zest-control-padding-inline, 1em);
+    --_motion: var(--zest-motion-duration, 0ms);
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -9,10 +20,11 @@ two-tier-menu, :host {
     height: 100%;
     width: 15em;
     overflow-y: auto;
-    border-right: 1px solid #D7DBDD;
-    font-family: sans-serif;
-    background: #34495e;
-    color: white;
+    border-inline-end: var(--zest-border-width, 1px) solid var(--_border);
+    font-family: var(--zest-font-family, inherit);
+    line-height: var(--zest-line-height, inherit);
+    background: var(--_face);
+    color: var(--_face-text);
 }
 
 two-tier-menu .items, :host .items {
@@ -25,8 +37,9 @@ two-tier-menu .items, :host .items {
 two-tier-menu menu-logo, :host menu-logo {
   display: block;
   flex: 0 0 auto;
-  padding: 10px 20px;
-  font-size: 2em;
+  padding: var(--_gap) var(--_padding);
+  font-size: 1.5em;
+  font-weight: bold;
   text-align: center;
 }
 two-tier-menu menu-logo img, :host menu-logo img {
@@ -35,29 +48,57 @@ two-tier-menu menu-logo img, :host menu-logo img {
 }
 two-tier-menu menu-item, :host menu-item {
   display: block;
-  padding: 6px 20px 6px 36px;
+}
+two-tier-menu menu-item > a, :host menu-item > a,
+two-tier-menu menu-item:not(:has(> a)), :host menu-item:not(:has(> a)) {
+  display: flex;
+  align-items: center;
+  gap: var(--_gap);
+  box-sizing: border-box;
+  min-height: var(--_height);
+  padding-block: 0.25em;
+  padding-inline: calc(var(--_padding) * 2) var(--_padding);
 }
 two-tier-menu menu-item.section-header, :host menu-item.section-header {
-  padding: 10px 20px;
-  font-size: 1.2em;
+  margin-block-start: var(--_gap);
+  font-weight: bold;
+}
+two-tier-menu menu-item.section-header > a, :host menu-item.section-header > a,
+two-tier-menu menu-item.section-header:not(:has(> a)), :host menu-item.section-header:not(:has(> a)) {
+  padding-inline-start: var(--_padding);
 }
 two-tier-menu menu-gutter, :host menu-gutter {
     flex: 0 0 auto;
     box-sizing: border-box;
-    padding: 10px;
-    gap: 8px;
+    padding: var(--_gap) var(--_padding);
 }
 two-tier-menu img, :host img {
+  flex: 0 0 auto;
   width: 1.25em;
-  margin-right: 0.25em;
   vertical-align: middle;
 }
 two-tier-menu a, :host a {
   color: inherit;
+  text-decoration: none;
+  transition: background-color var(--_motion);
 }
-</style>`
+two-tier-menu a:hover, :host a:hover {
+  background-color: var(--_hover-face);
+  text-decoration: underline;
+}
+two-tier-menu a:focus-visible, :host a:focus-visible {
+  outline: var(--_focus-width) solid var(--_focus);
+  outline-offset: calc(var(--_focus-width) * -1);
+}
+@media (forced-colors: active) {
+  two-tier-menu a:focus-visible, :host a:focus-visible {
+    outline-color: Highlight;
+  }
+}
+`
 
 export default class TwoTierMenu extends DataComponent {
+    static styles = defaultStyles;
     menuConfig;
     gutter;
 
@@ -65,7 +106,6 @@ export default class TwoTierMenu extends DataComponent {
         super()
         this.menuConfig = {};
         this.gutter = {}
-        this.styleTemplate = defaultStyles;
     }
     connectedCallback(){
         super.connectedCallback();
@@ -97,8 +137,9 @@ export default class TwoTierMenu extends DataComponent {
             }
             this.root.appendChild(menuLogo);
         }
-        let itemContainer = document.createElement('div');
+        let itemContainer = document.createElement('nav');
         itemContainer.setAttribute("class", "items");
+        itemContainer.setAttribute("aria-label", this.menuConfig.label || "Menu");
         this.root.appendChild(itemContainer);
         if(this.menuConfig.sections && Array.isArray(this.menuConfig.sections)){
             for (let i = 0; i < this.menuConfig.sections.length; i++) {
@@ -130,9 +171,7 @@ export default class TwoTierMenu extends DataComponent {
             }
             this.root.appendChild(this.gutter);
         }
-        if (this.styleTemplate) { 
-            this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));
-        }
+        this.applyStyles();
     }
 }
 

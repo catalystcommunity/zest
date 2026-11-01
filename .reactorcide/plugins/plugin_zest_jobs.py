@@ -171,8 +171,8 @@ def release(code_dir: Path) -> None:
         tags = ", ".join(item["tag"] for item in marker["packages"] if item["name"] in failed)
         raise RuntimeError(
             f"The tags are pushed, and these did not stage: {', '.join(failed)}. A new release will not retry them, "
-            f"because no commit follows the tags. Check out each tag ({tags}), then run `npm pack` in the package "
-            "directory and `npm stage publish <tarball> --access public`."
+            f"because no commit follows the tags. Check out each tag ({tags}), copy the root LICENSE to the package "
+            "directory, then run `npm pack` there and `npm stage publish <tarball> --access public`."
         )
     log_stdout(
         f"Staged {len(tarballs)} package(s) on npmjs. A maintainer approves each one with 2FA: "

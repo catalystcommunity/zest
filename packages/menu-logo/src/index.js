@@ -1,6 +1,15 @@
 import { BaseComponent } from "@catalystcommunity/base-components";
 
+// An image must not make the logo wider than its parent
+const defaultStyles = `
+menu-logo img, :host img {
+    max-width: 100%;
+    height: auto;
+}
+`;
+
 export default class MenuLogo extends BaseComponent {
+    static styles = defaultStyles;
     static changeAttributes = ['logo', 'alt', 'logo-text', 'href'];
     logo;
     logoText;
@@ -13,7 +22,6 @@ export default class MenuLogo extends BaseComponent {
         this.logoText = null;
         this.alt = null;
         this.href = null;
-        this.styleTemplate = null;
     }
     postObservedAttributeChange() {
         if (this.isConnected) { this.render(); }
@@ -44,9 +52,7 @@ export default class MenuLogo extends BaseComponent {
             textSpan.textContent = this.logoText;
             coreNode.appendChild(textSpan);
         }
-        if (this.styleTemplate) {
-            this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));
-        }
+        this.applyStyles();
     }
 }
 

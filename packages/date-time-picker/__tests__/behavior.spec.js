@@ -62,11 +62,18 @@ describe('DateTimePicker', () => {
     });
 
     describe('styles', () => {
-        it('renders the styles as a style element with real CSS', () => {
+        it('falls back to a style element with real CSS in a layer when it cannot adopt a sheet', () => {
             const comp = makePicker();
             const style = comp.querySelector('style');
+            expect(style.textContent).toMatch(/@layer zest/);
             expect(style.textContent).toMatch(/date-time-picker/);
             expect(style.textContent).not.toMatch(/object/);
+        });
+
+        it('has no old token names and gives each color a system color at the end', () => {
+            const css = customElements.get('date-time-picker').styles;
+            expect(css).not.toMatch(/--zest-dtp|--dtp-/);
+            expect(css).toMatch(/--zest-color-highlight, Highlight\)/);
         });
     });
 
@@ -216,11 +223,11 @@ describe('DateTimePicker', () => {
         });
 
         it('stops listening to the document when it is removed', () => {
-            const remove = vi.spyOn(document, 'removeEventListener');
             const comp = makePicker();
+            const {lifetime} = comp;
+            expect(lifetime.aborted).toBe(false);
             comp.remove();
-            expect(remove).toHaveBeenCalledWith('click', expect.any(Function));
-            remove.mockRestore();
+            expect(lifetime.aborted).toBe(true);
         });
     });
 

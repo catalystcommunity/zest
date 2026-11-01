@@ -4,6 +4,7 @@ import {ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, Ope
 import BasicDataRegistry from '@catalystcommunity/basic-data-registry';
 import BasicDataService from '@catalystcommunity/basic-data-service';
 import {DateTimePicker, ShadowDateTimePicker} from '@catalystcommunity/date-time-picker';
+import {tokensCss, installTokens} from '@catalystcommunity/design-tokens';
 import EventBroker from '@catalystcommunity/event-broker';
 import {MenuGutter, ShadowMenuGutter} from '@catalystcommunity/menu-gutter';
 import {MenuItem, ShadowMenuItem} from '@catalystcommunity/menu-item';
@@ -16,6 +17,7 @@ export {
   BasicDataRegistry,
   BasicDataService,
   DateTimePicker, ShadowDateTimePicker,
+  tokensCss, installTokens,
   EventBroker,
   MenuGutter, ShadowMenuGutter,
   MenuItem, ShadowMenuItem,
