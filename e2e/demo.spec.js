@@ -6,7 +6,7 @@ test.describe('the demo application', () => {
     test('shows the menu and the home page', async ({page}) => {
         await page.goto('/');
         await expect(page.getByRole('heading', {name: 'Zest demo'})).toBeVisible();
-        await expect(menu(page).locator('menu-logo img')).toBeVisible();
+        await expect(menu(page).locator('menu-logo .logoText')).toHaveText('Zest');
         await expect(menu(page).locator('menu-gutter')).toContainText('Catalyst Squad');
     });
 

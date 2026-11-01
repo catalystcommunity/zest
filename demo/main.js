@@ -1,3 +1,4 @@
+import '@catalystcommunity/design-tokens/src/tokens.css';
 import './style.css';
 
 import {BasicDataRegistry, SimpleRouter} from '../src/index.js';
@@ -11,7 +12,7 @@ window[dataRegistryName] = registry;
 registry.AddDataFunction('demoMenuDataFunc', function menuDataFunc() {
   return {
     menuConfig: {
-      logo: {img: '/cslogo.png', alt: 'Catalyst Squad'},
+      logo: {text: 'Zest'},
       sections: [
         {
           display: 'Demo',
@@ -112,7 +113,6 @@ document.addEventListener('click', (e) => {
 
 const menu = document.createElement('shadow-two-tier-menu');
 menu.id = 'menu';
-menu.setAttribute('override-style-template-id', 'demo-menu-styles');
 menu.setAttribute('registry-name', dataRegistryName);
 menu.setAttribute('data-register-func-name', 'demoMenuDataFunc');
 

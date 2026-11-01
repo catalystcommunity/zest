@@ -83,8 +83,8 @@ describe('TwoTierMenu', () => {
         expect(myThing).toEqual('foo');
         const link = comp.firstChild;
         expect(link.tagName).toEqual('MENU-LOGO');
-        const items = comp.querySelector("div");
-        expect(items).toBeInstanceOf(HTMLDivElement);
+        const items = comp.querySelector("nav");
+        expect(items).toBeInstanceOf(HTMLElement);
         expect(items.getAttribute("class")).toMatch(/items/);
         expect(items.childNodes.length).toEqual(6);
         const gutter = comp.querySelector("menu-gutter");
@@ -98,8 +98,8 @@ describe('TwoTierMenu', () => {
         expect(myThing).toEqual('foo');
         const link = comp.firstChild;
         expect(link.tagName).toEqual('MENU-LOGO');
-        const items = comp.querySelector("div");
-        expect(items).toBeInstanceOf(HTMLDivElement);
+        const items = comp.querySelector("nav");
+        expect(items).toBeInstanceOf(HTMLElement);
         expect(items.getAttribute("class")).toMatch(/items/);
         expect(items.childNodes.length).toEqual(2);
         const gutter = comp.querySelector("menu-gutter");

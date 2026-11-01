@@ -155,3 +155,168 @@ describe('DataComponent registration', () => {
         expect(unregister).toHaveBeenCalledTimes(2);
     });
 });
+
+describe('styles', () => {
+    class StyledComponent extends BaseComponent {
+        static styles = '.styled {color: red;}';
+        render() { this.root.innerHTML = '<p class="styled"></p>'; this.applyStyles(); }
+        connectedCallback() { super.connectedCallback(); this.render(); }
+    }
+    customElements.define('styled-component', StyledComponent);
+
+    class PlainComponent extends BaseComponent {
+        render() { this.root.innerHTML = '<p></p>'; this.applyStyles(); }
+    }
+    customElements.define('plain-component', PlainComponent);
+
+    function withFakeAdoption(run) {
+        // jsdom has no adopted stylesheets, so this is the shape of the browser API
+        const replaceSync = vi.fn();
+        class FakeSheet { replaceSync(text) { replaceSync(text); } }
+        vi.stubGlobal('CSSStyleSheet', FakeSheet);
+        document.adoptedStyleSheets = [];
+        try {
+            run(replaceSync);
+        } finally {
+            delete document.adoptedStyleSheets;
+            vi.unstubAllGlobals();
+            document.body.innerHTML = '';
+        }
+    }
+
+    it('wraps the defaults in the zest layer when it falls back to a style element', () => {
+        const comp = document.createElement('styled-component');
+        document.body.appendChild(comp);
+        expect(comp.querySelector('style').textContent).toMatch(/@layer zest \{\s+\.styled \{color: red;\}\s+\}/);
+        comp.remove();
+    });
+
+    it('has no style template of its own, so an instance template is the only thing that replaces the defaults', () => {
+        expect(document.createElement('styled-component').styleTemplate).toBeNull();
+        expect(new (customElements.get('plain-component'))().styleTemplate).toMatch(/defbasecomp/);
+    });
+
+    it('uses an override template in place of the defaults', () => {
+        const template = document.createElement('template');
+        template.id = 'style-override-test';
+        template.innerHTML = '<style>.mine {color: blue;}</style>';
+        document.body.appendChild(template);
+        const comp = document.createElement('styled-component');
+        comp.setAttribute('override-style-template-id', 'style-override-test');
+        document.body.appendChild(comp);
+        expect(comp.querySelector('style').textContent).toMatch(/\.mine/);
+        expect(comp.querySelector('style').textContent).not.toMatch(/\.styled/);
+        comp.remove();
+        template.remove();
+    });
+
+    it('adopts one sheet for all instances, and adds it one time', () => {
+        class SharedComponent extends StyledComponent { static styles = '.shared {}'; }
+        customElements.define('shared-component', SharedComponent);
+        withFakeAdoption((replaceSync) => {
+            document.body.append(document.createElement('shared-component'), document.createElement('shared-component'));
+            expect(document.adoptedStyleSheets).toHaveLength(1);
+            expect(replaceSync).toHaveBeenCalledTimes(1);
+            expect(document.querySelector('shared-component style')).toBeNull();
+        });
+    });
+
+    it('adds styles after the layer, also to a sheet that is already in use', () => {
+        class AddingComponent extends StyledComponent { static styles = '.adding {}'; }
+        customElements.define('adding-component', AddingComponent);
+        withFakeAdoption((replaceSync) => {
+            document.body.appendChild(document.createElement('adding-component'));
+            AddingComponent.addStyles('.added {}');
+            const text = replaceSync.mock.calls.at(-1)[0];
+            expect(text).toMatch(/\}\n\.added \{\}\n$/);
+        });
+    });
+
+    it('shares the sheet with a child class that declares no styles', () => {
+        class Parent extends StyledComponent { static styles = '.parent {}'; }
+        class Child extends Parent {}
+        customElements.define('parent-style-component', Parent);
+        customElements.define('child-style-component', Child);
+        withFakeAdoption(() => {
+            document.body.append(document.createElement('parent-style-component'), document.createElement('child-style-component'));
+            expect(document.adoptedStyleSheets).toHaveLength(1);
+        });
+    });
+
+    it('falls back to a style element when the sheet belongs to another document', () => {
+        class ForeignComponent extends StyledComponent { static styles = '.foreign {}'; }
+        customElements.define('foreign-component', ForeignComponent);
+        withFakeAdoption(() => {
+            const refuse = () => { throw new DOMException('no', 'NotAllowedError'); };
+            Object.defineProperty(document, 'adoptedStyleSheets', {configurable: true, get: () => [], set: refuse});
+            const comp = document.createElement('foreign-component');
+            document.body.appendChild(comp);
+            expect(comp.querySelector('style').textContent).toMatch(/\.foreign/);
+        });
+    });
+
+    it('does nothing for a class with no styles', () => {
+        const comp = new (customElements.get('plain-component'))();
+        comp.styleTemplate = null;
+        comp.render();
+        expect(comp.querySelector('style')).toBeNull();
+    });
+});
+
+describe('the lifetime of an element', () => {
+    it('is aborted when disconnected, and new when it connects again', () => {
+        const comp = document.createElement('converting-component');
+        expect(comp.lifetime.aborted).toBe(true);
+        document.body.appendChild(comp);
+        const first = comp.lifetime;
+        expect(first.aborted).toBe(false);
+        comp.remove();
+        expect(first.aborted).toBe(true);
+        document.body.appendChild(comp);
+        expect(comp.lifetime.aborted).toBe(false);
+        expect(comp.lifetime).not.toBe(first);
+        comp.remove();
+    });
+
+    it('also ends for a data component', () => {
+        const registry = {register: () => ({})};
+        window.lifetimeRegistry = registry;
+        const comp = document.createElement('registering-component');
+        comp.setAttribute('registry-name', 'lifetimeRegistry');
+        comp.setAttribute('data-register-func-name', 'register');
+        document.body.appendChild(comp);
+        const {lifetime} = comp;
+        comp.remove();
+        expect(lifetime.aborted).toBe(true);
+        delete window.lifetimeRegistry;
+    });
+});
+
+describe('emit and invalidate', () => {
+    it('sends an event that leaves a shadow root', () => {
+        const comp = document.createElement('shadow-component');
+        document.body.appendChild(comp);
+        const child = document.createElement('converting-component');
+        comp.root.appendChild(child);
+        const heard = vi.fn();
+        document.addEventListener('zest-test', heard, {once: true});
+        child.emit('zest-test', {id: 1});
+        expect(heard.mock.calls[0][0].detail).toEqual({id: 1});
+        comp.remove();
+    });
+
+    it('renders one time for many calls, and not after it disconnects', async () => {
+        const comp = document.createElement('converting-component');
+        comp.render = vi.fn();
+        document.body.appendChild(comp);
+        comp.invalidate();
+        comp.invalidate();
+        expect(comp.render).not.toHaveBeenCalled();
+        await Promise.resolve();
+        expect(comp.render).toHaveBeenCalledTimes(1);
+        comp.invalidate();
+        comp.remove();
+        await Promise.resolve();
+        expect(comp.render).toHaveBeenCalledTimes(1);
+    });
+});

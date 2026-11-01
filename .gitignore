@@ -60,6 +60,8 @@ typings/
 
 # Output of 'npm pack'
 *.tgz
+# The release tool copies the root LICENSE to a package to pack it
+packages/*/LICENSE
 
 # Yarn Integrity file
 .yarn-integrity

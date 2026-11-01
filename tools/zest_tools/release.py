@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import tarfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +29,7 @@ UMBRELLA_TARGET = "zest"
 #: releases only that package, and a consumer of the umbrella package gets it
 #: through the version range.
 UMBRELLA_PATHS = "src,package.json,README.md,LICENSE"
+LICENSE = "LICENSE"
 
 
 @dataclass(frozen=True)
@@ -237,6 +239,8 @@ def check_tarball(tarball: Path, name: str, version: str) -> None:
         problems.append(f"its version is {manifest['version']}, and this release is {version}")
     if manifest.get("main") not in members:
         problems.append(f"its main file {manifest.get('main')} is not in it")
+    if LICENSE not in members:
+        problems.append(f"its {LICENSE} file is not in it")
     for member in members:
         if member.startswith(("__tests__/", "demo/", "e2e/", "tools/", "node_modules/", ".reactorcide/")):
             problems.append(f"it holds {member}")
@@ -249,7 +253,15 @@ def check_tarball(tarball: Path, name: str, version: str) -> None:
 
 def _pack_one(package: Package, version: str, into: Path, root: Path) -> Path:
     into.mkdir(parents=True, exist_ok=True)
-    result = deps.npm("pack", "--pack-destination", str(into), "--silent", cwd=package.directory, capture=True)
+    # The root holds the one license. npm leaves a symbolic link out of a tarball, so a package holds a copy to pack.
+    copied = None if package.directory == root else package.directory / LICENSE
+    if copied:
+        shutil.copyfile(root / LICENSE, copied)
+    try:
+        result = deps.npm("pack", "--pack-destination", str(into), "--silent", cwd=package.directory, capture=True)
+    finally:
+        if copied:
+            copied.unlink()
     tarball = into / result.stdout.strip().splitlines()[-1]
     check_tarball(tarball, package.name, version)
     return tarball

@@ -1,19 +1,21 @@
 import { BaseComponent } from "@catalystcommunity/base-components";
 
-const defaultStyles = `<style>
+const defaultStyles = `
 menu-gutter, :host {
     display: flex;
     margin: auto 0;
     width: 100%;
     justify-content: space-evenly;
     align-items: center;
+    gap: var(--zest-gap-related, 0.5em);
 }
-</style>`
+`
 
 export default class MenuGutter extends BaseComponent {
+    static styles = defaultStyles;
+
     constructor(){
         super()
-        this.styleTemplate = defaultStyles;
         this.template = '';
     }
     connectedCallback(){
@@ -25,9 +27,7 @@ export default class MenuGutter extends BaseComponent {
         if (this.template) {
             this.root.appendChild(this.stringToElement(`${this.template}`));
         }
-        if (this.styleTemplate) {
-            this.root.appendChild(this.stringToElement(`${this.styleTemplate}`));
-        }
+        this.applyStyles();
     }
 }
 

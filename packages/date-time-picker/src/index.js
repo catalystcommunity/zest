@@ -5,35 +5,102 @@ import * as model from "./model.js";
 // `value` property, updateConfig, or a data registry. Everything goes out as a bubbling, composed
 // event on the element, so an EventBroker subscriber hears it on the document.
 
-const defaultStyles = `<style>
+const defaultStyles = `
 date-time-picker, :host {
     display: inline-block;
+    min-width: 0;
+    max-width: 100%;
 }
 .dtp {
-    --dtp-accent: var(--zest-dtp-accent, Highlight);
-    --dtp-accent-text: var(--zest-dtp-accent-text, HighlightText);
-    --dtp-background: var(--zest-dtp-background, Canvas);
-    --dtp-text: var(--zest-dtp-text, CanvasText);
-    --dtp-muted: var(--zest-dtp-muted, GrayText);
-    --dtp-range: var(--zest-dtp-range, color-mix(in srgb, var(--dtp-accent) 25%, transparent));
-    --dtp-radius: var(--zest-dtp-radius, 4px);
-    --dtp-day-size: var(--zest-dtp-day-size, 2.25em);
+    --_window: var(--zest-date-time-picker-window, var(--zest-color-window, Canvas));
+    --_window-text: var(--zest-date-time-picker-window-text, var(--zest-color-window-text, CanvasText));
+    --_field: var(--zest-date-time-picker-field, var(--zest-control-field, var(--zest-color-field, Field)));
+    --_field-text: var(--zest-date-time-picker-field-text, var(--zest-control-field-text, var(--zest-color-field-text, FieldText)));
+    --_face: var(--zest-date-time-picker-face, var(--zest-control-face, var(--zest-color-face, ButtonFace)));
+    --_face-text: var(--zest-date-time-picker-face-text, var(--zest-control-face-text, var(--zest-color-face-text, ButtonText)));
+    --_fill: var(--zest-date-time-picker-fill, var(--zest-control-fill, linear-gradient(color-mix(in srgb, var(--_face) 88%, white), var(--_face))));
+    --_highlight: var(--zest-date-time-picker-highlight, var(--zest-color-highlight, Highlight));
+    --_highlight-text: var(--zest-date-time-picker-highlight-text, var(--zest-color-highlight-text, HighlightText));
+    --_range-face: var(--zest-date-time-picker-range-face, color-mix(in srgb, var(--_highlight) 25%, transparent));
+    --_hover-face: var(--zest-date-time-picker-face-hover, color-mix(in srgb, var(--_highlight) 12%, transparent));
+    --_secondary-text: var(--zest-date-time-picker-secondary-text, var(--zest-color-secondary-text, CanvasText));
+    --_disabled-text: var(--zest-date-time-picker-disabled-text, var(--zest-color-disabled-text, GrayText));
+    --_border: var(--zest-date-time-picker-border, var(--zest-control-border, var(--zest-color-border, ButtonBorder)));
+    --_invalid: var(--zest-date-time-picker-invalid, var(--zest-color-invalid, CanvasText));
+    --_border-width: var(--zest-border-width, 1px);
+    --_focus: var(--zest-date-time-picker-focus, var(--zest-color-focus, Highlight));
+    --_focus-width: var(--zest-focus-width, 2px);
+    --_focus-offset: var(--zest-focus-offset, 2px);
+    --_radius: var(--zest-date-time-picker-radius, var(--zest-control-radius, 0.375em));
+    --_height: var(--zest-date-time-picker-height, var(--zest-control-height, 2.5em));
+    --_padding-block: var(--zest-control-padding-block, 0.375em);
+    --_padding-inline: var(--zest-control-padding-inline, 1em);
+    --_gap: var(--zest-gap-related, 0.5em);
+    --_day-size: var(--zest-date-time-picker-day-size, var(--_height));
+    --_motion: var(--zest-motion-duration, 0ms);
     display: inline-block;
     max-width: 100%;
+    font-family: var(--zest-font-family, inherit);
+    line-height: var(--zest-line-height, inherit);
+}
+.dtp input, .dtp select, .dtp button {
+    box-sizing: border-box;
+    font: inherit;
+}
+.dtp button {
+    cursor: pointer;
+    transition: background-color var(--_motion), border-color var(--_motion);
+}
+.dtp :focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: var(--_focus-width) solid var(--_focus);
+    outline-offset: var(--_focus-offset);
 }
 .dtp .input-row {
     display: flex;
     align-items: stretch;
-    gap: 2px;
+    gap: var(--_gap);
+}
+.dtp input::placeholder {
+    color: var(--_secondary-text);
+    opacity: 1;
+}
+.dtp input, .dtp select {
+    min-height: var(--_height);
+    padding: var(--_padding-block) calc(var(--_padding-inline) / 2);
+    background: var(--_field);
+    color: var(--_field-text);
+    border: var(--_border-width) solid var(--_border);
+    border-radius: var(--_radius);
 }
 .dtp .input-row input {
     flex: 1;
     min-width: 0;
-    font: inherit;
+}
+.dtp input[aria-invalid="true"] {
+    border-color: var(--_invalid);
+    box-shadow: inset 0 0 0 1px var(--_invalid);
+}
+.dtp .toggle, .dtp .footer button, .dtp .presets button {
+    min-height: var(--_height);
+    padding: var(--_padding-block) var(--_padding-inline);
+    background-color: var(--_face);
+    background-image: var(--_fill);
+    color: var(--_face-text);
+    border: var(--_border-width) solid var(--_border);
+    border-radius: var(--_radius);
 }
 .dtp .toggle {
-    font: inherit;
-    cursor: pointer;
+    min-width: var(--_height);
+    padding-inline: calc(var(--_padding-inline) / 2);
+}
+.dtp .toggle:hover, .dtp .footer button:hover, .dtp .presets button:hover {
+    background-image: none;
+    border-color: var(--_highlight);
+}
+.dtp .picker > * {
+    flex-shrink: 0;
 }
 .dtp .picker {
     position: fixed;
@@ -41,51 +108,60 @@ date-time-picker, :host {
     margin: 0;
     z-index: 1000;
     flex-direction: column;
-    gap: 0.5em;
+    gap: 0.75em;
     box-sizing: border-box;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     overflow: auto;
-    padding: 0.5em;
-    background: var(--dtp-background);
-    color: var(--dtp-text);
-    border: 1px solid var(--dtp-muted);
-    border-radius: var(--dtp-radius);
+    padding: 0.75em;
+    background: var(--_window);
+    color: var(--_window-text);
+    border: var(--_border-width) solid var(--_border);
+    border-radius: var(--_radius);
+    box-shadow: 0 0.25em 0.75em color-mix(in srgb, CanvasText 20%, transparent);
 }
 .dtp.inline .picker {
     position: static;
+    max-width: 100%;
     max-height: none;
+    box-shadow: none;
 }
 .dtp .calendars {
     display: flex;
     flex-wrap: wrap;
-    gap: 1em;
+    gap: var(--zest-gap-unrelated, 1.5em);
+    min-width: 0;
+}
+.dtp .calendar {
+    min-width: 0;
 }
 .dtp .month-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 2px;
-    margin-bottom: 0.25em;
+    margin-bottom: var(--_gap);
 }
 .dtp .month-name {
     flex: 1;
-    white-space: nowrap;
-    font: inherit;
+    min-width: 0;
+    min-height: var(--_height);
+    padding: 0;
     font-weight: bold;
     background: none;
     border: none;
+    border-radius: var(--_radius);
     color: inherit;
-    cursor: pointer;
 }
 .dtp .nav {
-    font: inherit;
-    width: 2em;
+    flex: 0 1 2em;
+    min-width: 24px;
+    min-height: var(--_height);
+    padding: 0;
     background: none;
-    border: 1px solid transparent;
-    border-radius: var(--dtp-radius);
+    border: var(--_border-width) solid transparent;
+    border-radius: var(--_radius);
     color: inherit;
-    cursor: pointer;
 }
 .dtp .nav[disabled] {
     visibility: hidden;
@@ -93,31 +169,29 @@ date-time-picker, :host {
 .dtp .week, .dtp .weekdays {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: var(--dtp-day-size);
+    grid-auto-columns: minmax(0, var(--_day-size));
 }
 .dtp .weekday, .dtp .week-number {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8em;
-    color: var(--dtp-muted);
+    font-size: 0.875em;
+    color: var(--_secondary-text);
 }
 .dtp .day, .dtp .cell, .dtp .outside {
     position: relative;
     box-sizing: border-box;
-    height: var(--dtp-day-size);
+    height: var(--_day-size);
     padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--dtp-radius);
+    border: var(--_border-width) solid transparent;
+    border-radius: var(--_radius);
     background: none;
     color: inherit;
     font: inherit;
 }
-.dtp .day, .dtp .cell {
-    cursor: pointer;
-}
-.dtp .day:hover, .dtp .cell:hover, .dtp .nav:hover, .dtp .slot:hover {
-    border-color: var(--dtp-accent);
+.dtp .day:hover, .dtp .cell:hover, .dtp .nav:hover, .dtp .month-name:hover, .dtp .slot:hover {
+    background-color: var(--_hover-face);
+    border-color: var(--_highlight);
 }
 .dtp .cells {
     display: grid;
@@ -126,24 +200,25 @@ date-time-picker, :host {
     min-width: 15em;
 }
 .dtp .cell {
-    height: 2.75em;
+    height: calc(var(--_height) + 0.25em);
 }
 .dtp .other-month {
-    opacity: 0.5;
+    color: var(--_secondary-text);
 }
 .dtp .today {
     text-decoration: underline;
     font-weight: bold;
 }
 .dtp .in-range, .dtp .in-range-preview {
-    background: var(--dtp-range);
+    background: var(--_range-face);
 }
 .dtp .selected, .dtp .selected:hover {
-    background: var(--dtp-accent);
-    color: var(--dtp-accent-text);
+    background: var(--_highlight);
+    color: var(--_highlight-text);
 }
 .dtp .unavailable, .dtp .unavailable:hover {
-    color: var(--dtp-muted);
+    background: none;
+    color: var(--_disabled-text);
     text-decoration: line-through;
     cursor: not-allowed;
     border-color: transparent;
@@ -152,54 +227,43 @@ date-time-picker, :host {
     position: absolute;
     inset-block-end: 1px;
     inset-inline-end: 2px;
-    font-size: 0.6em;
+    font-size: 0.625em;
     line-height: 1;
 }
 .dtp .time-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.25em;
+    gap: var(--_gap);
 }
 .dtp .time-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-}
-.dtp select {
-    font: inherit;
+    gap: var(--_gap);
 }
 .dtp .slots {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(5.5em, 1fr));
-    gap: 2px;
+    gap: var(--_gap);
     max-height: 14em;
     overflow-y: auto;
+    padding: var(--_focus-width);
 }
 .dtp .slot {
-    font: inherit;
+    min-height: var(--_height);
     padding: 0.25em;
     background: none;
     color: inherit;
-    border: 1px solid var(--dtp-muted);
-    border-radius: var(--dtp-radius);
-    cursor: pointer;
+    border: var(--_border-width) solid var(--_border);
+    border-radius: var(--_radius);
 }
-.dtp .presets, .dtp .footer {
+.dtp .presets, .dtp .footer, .dtp .footer > div {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--_gap);
 }
 .dtp .footer {
     justify-content: space-between;
-}
-.dtp .footer > div {
-    display: flex;
-    gap: 4px;
-}
-.dtp .footer button, .dtp .presets button {
-    font: inherit;
-    cursor: pointer;
 }
 .dtp .live {
     position: absolute;
@@ -209,12 +273,29 @@ date-time-picker, :host {
     clip-path: inset(50%);
     white-space: nowrap;
 }
-@media (pointer: coarse) {
-    .dtp {
-        --dtp-day-size: var(--zest-dtp-day-size, 2.75em);
+@media (forced-colors: active) {
+    .dtp :focus-visible {
+        outline-color: Highlight;
+    }
+    .dtp .selected, .dtp .selected:hover {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
+    }
+    .dtp .in-range, .dtp .in-range-preview {
+        forced-color-adjust: none;
+        background: Canvas;
+        color: CanvasText;
+        border-color: Highlight;
+    }
+    .dtp .unavailable, .dtp .unavailable:hover {
+        color: GrayText;
+    }
+    .dtp .day:hover, .dtp .cell:hover, .dtp .nav:hover, .dtp .slot:hover {
+        border-color: Highlight;
     }
 }
-</style>`;
+`;
 
 const MODES = ['date', 'datetime', 'time', 'month', 'week', 'year'];
 const SELECTIONS = ['single', 'range', 'multiple'];
@@ -262,6 +343,7 @@ const MULTIPLE_DISPLAY_SEPARATOR = '; ';
 
 export default class DateTimePicker extends DataComponent {
     static formAssociated = true;
+    static styles = defaultStyles;
     static changeAttributes = ['value', ...OPTION_ATTRIBUTES];
 
     input;
@@ -296,7 +378,6 @@ export default class DateTimePicker extends DataComponent {
     constructor(){
         super();
         this.template = "";
-        this.styleTemplate = defaultStyles;
         this.#internals = this.attachInternals?.() ?? null;
         this.input = document.createElement("input");
         this.picker = document.createElement("div");
@@ -542,12 +623,11 @@ export default class DateTimePicker extends DataComponent {
         if (this.root === this && !this.hasAttribute('tabindex')) { this.tabIndex = -1; }
         this.initInput();
         this.initPicker();
-        document.addEventListener("click", this.#onDocumentClick);
+        document.addEventListener("click", this.#onDocumentClick, {signal: this.lifetime});
         this.render();
     }
     disconnectedCallback(){
         super.disconnectedCallback();
-        document.removeEventListener("click", this.#onDocumentClick);
         if (this.#open) { this.closePicker(); }
     }
     render(){
@@ -556,9 +636,7 @@ export default class DateTimePicker extends DataComponent {
         this.#inputRow.replaceChildren(this.input, this.toggle);
         this.#wrapper.replaceChildren(this.#inputRow, this.picker);
         this.root.appendChild(this.#wrapper);
-        if (this.styleTemplate) {
-            this.#wrapper.appendChild(this.stringToElement(`${this.styleTemplate}`));
-        }
+        this.applyStyles(this.#wrapper);
         this.#refresh();
     }
     #refresh() {
@@ -579,6 +657,7 @@ export default class DateTimePicker extends DataComponent {
             this.picker.removeAttribute('popover');
             this.picker.style.display = 'flex';
             this.picker.style.top = '';
+            this.picker.style.maxHeight = '';
             this.picker.style.left = '';
         } else if (!this.#open) {
             this.picker.style.display = 'none';
@@ -622,6 +701,8 @@ export default class DateTimePicker extends DataComponent {
         this.input.setAttribute("role", "combobox");
         this.input.setAttribute("autocomplete", "off");
         this.input.setAttribute("aria-haspopup", "dialog");
+        this.picker.id ||= `${this.instanceId}-panel`;
+        this.input.setAttribute("aria-controls", this.picker.id);
         this.input.setAttribute("aria-expanded", String(this.#open));
         this.input.setAttribute("part", "input");
         this.input.placeholder = this.#option('placeholder') ?? this.#defaultPlaceholder();
@@ -749,6 +830,7 @@ export default class DateTimePicker extends DataComponent {
         this.#draw();
         this.picker.style.display = "flex";
         this.input.setAttribute("aria-expanded", "true");
+        this.#internals?.states?.add('open');
         if (this.picker.showPopover) {
             this.picker.setAttribute('popover', 'manual');
             if (!this.#popoverIsOpen()) { this.picker.showPopover(); }
@@ -767,22 +849,34 @@ export default class DateTimePicker extends DataComponent {
             this.picker.style.display = "none";
         }
         this.input.setAttribute("aria-expanded", "false");
+        this.#internals?.states?.delete('open');
         window.removeEventListener('resize', this.#onViewportChange);
         window.removeEventListener('scroll', this.#onViewportChange, true);
         this.#syncInput();
         if (wasOpen) { this.#sendEvent('date-picker-close', {}); }
     }
-    // Below the input, or above it if it fits only there, and always in the viewport
+    // Below the input, or above it if it fits only there. If it fits on neither side, it goes on the
+    // side with more room and scrolls, so that it does not cover the input. Always in the viewport.
     #position() {
         if (!this.#open || this.#isInline) { return; }
         const anchor = this.#inputRow.getBoundingClientRect();
         const size = this.picker.getBoundingClientRect();
+        // This runs on each scroll, also in the panel, so a change to max-height here would reset the scroll position
+        const borders = this.picker.offsetHeight - this.picker.clientHeight;
+        const fullHeight = this.picker.scrollHeight + borders;
         const gap = 4;
         const margin = 8;
-        const fitsBelow = anchor.bottom + gap + size.height <= window.innerHeight - margin;
-        const fitsAbove = anchor.top - gap - size.height >= margin;
-        let top = fitsBelow || !fitsAbove ? anchor.bottom + gap : anchor.top - gap - size.height;
-        top = Math.max(margin, Math.min(top, window.innerHeight - size.height - margin));
+        const smallestUsableHeight = 160;
+        const roomBelow = window.innerHeight - margin - anchor.bottom - gap;
+        const roomAbove = anchor.top - gap - margin;
+        const fitsBelow = fullHeight <= roomBelow;
+        const fitsAbove = fullHeight <= roomAbove;
+        const below = fitsBelow || (!fitsAbove && roomBelow >= roomAbove);
+        const room = below ? roomBelow : roomAbove;
+        const height = Math.min(fullHeight, Math.max(room, smallestUsableHeight), window.innerHeight - 2 * margin);
+        this.picker.style.maxHeight = height < fullHeight ? `${height}px` : '';
+        let top = below ? anchor.bottom + gap : anchor.top - gap - height;
+        top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
         const rightToLeft = getComputedStyle(this).direction === 'rtl';
         let left = rightToLeft ? anchor.right - size.width : anchor.left;
         left = Math.max(margin, Math.min(left, window.innerWidth - size.width - margin));
@@ -938,10 +1032,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #sendEvent(name, detail) {
         // composed, so that it leaves a shadow root. It bubbles to the document, for an EventBroker.
-        this.dispatchEvent(new CustomEvent(name, {
-            bubbles: true, composed: true,
-            detail: {...detail, instanceId: this.instanceId, name: this.name, mode: this.mode, selection: this.selection},
-        }));
+        this.emit(name, {...detail, instanceId: this.instanceId, name: this.name, mode: this.mode, selection: this.selection});
     }
     // Takes a Date, like the value that it gives
     selectDate(picked) {
@@ -1121,9 +1212,10 @@ export default class DateTimePicker extends DataComponent {
                 this.#navButton('prev-month', '‹', this.#label('previousMonth'), -1, noPrevious),
             );
         }
-        const name = this.#button('month-name',
-            model.formatDisplay(month, 'month', {locale: this.locale, format: 'long'}), `month-name-${month.year}-${month.month}`,
-            () => this.#switchCalendarView('months'), this.#label('chooseMonth'));
+        // The name starts with the visible text, so a person who uses voice control can say what they see
+        const monthText = model.formatDisplay(month, 'month', {locale: this.locale, format: 'long'});
+        const name = this.#button('month-name', monthText, `month-name-${month.year}-${month.month}`,
+            () => this.#switchCalendarView('months'), `${monthText}: ${this.#label('chooseMonth')}`);
         name.setAttribute('aria-live', 'polite');
         header.appendChild(name);
         if (isLast) {
@@ -1299,7 +1391,7 @@ export default class DateTimePicker extends DataComponent {
         const nextOut = rules.max?.year !== undefined && (isMonths ? this.#view.year : windowStart + 11) >= rules.max.year;
         const name = this.#button('month-name', title, `period-name-${view}`,
             () => { if (isMonths) { this.#switchCalendarView('years'); } else if (this.mode !== 'year') { this.#switchCalendarView('months'); } },
-            this.#label(isMonths ? 'chooseYear' : 'chooseMonth'));
+            `${title}: ${this.#label(isMonths ? 'chooseYear' : 'chooseMonth')}`);
         header.append(
             this.#navButton('prev-month', '‹', this.#label(isMonths ? 'previousYear' : 'previousYears'), -step, previousOut),
             name,
