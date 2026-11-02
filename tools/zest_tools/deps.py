@@ -138,8 +138,18 @@ def semver_tags_program() -> Path:
     return path
 
 
+def find_browser(browsers_dir: Path = BROWSERS_DIR) -> Path | None:
+    """The executable only. The same directory holds a file named LICENSE.headless_shell, and the order
+    of a glob changes between file systems."""
+    candidates = browsers_dir.glob("chromium_headless_shell-*/*/*headless*shell*")
+    return next((path for path in sorted(candidates) if path.is_file() and os.access(path, os.X_OK)), None)
+
+
 def _missing_libraries(browser: Path, env: dict[str, str]) -> list[str]:
     found = run(["ldd", browser], capture=True, check=False, quiet=True, env=env)
+    # A file that ldd cannot read has no line that says "not found", which must not look like success
+    if not found.ok:
+        raise ToolFailed(f"ldd cannot read {browser}, so it cannot say which libraries are missing.")
     return [line.split()[0] for line in found.stdout.splitlines() if "not found" in line]
 
 
@@ -180,8 +190,8 @@ def browser_environment() -> dict[str, str]:
     """Install headless Chromium, and say how to run it here."""
     env = {"PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS_DIR)}
     npx("playwright", "install", "--only-shell", "chromium", env=env)
-    browser = next(BROWSERS_DIR.glob("chromium_headless_shell-*/*/*headless*shell*"), None)
-    if browser is None or not browser.is_file():
+    browser = find_browser()
+    if browser is None:
         raise ToolFailed(f"Playwright installed no headless shell under {BROWSERS_DIR}.")
     if not _missing_libraries(browser, env):
         return env
