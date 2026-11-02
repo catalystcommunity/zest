@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/menu-logo",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "MenuLogo: A convenient way to add a top level item in a Zest menu where the logo goes.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/menu-logo#readme",
   "main": "src/index.js",
@@ -33,6 +33,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@catalystcommunity/base-components": ">=0.2.0 <1.0.0"
+    "@catalystcommunity/base-components": ">=0.2.4 <1.0.0"
   }
 }

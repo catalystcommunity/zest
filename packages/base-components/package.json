@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/base-components",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "BaseComponents: core components for other Zest style web components.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/base-components#readme",
   "main": "src/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/design-tokens",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DesignTokens: the colors, sizes, and spacing of the Zest design system, as CSS custom properties.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/design-tokens#readme",
   "main": "src/index.js",

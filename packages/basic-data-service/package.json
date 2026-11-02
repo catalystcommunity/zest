@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/basic-data-service",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "BasicDataService: As minimal a data API as we can make, evolving slowly.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/basic-data-service#readme",
   "main": "src/index.js",
