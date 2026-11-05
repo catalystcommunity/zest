@@ -24,12 +24,22 @@ export default class EventBroker {
         this.events = new Map();
     }
 
-    SubscribeEvent(eventName, subscriber, callback) {
-        if(typeof eventName !== "string" || typeof subscriber !== "string" || typeof callback !== "function"){
+    // Returns the removal function. With isActive, the subscription removes itself when isActive() does not
+    // return true, so a subscriber that is gone gets no call.
+    SubscribeEvent(eventName, subscriber, callback, {isActive} = {}) {
+        if(typeof eventName !== "string" || typeof subscriber !== "string" || typeof callback !== "function"
+            || (isActive !== undefined && typeof isActive !== "function")){
             throw new Error(`SubscribeEvent failed because of bad inputs. eventName: ${eventName}, subscriber: ${subscriber}, callback: ${callback}`);
         }
         let handler = (e) => {
+          if (isActive && isActive() !== true) { remove(); return; }
           callback(eventName, e.detail);
+        }
+        // After a repeated subscribe, an old removal function must not remove the new callback
+        const remove = () => {
+          if (this.events.get(eventName)?.get(subscriber) === handler) {
+            this.UnsubscribeEvent(eventName, subscriber);
+          }
         }
         if (this.events.get(eventName) === undefined || this.events.get(eventName) === null) {
             this.events.set(eventName, new Map());
@@ -40,6 +50,7 @@ export default class EventBroker {
         this.subscriberStats.count++;
         this.subscriberStats.added++;
         this.target.addEventListener(eventName, handler);
+        return remove;
     }
     
     UnsubscribeEvent(eventName, subscriber) {

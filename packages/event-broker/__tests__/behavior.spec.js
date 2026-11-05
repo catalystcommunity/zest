@@ -57,9 +57,46 @@ describe('EventBroker', () => {
         eb.cleanup();
     });
 
+    it('stops with the function that it returns', () => {
+        const eb = new EventBroker(new EventTarget());
+        const callback = vi.fn();
+        const stop = eb.SubscribeEvent('stop', 'sub', callback);
+        stop();
+        stop();
+        eb.FireEvent('stop', {});
+        expect(callback).not.toHaveBeenCalled();
+        expect(eb.subscriberStats).toEqual({count: 0, added: 1, removed: 1});
+    });
+
+    it('does not remove a new callback with the function from an old subscribe', () => {
+        const eb = new EventBroker(new EventTarget());
+        const second = vi.fn();
+        const stopFirst = eb.SubscribeEvent('again', 'sub', () => {});
+        eb.SubscribeEvent('again', 'sub', second);
+        stopFirst();
+        eb.FireEvent('again', {});
+        expect(second).toHaveBeenCalledOnce();
+    });
+
+    it('removes a subscription when isActive is not true, and does not call it', () => {
+        const eb = new EventBroker(new EventTarget());
+        const callback = vi.fn();
+        let active = true;
+        eb.SubscribeEvent('alive', 'sub', callback, {isActive: () => active});
+        eb.FireEvent('alive', {value: 1});
+        active = 1;
+        eb.FireEvent('alive', {value: 2});
+        active = true;
+        eb.FireEvent('alive', {value: 3});
+        expect(callback).toHaveBeenCalledOnce();
+        expect(eb.subscriberStats.count).toEqual(0);
+        expect(eb.events.get('alive').size).toEqual(0);
+    });
+
     it('refuses bad inputs', () => {
         const eb = new EventBroker();
         expect(() => eb.SubscribeEvent('a', 'b', 'notfunction')).toThrow();
+        expect(() => eb.SubscribeEvent('a', 'b', () => {}, {isActive: true})).toThrow();
         expect(() => eb.UnsubscribeEvent(1, 'b')).toThrow();
     });
 });

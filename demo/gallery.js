@@ -1,6 +1,6 @@
 // One section for each package. e2e/gallery.spec.js fails when a package has no section here,
 // and drives each control below in a real browser.
-import {BasicDataRegistry, BasicDataService, CheckCleanupCall, EventBroker, SimpleRouter} from '../src/index.js';
+import {BasicDataRegistry, BasicDataService, CheckCleanupCall, EventBroker, SimpleRouter, dateModel} from '../src/index.js';
 
 function el(tag, attributes = {}, ...children) {
   const element = document.createElement(tag);
@@ -157,6 +157,77 @@ function dataServiceSection() {
       ),
       readerA, readerB, log,
     ),
+  ];
+}
+
+// The application owns the items. The calendars show what the store holds, and each move goes
+// to the store, which sends the new items to each calendar.
+const calendarItems = () => [
+  {id: 'standup', title: 'Standup', start: '2026-03-13T09:00:00Z', end: '2026-03-13T09:30:00Z', editable: true, seriesId: 'daily'},
+  {id: 'review', title: 'Design review', start: '2026-03-13T09:15:00Z', end: '2026-03-13T10:30:00Z', editable: true, color: '#b3261e'},
+  {id: 'lunch', title: 'Lunch', start: '2026-03-13T12:00:00Z', end: '2026-03-13T13:00:00Z', editable: true, color: '#1e7a3a'},
+  {id: 'conference', title: 'Conference', start: '2026-03-10', end: '2026-03-13', allDay: true, editable: true, color: '#7a2e8e'},
+  {id: 'busy', busyOnly: true, start: '2026-03-12T14:00:00Z', end: '2026-03-12T16:00:00Z'},
+  {id: 'late', title: 'Night deploy', start: '2026-03-11T22:00:00Z', end: '2026-03-12T01:00:00Z', editable: true},
+  ...['08:00', '10:00', '11:00', '13:00', '15:00'].map((time, i) => (
+    {id: `full-${i}`, title: `Booking ${i + 1}`, start: `2026-03-18T${time}:00Z`, end: `2026-03-18T${time.slice(0, 2)}:45:00Z`})),
+];
+
+function calendarViewSection() {
+  const store = new BasicDataService();
+  store.replace('events', calendarItems().map(item => [item.id, item]));
+  const log = makeLog('calendar-log');
+  const calendars = [];
+  const calendar = (testId, attributes = {}, tag = 'calendar-view') => {
+    const element = el(tag, {'data-testid': testId, locale: 'en-US', 'time-zone': 'UTC', date: '2026-03-13', ...attributes});
+    element.events = store.list('events').map(([, item]) => item);
+    element.addEventListener('calendar-range-changed', (e) => log.add(`${testId} range ${e.detail.view} ${e.detail.startDate} to ${e.detail.endDate}`));
+    element.addEventListener('calendar-event-select', (e) => log.add(`${testId} open ${e.detail.id}`));
+    element.addEventListener('calendar-slot-select', (e) => {
+      log.add(`${testId} slot ${e.detail.start} to ${e.detail.end}`);
+      const id = `new-${Date.now()}`;
+      store.set('events', id, {id, title: 'New event', start: e.detail.start, end: e.detail.end, allDay: e.detail.allDay, editable: true});
+    });
+    store.listen(element, 'calendar-event-move', (detail, service) => {
+      log.add(`${testId} move ${detail.id} to ${detail.start} to ${detail.end}`);
+      service.set('events', detail.id, {...service.get('events', detail.id), start: detail.start, end: detail.end});
+    });
+    calendars.push(element);
+    return element;
+  };
+  store.subscribe(() => {
+    const items = store.list('events').map(([, item]) => item);
+    for (const element of calendars) { element.events = items; }
+  }, {collection: 'events'});
+  // A calendar needs the full width of the page
+  const wide = (element) => { element.classList.add('wide'); return element; };
+  return [
+    wide(card('calendar-month', 'Month, with spans and "+N more"', calendar('calendar-month-element'))),
+    wide(card('calendar-week', 'Week, from 07:00 to 20:00', calendar('calendar-week-element', {view: 'week', 'day-start': '07:00', 'day-end': '20:00', 'scroll-time': '08:00'}))),
+    wide(card('calendar-days', 'Three days, in a shadow root', calendar('calendar-days-element', {view: 'day', days: '3', views: 'day,agenda'}, 'shadow-calendar-view'))),
+    card('calendar-agenda', 'Agenda, read only', calendar('calendar-agenda-element', {view: 'agenda', readonly: '', views: ''})),
+    card('calendar-log-card', 'Events from the calendars', log),
+  ];
+}
+
+function dateModelSection() {
+  const input = el('input', {'data-testid': 'date-model-input', value: 'next friday', 'aria-label': 'A date to read'});
+  const output = el('output', {'data-testid': 'date-model-output', for: 'date-model-input'});
+  const reference = {year: 2026, month: 3, day: 13, hour: 9, minute: 0, second: 0};
+  const read = () => {
+    const parts = dateModel.parseText(input.value, 'date', {locale: 'en-US', reference});
+    output.textContent = parts
+      ? ['en-US', 'de-DE', 'ja-JP'].map(locale => `${locale}: ${dateModel.formatDisplay(parts, 'date', {locale, format: 'long'})}`).join(' · ')
+      : 'This text is not a date.';
+  };
+  input.addEventListener('input', read);
+  input.value = '3/14/2026';
+  read();
+  const week = dateModel.startOfWeek(reference, dateModel.firstDayOfWeek('de-DE'));
+  return [
+    card('date-model-read', 'Read what a person types, and write it in three locales', input, el('p', {}, output)),
+    card('date-model-week', 'The first day of the week in de-DE',
+      el('p', {'data-testid': 'date-model-week-text'}, `The week of ${dateModel.formatDate(reference)} starts on ${dateModel.formatDate(week)}.`)),
   ];
 }
 
@@ -458,6 +529,8 @@ export const sections = [
   {id: 'base-components', title: 'Base components', render: (context) => baseComponentsSection(context.registry)},
   {id: 'basic-data-registry', title: 'Basic data registry', render: dataRegistrySection},
   {id: 'basic-data-service', title: 'Basic data service', render: dataServiceSection},
+  {id: 'calendar-view', title: 'Calendar view', render: calendarViewSection},
+  {id: 'date-model', title: 'Date model', render: dateModelSection},
   {id: 'date-time-picker', title: 'Date time picker', render: dateTimePickerSection},
   {id: 'design-tokens', title: 'Design tokens', render: designTokensSection},
   {id: 'event-broker', title: 'Event broker', render: eventBrokerSection},

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import * as model from '../src/model.js';
+import * as model from '../src/index.js';
 
 const d = (year, month, day) => ({year, month, day});
 const dt = (year, month, day, hour = 0, minute = 0, second = 0) => ({year, month, day, hour, minute, second});
@@ -82,6 +82,22 @@ describe('calendar math', () => {
         expect(model.weekday(d(1, 1, 1))).toBe(1);
         expect(model.formatDate(d(99, 3, 5))).toBe('0099-03-05');
         expect(model.daysInMonth(4, 2)).toBe(29);
+    });
+
+    it('counts the days between two dates, and goes back from a day number', () => {
+        expect(model.daysBetween(d(2024, 2, 28), d(2024, 3, 1))).toBe(2);
+        expect(model.daysBetween(d(2024, 3, 1), d(2024, 2, 28))).toBe(-2);
+        expect(model.fromDayNumber(model.dayNumber(d(2024, 2, 29)))).toEqual(d(2024, 2, 29));
+        expect(model.fromDayNumber(model.dayNumber(d(50, 6, 1)))).toEqual(d(50, 6, 1));
+    });
+
+    it('finds the start of the week for each first day', () => {
+        // March 13, 2026 is a Friday
+        expect(model.startOfWeek(dt(2026, 3, 13, 9), 0)).toEqual(d(2026, 3, 8));
+        expect(model.startOfWeek(d(2026, 3, 13), 1)).toEqual(d(2026, 3, 9));
+        expect(model.startOfWeek(d(2026, 3, 13), 6)).toEqual(d(2026, 3, 7));
+        expect(model.startOfWeek(d(2026, 3, 8), 0)).toEqual(d(2026, 3, 8));
+        expect(model.startOfWeek(d(2026, 3, 1), 1)).toEqual(d(2026, 2, 23));
     });
 });
 

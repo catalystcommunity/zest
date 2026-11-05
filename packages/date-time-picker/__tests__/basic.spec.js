@@ -21,7 +21,7 @@ describe('DateTimePicker', () => {
     it("should have today's date displayed in a placeholder at initial setup", () => {
         const comp = new DateTimePicker();
         const now = new Date();
-        comp.connectedCallback(); // We have to call this because we're not actually in the dom
+        document.body.appendChild(comp);
         expect(comp).toBeInstanceOf(DateTimePicker);
         expect(comp.selectedDate).toBeInstanceOf(Date);
         const diffMs = Math.abs(now - comp.selectedDate);
@@ -29,15 +29,17 @@ describe('DateTimePicker', () => {
         expect(diffMins).toBeLessThanOrEqual(5);
         const compInput = comp.input;
         expect(compInput.placeholder).toEqual(new Intl.DateTimeFormat('en-US', {dateStyle: 'medium'}).format(now));
+        comp.remove();
     });
 
     it("should have no user selected state at initial setup", () => {
         const comp = new DateTimePicker();
         const now = new Date();
-        comp.connectedCallback(); // We have to call this because we're not actually in the dom
+        document.body.appendChild(comp);
         expect(comp).toBeInstanceOf(DateTimePicker);
         expect(comp.selectedDate).toBeInstanceOf(Date);
         expect(comp.userSelected).toEqual(false);
+        comp.remove();
     });
 
     it("should have an input with no placeholder text before initInput", () => {

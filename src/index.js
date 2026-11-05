@@ -3,6 +3,8 @@
 import {ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent, CheckCleanupCall} from '@catalystcommunity/base-components';
 import BasicDataRegistry from '@catalystcommunity/basic-data-registry';
 import BasicDataService from '@catalystcommunity/basic-data-service';
+import {CalendarView, ShadowCalendarView} from '@catalystcommunity/calendar-view';
+import * as dateModel from '@catalystcommunity/date-model';
 import {DateTimePicker, ShadowDateTimePicker} from '@catalystcommunity/date-time-picker';
 import {tokensCss, installTokens} from '@catalystcommunity/design-tokens';
 import EventBroker from '@catalystcommunity/event-broker';
@@ -16,6 +18,8 @@ export {
   ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent, CheckCleanupCall,
   BasicDataRegistry,
   BasicDataService,
+  CalendarView, ShadowCalendarView,
+  dateModel,
   DateTimePicker, ShadowDateTimePicker,
   tokensCss, installTokens,
   EventBroker,

@@ -223,11 +223,14 @@ describe('DateTimePicker', () => {
         });
 
         it('stops listening to the document when it is removed', () => {
+            const added = vi.spyOn(document, 'addEventListener');
+            const removed = vi.spyOn(document, 'removeEventListener');
             const comp = makePicker();
-            const {lifetime} = comp;
-            expect(lifetime.aborted).toBe(false);
+            const [, handler] = added.mock.calls.find(([name]) => name === 'click');
             comp.remove();
-            expect(lifetime.aborted).toBe(true);
+            expect(removed).toHaveBeenCalledWith('click', handler, undefined);
+            added.mockRestore();
+            removed.mockRestore();
         });
     });
 
@@ -425,7 +428,7 @@ describe('DateTimePicker', () => {
             }));
             window.pickerRegistry = {pickerData: register};
             const comp = makePicker({'registry-name': 'pickerRegistry', 'data-register-func-name': 'pickerData', 'instance-id': 'abc', 'register-data': 'mine'});
-            expect(register).toHaveBeenCalledWith('abc', 'mine');
+            expect(register).toHaveBeenCalledWith('abc', 'mine', expect.any(Function));
             expect(comp.value).toEqual('2024-03-15');
             const booked = dayButton(comp, 20);
             expect(booked.classList.contains('booked')).toEqual(true);

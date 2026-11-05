@@ -263,32 +263,95 @@ describe('styles', () => {
     });
 });
 
-describe('the lifetime of an element', () => {
-    it('is aborted when disconnected, and new when it connects again', () => {
+describe('what an element owns', () => {
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    it('removes its listeners when it disconnects, and listens again after it reconnects', () => {
         const comp = document.createElement('converting-component');
-        expect(comp.lifetime.aborted).toBe(true);
+        const heard = vi.fn();
         document.body.appendChild(comp);
-        const first = comp.lifetime;
-        expect(first.aborted).toBe(false);
+        comp.listen(document, 'zest-owned', heard);
         comp.remove();
-        expect(first.aborted).toBe(true);
+        document.dispatchEvent(new Event('zest-owned'));
+        expect(heard).not.toHaveBeenCalled();
         document.body.appendChild(comp);
-        expect(comp.lifetime.aborted).toBe(false);
-        expect(comp.lifetime).not.toBe(first);
-        comp.remove();
+        comp.listen(document, 'zest-owned', heard);
+        document.dispatchEvent(new Event('zest-owned'));
+        expect(heard).toHaveBeenCalledOnce();
     });
 
-    it('also ends for a data component', () => {
-        const registry = {register: () => ({})};
-        window.lifetimeRegistry = registry;
+    it('removes a capture listener with the same options', () => {
+        const comp = document.createElement('converting-component');
+        const heard = vi.fn();
+        document.body.appendChild(comp);
+        comp.listen(window, 'zest-owned', heard, true);
+        comp.remove();
+        window.dispatchEvent(new Event('zest-owned'));
+        expect(heard).not.toHaveBeenCalled();
+    });
+
+    it('calls each removal one time, the last first, also when one throws', () => {
+        const comp = document.createElement('converting-component');
+        const order = [];
+        document.body.appendChild(comp);
+        comp.own(() => order.push('first'));
+        comp.own(() => { order.push('second'); throw new Error('removal failed'); });
+        comp.own(() => order.push('third'));
+        // The browser reports an error from disconnectedCallback and does not throw it, so call it here
+        expect(() => comp.disconnectedCallback()).toThrow('removal failed');
+        expect(order).toEqual(['third', 'second', 'first']);
+        comp.disconnectedCallback();
+        expect(order).toHaveLength(3);
+    });
+
+    it('throws all the errors when more than one removal fails', () => {
+        const comp = document.createElement('converting-component');
+        document.body.appendChild(comp);
+        comp.own(() => { throw new Error('one'); });
+        comp.own(() => { throw new Error('two'); });
+        expect(() => comp.disconnectedCallback()).toThrow(AggregateError);
+    });
+
+    it('does not keep two of each when it connects two times with no disconnect', () => {
+        const comp = document.createElement('converting-component');
+        const remove = vi.fn();
+        document.body.appendChild(comp);
+        comp.own(remove);
+        comp.connectedCallback();
+        expect(remove).toHaveBeenCalledOnce();
+    });
+
+    it('refuses to own something before it connects, because nothing would remove it', () => {
+        const comp = document.createElement('converting-component');
+        expect(() => comp.own(() => {})).toThrow(/connectedCallback/);
+        expect(() => comp.listen(document, 'zest-owned', () => {})).toThrow(/connectedCallback/);
+    });
+
+    it('is active only while it is connected', () => {
+        const comp = document.createElement('converting-component');
+        expect(comp.isActive()).toBe(false);
+        document.body.appendChild(comp);
+        expect(comp.isActive()).toBe(true);
+        comp.remove();
+        expect(comp.isActive()).toBe(false);
+    });
+
+    it('gives the registry an isActive check, and unregisters also when a removal throws', () => {
+        let isActive;
+        const unregister = vi.fn();
+        window.ownedRegistry = {register: (_id, _data, check) => { isActive = check; return {unregisterFunc: unregister}; }};
         const comp = document.createElement('registering-component');
-        comp.setAttribute('registry-name', 'lifetimeRegistry');
+        comp.setAttribute('registry-name', 'ownedRegistry');
         comp.setAttribute('data-register-func-name', 'register');
         document.body.appendChild(comp);
-        const {lifetime} = comp;
+        expect(isActive()).toBe(true);
+        comp.own(() => { throw new Error('removal failed'); });
+        expect(() => comp.disconnectedCallback()).toThrow('removal failed');
+        expect(unregister).toHaveBeenCalledOnce();
         comp.remove();
-        expect(lifetime.aborted).toBe(true);
-        delete window.lifetimeRegistry;
+        expect(unregister).toHaveBeenCalledOnce();
+        expect(isActive()).toBe(false);
+        delete window.ownedRegistry;
     });
 });
 
