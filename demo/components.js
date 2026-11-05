@@ -2,6 +2,7 @@
 // The menu makes menu-item, menu-logo, and menu-gutter elements itself, so those tags are the light ones.
 import {
   BaseComponent, OpenShadowComponent, DataComponent,
+  CalendarView, ShadowCalendarView,
   DateTimePicker, ShadowDateTimePicker,
   MenuGutter, ShadowMenuGutter,
   MenuItem, ShadowMenuItem,
@@ -50,6 +51,8 @@ class GalleryData extends DataComponent {
 }
 
 const definitions = {
+  'calendar-view': CalendarView,
+  'shadow-calendar-view': ShadowCalendarView,
   'date-time-picker': DateTimePicker,
   'shadow-date-time-picker': ShadowDateTimePicker,
   'menu-gutter': MenuGutter,

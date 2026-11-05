@@ -1,5 +1,5 @@
 import { DataComponent } from "@catalystcommunity/base-components";
-import * as model from "./model.js";
+import * as model from "@catalystcommunity/date-model";
 
 // The design and each option are in the README. In short: data comes in through attributes, the
 // `value` property, updateConfig, or a data registry. Everything goes out as a bubbling, composed
@@ -623,7 +623,7 @@ export default class DateTimePicker extends DataComponent {
         if (this.root === this && !this.hasAttribute('tabindex')) { this.tabIndex = -1; }
         this.initInput();
         this.initPicker();
-        document.addEventListener("click", this.#onDocumentClick, {signal: this.lifetime});
+        this.listen(document, "click", this.#onDocumentClick);
         this.render();
     }
     disconnectedCallback(){

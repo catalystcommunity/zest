@@ -1,12 +1,13 @@
-// The date and time logic of the picker, with no DOM. A value here is a set of wall clock
-// parts: {year, month, day, hour, minute, second}, with month from 1 to 12. A kind says which
-// parts matter: year, month, week, date, time, or datetime.
+// Date and time logic with no DOM, for the picker, the calendar, and applications. A value here is
+// a set of wall clock parts: {year, month, day, hour, minute, second}, with month from 1 to 12. A
+// kind says which parts matter: year, month, week, date, time, or datetime.
 //
 // Wall clock parts and not a Date, because a local Date cannot hold 02:30 on a day when the
 // clocks skip it, and a date must not move when the viewer's time zone changes.
 
 // A page can hold many pickers, each one asks for hundreds of formatters, and making a formatter
-// is slow. A formatter holds no state, so all pickers share one for each locale and options.
+// is slow. A formatter holds no state, so all components share one for each locale and options.
+// Use these, and do not call new Intl.* in a component.
 const formatters = new Map();
 
 function formatter(Type, locale, options) {
@@ -17,9 +18,10 @@ function formatter(Type, locale, options) {
     return formatters.get(key);
 }
 
-const dateFormat = (locale, options) => formatter(Intl.DateTimeFormat, locale, options);
-const numberFormat = (locale, options) => formatter(Intl.NumberFormat, locale, options);
+export const dateFormat = (locale, options) => formatter(Intl.DateTimeFormat, locale, options);
+export const numberFormat = (locale, options) => formatter(Intl.NumberFormat, locale, options);
 export const relativeFormat = (locale, options) => formatter(Intl.RelativeTimeFormat, locale, options);
+export const pluralRules = (locale, options) => formatter(Intl.PluralRules, locale, options);
 
 const pad = (value, width = 2) => String(value).padStart(width, '0');
 
@@ -70,6 +72,21 @@ export function weekday(parts) {
 
 export function dayNumber(parts) {
     return Math.floor(toUtc({year: parts.year, month: parts.month, day: parts.day}).getTime() / 86400000);
+}
+
+// The date parts of a day number
+export function fromDayNumber(number) {
+    return pick(fromUtc(new Date(number * 86400000)), ['year', 'month', 'day']);
+}
+
+// The number of days from a to b. It is negative when b is before a.
+export function daysBetween(a, b) {
+    return dayNumber(b) - dayNumber(a);
+}
+
+// The first day of the week that holds the date. firstDay is 0 for Sunday, as firstDayOfWeek gives.
+export function startOfWeek(parts, firstDay = 0) {
+    return addDays(pick(parts, ['year', 'month', 'day']), -((weekday(parts) - firstDay + 7) % 7));
 }
 
 const COMPARE_FIELDS = {

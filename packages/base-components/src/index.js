@@ -98,7 +98,8 @@ class BaseComponent extends HTMLElement {
     // It is helpful to have a reference to either the shadow root or the self for rendering
     // consistently between shadow or nonshadow instances without complex reflection
     root;
-    #lifetime = null;
+    // The removal function of each thing that this element owns. disconnectedCallback calls them all.
+    #owned = [];
     #invalidated = false;
 
     // Keep in mind that the constructor doesn't have access to attributes until DOM connection
@@ -131,8 +132,8 @@ class BaseComponent extends HTMLElement {
         // then a default template id if it is present
         // then the template string if neither of those work
 
-        this.#lifetime?.abort();
-        this.#lifetime = new AbortController();
+        // A second connect with no disconnect between them must not keep two of each subscription
+        this.#release();
         // first get the override attributes from HTML into the JS world
         this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
         // This gets the template and styles, and if they aren't present they will be left alone
@@ -159,14 +160,41 @@ class BaseComponent extends HTMLElement {
         }
         // Normally one would call this.render() here, but we leave it out for components to call in their own
     }
-    // Stops everything that uses this.lifetime
+    // Removes everything that this element owns. This is the destructor of the element.
     disconnectedCallback() {
-        this.#lifetime?.abort();
-        this.#lifetime = null;
+        this.#release();
     }
-    // An AbortSignal for the time that the element is connected: addEventListener(name, handler, {signal: this.lifetime})
-    get lifetime() {
-        return this.#lifetime?.signal ?? AbortSignal.abort();
+    // True while the element is on the page. A subscriber with an isActive check calls this.
+    isActive() {
+        return this.isConnected;
+    }
+    // Keeps a removal function until the element disconnects: this.own(store.subscribe(...))
+    // Call it in connectedCallback. Before the element connects, nothing would remove it.
+    own(remove) {
+        if (typeof remove !== 'function') {
+            throw new Error(`own() needs a removal function, not: ${remove}`);
+        }
+        if (!this.isConnected) {
+            throw new Error('own() was called when the element was not connected. Call it in connectedCallback.');
+        }
+        this.#owned.push(remove);
+        return remove;
+    }
+    // Adds an event listener that the element removes when it disconnects
+    listen(target, eventName, handler, options) {
+        target.addEventListener(eventName, handler, options);
+        return this.own(() => target.removeEventListener(eventName, handler, options));
+    }
+    // The last thing owned is the first removed. Each removal runs, also when one before it throws.
+    #release() {
+        const owned = this.#owned;
+        this.#owned = [];
+        const errors = [];
+        for (const remove of owned.reverse()) {
+            try { remove(); } catch (e) { errors.push(e); }
+        }
+        if (errors.length === 1) { throw errors[0]; }
+        if (errors.length) { throw new AggregateError(errors, 'More than one removal failed'); }
     }
     // Sends an event that a parent can hear, also from inside a shadow root
     emit(name, detail) {
@@ -313,7 +341,8 @@ class DataComponent extends BaseComponent {
         }
         this.#dataRegisterFunc = this.#registry[this.dataRegisterFuncName];
         // Don't register until connected, as components are only there for display, not fetching/processing
-        this.registerResult = this.#dataRegisterFunc(this.instanceId, this.registerData)
+        // The registry can call isActive before it sends data, and drop the component if it is not true
+        this.registerResult = this.#dataRegisterFunc(this.instanceId, this.registerData, () => this.isActive())
         if (this.registerResult && this.registerResult.unregisterFunc) {
             this.unregisterFunc = this.registerResult.unregisterFunc;
         }
@@ -331,12 +360,15 @@ class DataComponent extends BaseComponent {
     postDataRegistration() { }
     // Even if it never registered data, now cleanup is a no-op
     disconnectedCallback() {
-        super.disconnectedCallback();
-        const unregisterFunc = this.unregisterFunc;
-        // Each registration gets one unregistration. A reconnect registers again.
-        this.unregisterFunc = function() {}
-        if (typeof unregisterFunc === 'function') {
-            unregisterFunc(this.instanceId, this.unregisterData)
+        try {
+            super.disconnectedCallback();
+        } finally {
+            const unregisterFunc = this.unregisterFunc;
+            // Each registration gets one unregistration. A reconnect registers again.
+            this.unregisterFunc = function() {}
+            if (typeof unregisterFunc === 'function') {
+                unregisterFunc(this.instanceId, this.unregisterData)
+            }
         }
     }
 }

@@ -8,13 +8,25 @@ An in-browser publish and subscribe, with custom events on the document.
 import EventBroker from '@catalystcommunity/event-broker';
 
 const broker = new EventBroker();
-broker.SubscribeEvent('saved', 'my-subscriber', (eventName, detail) => console.log(detail));
+const stop = broker.SubscribeEvent('saved', 'my-subscriber', (eventName, detail) => console.log(detail));
 broker.FireEvent('saved', { id: 7 });
-broker.UnsubscribeEvent('saved', 'my-subscriber');   // true if it removed something
+stop();                                              // or: broker.UnsubscribeEvent('saved', 'my-subscriber')
 broker.cleanup();                                    // removes each subscription
 ```
 
-A subscriber has one callback for each event. If it subscribes again, the new callback replaces the old one.
+A subscriber has one callback for each event. If it subscribes again, the new callback replaces the old one. The removal function from the old subscribe then does nothing.
+
+## Components
+
+A subscription is a listener on the target. It holds the callback, and thus the component, until it is removed. In a component, give the removal function to `this.own` in `connectedCallback`:
+
+```js
+this.own(broker.SubscribeEvent('saved', `saved-${this.instanceId}`, (name, detail) => this.invalidate(), {
+  isActive: () => this.isActive(),
+}));
+```
+
+`isActive` is a second guard. Before each call, the broker calls `isActive()`. If the result is not `true`, the broker removes the subscription and does not call the callback. It removes the subscription only at the next event, so also use `own`.
 
 ## The Target
 

@@ -1,0 +1,39 @@
+{
+  "name": "@catalystcommunity/date-model",
+  "version": "0.1.0",
+  "description": "DateModel: dates and times as wall clock parts, with time zones, locales, and cached Intl formatters. No DOM.",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/date-model#readme",
+  "main": "src/index.js",
+  "type": "module",
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystcommunity/zest.git"
+  },
+  "keywords": [
+    "date",
+    "time",
+    "time-zone",
+    "calendar",
+    "intl"
+  ],
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/catalystcommunity/zest/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
