@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from './fixtures.js';
+import { budget } from './timing.js';
 
 const open = async (page) => {
     await page.goto('/gallery/spreadsheet');
@@ -170,7 +171,7 @@ test.describe('spreadsheet', () => {
         await page.keyboard.press('Control+ArrowDown');
         await expect(cell(sheet, 'A10000')).toHaveText('10000');
         const elapsed = await page.evaluate((start) => performance.now() - start, started);
-        expect(elapsed).toBeLessThan(1000);
+        expect(elapsed).toBeLessThan(budget(1000));
         expect(await count()).toBe(before);
         expect(before).toBeLessThan(1500);
         expect(await sheet.locator('[role="grid"]').getAttribute('aria-activedescendant')).toBeTruthy();
@@ -178,7 +179,7 @@ test.describe('spreadsheet', () => {
         await page.getByTestId('sheet-large-change').click();
         await expect(page.getByTestId('sheet-large-time')).toContainText('10000 cells in');
         const ms = Number((await page.getByTestId('sheet-large-time').textContent()).match(/in (\d+) ms/)[1]);
-        expect(ms).toBeLessThan(250);
+        expect(ms).toBeLessThan(budget(250));
     });
 
     test('scrolls a large sheet with no long frames', async ({page}) => {
@@ -198,7 +199,7 @@ test.describe('spreadsheet', () => {
             return worst;
         });
         // Two frames are about 33 ms. A long frame is above 100 ms.
-        expect(longest).toBeLessThan(150);
+        expect(longest).toBeLessThan(budget(150));
         await expect(sheet.locator('[role="row"][aria-rowindex]').filter({hasText: /\d/}).first()).toBeVisible();
     });
 
