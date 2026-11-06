@@ -52,6 +52,14 @@ dialog[open] {
 dialog::backdrop {
     background: rgb(0 0 0 / 0.4);
 }
+/* A browser puts a modeless dialog at its place in the page, which can be out of the view, and then
+   the focus scrolls the document to it. Over the window, as a modal dialog is. */
+dialog:not(:modal) {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    z-index: 1000;
+}
 .titlebar {
     display: flex;
     align-items: center;

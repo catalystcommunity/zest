@@ -155,6 +155,16 @@ fieldset {
   }
 }
 
+/* The two pickers of times with no calendar: the same columns and width, with or without a Clear button */
+[data-testid="picker-time-list-element"] .picker,
+[data-testid="picker-time-slots-element"] .picker {
+  min-width: 17em;
+}
+.card [data-testid="picker-time-list-element"] .slots,
+.card [data-testid="picker-time-slots-element"] .slots {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .swatches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));

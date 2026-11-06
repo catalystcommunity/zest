@@ -546,7 +546,9 @@ describe('DateTimePicker', () => {
 
         it('time: shows a value off the steps, and reports it', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB', 'minute-step': '15', value: '09:07'});
-            expect(comp.picker.querySelector('select.minute').value).toEqual('7');
+            const minute = comp.picker.querySelector('select.minute');
+            expect(minute.value).toEqual('7');
+            expect([...minute.options].filter(option => !option.hidden).map(option => option.value)).toEqual(['0', '15', '30', '45']);
             expect(comp.validationProblem).toEqual('step');
         });
 
@@ -773,6 +775,27 @@ describe('DateTimePicker', () => {
             expect(comp.value).toEqual('09:00/17:00');
         });
 
+        it('range of times: a value goes to the other row only when the start is past the end', () => {
+            const comp = makePicker({mode: 'time', selection: 'range', locale: 'en-GB'});
+            const set = (row, part, value) => {
+                const select = comp.picker.querySelector(`.time-row[data-row="${row}"] select.${part}`);
+                select.value = value;
+                select.dispatchEvent(new Event('change'));
+            };
+            set(0, 'hour', '9');
+            set(0, 'minute', '30');
+            expect(comp.value).toEqual('09:30/09:30');
+            set(1, 'hour', '17');
+            set(0, 'minute', '45');
+            expect(comp.value).toEqual('09:45/17:30');
+            set(0, 'hour', '18');
+            expect(comp.value).toEqual('18:45/18:45');
+            set(0, 'hour', '8');
+            expect(comp.value).toEqual('08:45/18:45');
+            set(1, 'hour', '7');
+            expect(comp.value).toEqual('07:45/07:45');
+        });
+
         it('multiple: toggles days, keeps them in sequence, and stays open', () => {
             const comp = makePicker({selection: 'multiple', 'initial-date': '2024-03-15', locale: 'en-US'});
             comp.input.click();
@@ -813,6 +836,77 @@ describe('DateTimePicker', () => {
             comp.input.click();
             comp.picker.querySelector('.now').click();
             expect(comp.value).toEqual('2024-06-30T22:00');
+        });
+
+        it('the now button selects the nearest step, and sends the exact moment', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:07:30Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', locale: 'en-GB', 'minute-step': '15', 'initial-date': '2024-03-15'});
+            const sent = [];
+            comp.addEventListener('date-now', (e) => sent.push(e.detail));
+            comp.input.click();
+            comp.picker.querySelector('.now').click();
+            expect(comp.value).toEqual('2024-07-01T13:00');
+            expect(comp.validationProblem).toBeNull();
+            expect(comp.picker.textContent).toContain('July 2024');
+            expect(sent[0].date.toISOString()).toEqual('2024-07-01T13:07:30.000Z');
+            expect(sent[0].parts).toMatchObject({year: 2024, month: 7, day: 1, hour: 13, minute: 7, second: 30});
+            expect(sent[0].value).toEqual('2024-07-01T13:00');
+        });
+
+        it('the now button replaces the date and the time of a value', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', locale: 'en-GB', value: '2024-03-15T09:30'});
+            comp.input.click();
+            comp.picker.querySelector('.now').click();
+            expect(comp.value).toEqual('2024-07-01T13:07');
+            expect(comp.picker.querySelector('.day.selected').dataset.date).toEqual('2024-07-01');
+            expect(comp.picker.querySelector('select.hour').value).toEqual('13');
+            expect(comp.picker.querySelector('select.minute').value).toEqual('7');
+        });
+
+        it('the now button rounds up, and a time at the same distance goes to the later step', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:08:00Z'), toFake: ['Date']});
+            const up = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '15', locale: 'en-GB'});
+            up.input.click();
+            up.picker.querySelector('.now').click();
+            expect(up.value).toEqual('13:15');
+            vi.setSystemTime(new Date('2024-07-01T13:15:00Z'));
+            const tie = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '30', locale: 'en-GB'});
+            tie.input.click();
+            tie.picker.querySelector('.now').click();
+            expect(tie.value).toEqual('13:30');
+        });
+
+        it('the now button stays on the same day', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T23:53:00Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', 'minute-step': '15', locale: 'en-GB'});
+            comp.input.click();
+            comp.picker.querySelector('.now').click();
+            expect(comp.value).toEqual('2024-07-01T23:45');
+        });
+
+        it('the now button selects from a list, and the list stays the same', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'time', 'time-zone': 'UTC', 'time-view': 'list', 'minute-step': '30', locale: 'en-GB'});
+            comp.input.click();
+            const count = comp.picker.querySelectorAll('.slot').length;
+            comp.picker.querySelector('.now').click();
+            expect(comp.value).toEqual('13:00');
+            expect(comp.picker.querySelectorAll('.slot').length).toEqual(count);
+            expect(comp.picker.querySelector('.slot.selected').dataset.time).toEqual('13:00');
+        });
+
+        it('the now button is disabled when now is out of the limits', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T20:07:00Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '30', min: '09:00', max: '17:00', locale: 'en-GB'});
+            comp.input.click();
+            expect(comp.picker.querySelector('.now').disabled).toBe(true);
+        });
+
+        it('show-now="false" removes the now button', () => {
+            const comp = makePicker({mode: 'datetime', 'show-now': 'false', locale: 'en-GB'});
+            comp.input.click();
+            expect(comp.picker.querySelector('.now')).toBeNull();
         });
 
         it('has no clear button when clearable is false, or when required', () => {

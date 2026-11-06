@@ -218,6 +218,16 @@ test.describe('dialog-window', () => {
         await expect(opener).toBeFocused();
     });
 
+    test('a modeless dialog opens in the window, and the page does not move', async ({page}) => {
+        await open(page);
+        await page.getByTestId('dialog-open-modeless').click();
+        const box = await page.getByTestId('dialog-modeless').getByRole('dialog').boundingBox();
+        const viewport = page.viewportSize();
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+        expect(await page.evaluate(() => document.documentElement.scrollTop + document.body.scrollTop)).toBe(0);
+    });
+
     test('a modal dialog makes the page inert, and a modeless one does not', async ({page}) => {
         await open(page);
         await page.getByTestId('dialog-open-modeless').click();
