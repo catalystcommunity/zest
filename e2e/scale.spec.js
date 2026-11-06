@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures.js';
+import { rate } from './timing.js';
 
-// The budgets are wide, so that a slow CI machine passes. They catch a change that makes Zest
+// The budgets are wide, and timing.js widens them more in CI. They catch a change that makes Zest
 // much slower, for example a render for each change in place of one for each frame.
 // ZEST_BENCH=full runs the large sizes and prints each result.
 const full = process.env.ZEST_BENCH === 'full';
@@ -66,11 +67,11 @@ test.describe('scale', () => {
         report('dom events', dom);
         expect(dom.heard).toBe(20000);
         // About 290,000 on a workstation, and 50,000 in the CI image
-        expect(dom.eventsPerSecond).toBeGreaterThan(20000);
+        expect(dom.eventsPerSecond).toBeGreaterThan(rate(20000));
         const broker = await run(page, 'brokerThroughput', {subscribers: 1000, events: 500});
         report('broker', broker);
         expect(broker.calls).toBe(500000);
-        expect(broker.callsPerSecond).toBeGreaterThan(500000);
+        expect(broker.callsPerSecond).toBeGreaterThan(rate(500000));
     });
 
     test('a store write reaches only the component of its key', async ({page}) => {

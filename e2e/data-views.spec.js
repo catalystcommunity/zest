@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from './fixtures.js';
+import { budget } from './timing.js';
 
 const open = async (page) => {
     await page.setViewportSize({width: 1280, height: 1400});
@@ -75,7 +76,7 @@ test.describe('list-view', () => {
             return {opened, rows: rows.length, height: view.scroller.scrollHeight, lastInside: Boolean(lastBox) && lastBox.bottom <= box.bottom + 1 && lastBox.top >= box.top};
         });
         console.log(`list-view with 1,000,000 items: first render ${result.opened.toFixed(1)} ms, ${result.rows} row elements`);
-        expect(result.opened).toBeLessThan(500);
+        expect(result.opened).toBeLessThan(budget(500));
         expect(result.rows).toBeLessThan(40);
         expect(result.height).toBeLessThanOrEqual(10_000_000);
         expect(result.lastInside).toBe(true);
@@ -161,9 +162,9 @@ test.describe('table-view', () => {
         console.log(`table-view scroll: ${result.renders} renders, median ${result.median.toFixed(2)} ms, worst ${result.worst.toFixed(2)} ms, ${result.rows} row elements`);
         expect(result.renders).toBeGreaterThan(50);
         // Firefox gives performance.now() in whole milliseconds, so its median is a whole number
-        expect(result.median).toBeLessThan(test.info().project.name === 'chromium' ? 8 : 12);
-        // One frame can include garbage collection, and the CI image is slower
-        expect(result.worst).toBeLessThan(150);
+        expect(result.median).toBeLessThan(budget(test.info().project.name === 'chromium' ? 8 : 12));
+        // One frame can include garbage collection
+        expect(result.worst).toBeLessThan(budget(150));
         expect(result.rows).toBeLessThan(60);
     });
 
@@ -177,7 +178,7 @@ test.describe('table-view', () => {
             return performance.now() - start;
         }));
         console.log(`table-view sort of 100,000 rows: name ${times[0].toFixed(0)} ms, amount ${times[1].toFixed(0)} ms, joined ${times[2].toFixed(0)} ms`);
-        for (const time of times) { expect(time).toBeLessThan(1500); }
+        for (const time of times) { expect(time).toBeLessThan(budget(1500)); }
     });
 });
 
