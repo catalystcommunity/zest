@@ -195,6 +195,14 @@ test.describe('image-view', () => {
         await expect(view.locator('.fit-contain')).toHaveAttribute('aria-pressed', 'true');
     });
 
+    test('the height of the image does not change the size of the buttons', async ({page}) => {
+        await open(page);
+        const tools = page.getByTestId('media-image-view').locator('.tools');
+        const button = await tools.getByRole('button', {name: 'Zoom in'}).boundingBox();
+        expect(button.height).toBeLessThan(60);
+        expect((await tools.boundingBox()).height).toBeLessThan(120);
+    });
+
     test('zooms at the pointer with Ctrl and the wheel', async ({page}) => {
         await open(page);
         const view = page.getByTestId('media-image-view');

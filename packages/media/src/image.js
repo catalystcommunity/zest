@@ -22,6 +22,8 @@ image-view, :host {
 }
 .zest-image-view {
     ${tokenAliases('image-view')}
+    /* --zest-image-view-height is the height of the image, so it cannot be the height of the buttons */
+    --_height: var(--zest-image-view-control-height, var(--zest-control-height, 2.5em));
     display: flex;
     flex-direction: column;
     min-width: 0;

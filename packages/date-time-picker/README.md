@@ -78,6 +78,7 @@ An attribute comes before the same option from `updateConfig`. A boolean attribu
 | `fixed-weeks` | false | Always show six weeks. |
 | `inline` | false | Show the panel in the page, with no input. |
 | `clearable` | true | Show **Clear**. It does not show when the element is required. |
+| `show-now` | true | Show **Now**. With steps, it selects the nearest allowed time on the same day. |
 | `no-typing` | false | The panel opens, but the input takes no text. This stops a phone keyboard. |
 | `placeholder` | a sample value | The text of the empty input. |
 | `label` | | The accessible name of the input. A `<label for>` or `aria-label` also gives it. |
@@ -107,6 +108,7 @@ Each event has `instanceId`, `name`, `mode`, and `selection` in its `detail`.
 | `date-range-start` | The first selection of a range. | `value`, `date` |
 | `date-invalid` | The element refuses a selection or typed text. | `text`, `reason` |
 | `date-view-changed` | The month on the screen changes. | `year`, `month`, `firstDate`, `lastDate`, `firstVisibleDate`, `lastVisibleDate` |
+| `date-now` | A person clicks **Now**. The value can be rounded to the steps, and `date` and `parts` are the exact moment. | `date`, `parts`, `value` |
 | `date-time-zone-changed` | A person selects a time zone. | `timeZone` |
 | `date-picker-open`, `date-picker-close` | The panel opens or closes. | |
 
