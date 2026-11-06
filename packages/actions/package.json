@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/actions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Actions: commands with a label, a shortcut, and enabled and checked states, that menus, toolbars, and keys share.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/actions#readme",
   "main": "src/index.js",
