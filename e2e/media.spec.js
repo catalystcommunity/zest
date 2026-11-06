@@ -108,9 +108,9 @@ test.describe('canvas-view', () => {
         const view = page.getByTestId('media-animation-view');
         await view.scrollIntoViewIfNeeded();
         await expect.poll(() => prop(view, 'running')).toBe(true);
+        // A count after a fixed wait depends on the frame rate, and a busy CI worker draws slowly
         const first = await prop(view, 'framesDrawn');
-        await page.waitForTimeout(300);
-        expect(await prop(view, 'framesDrawn')).toBeGreaterThan(first + 5);
+        await expect.poll(() => prop(view, 'framesDrawn')).toBeGreaterThan(first + 5);
         await page.getByRole('heading', {name: /Media/}).first().scrollIntoViewIfNeeded();
         await page.locator('#page').evaluate(element => { element.scrollTop = 0; });
         await page.evaluate(() => { window.scrollTo(0, 0); });

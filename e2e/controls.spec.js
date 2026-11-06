@@ -97,12 +97,15 @@ test.describe('controls', () => {
         await up.scrollIntoViewIfNeeded();
         const box = await up.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        // Holding the button repeats the step. A busy CI worker runs the timers late, so wait for the steps.
+        const value = () => quantity.locator('input').inputValue().then(Number);
         await page.mouse.down();
-        await page.waitForTimeout(700);
+        await expect.poll(value).toBeGreaterThan(3);
         await page.mouse.up();
-        const value = Number(await quantity.locator('input').inputValue());
-        expect(value).toBeGreaterThan(3);
-        expect(value).toBeLessThanOrEqual(20);
+        // The release stops the repeat
+        const released = await value();
+        await page.waitForTimeout(300);
+        expect(await value()).toBe(released);
         await quantity.locator('input').fill('99');
         await page.keyboard.press('Tab');
         await expect(quantity.locator('input')).toHaveValue('20');
