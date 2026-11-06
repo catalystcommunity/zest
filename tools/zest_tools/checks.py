@@ -25,6 +25,17 @@ def test_build() -> None:
     deps.npm("run", "build:packages")
 
 
+def site_build() -> None:
+    """Build the demo site into website/root, from the packages in this repository."""
+    install()
+    deps.npm("run", "build", "--", "--outDir", str(REPOSITORY_ROOT / "website" / "root"), "--emptyOutDir")
+    for path in ("index.html", "gallery/index.html", "examples/desktop/index.html"):
+        page = REPOSITORY_ROOT / "website" / "root" / path
+        if not page.is_file() or page.stat().st_size == 0:
+            raise ToolFailed(f"website/root/{path} is missing or empty after the build.")
+    say("The site is in website/root.")
+
+
 def test_e2e() -> None:
     install()
     env = deps.browser_environment()

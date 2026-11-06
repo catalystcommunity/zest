@@ -61,6 +61,8 @@ Each change goes out as a `data-changed` event on the store, with this `detail`:
 - `transaction(fn)` sends one event for each collection when it ends. A key that ends at its first value is not in the event.
 - A handler can change the store. The store sends that change after it sends the current change to all handlers. Thus each handler gets the changes in the order that they occurred.
 - If a handler throws, the browser reports the error, and the store continues to send to the other handlers.
+- The handlers get each change in the order of their `subscribe` calls. A listener that you add with `addEventListener('data-changed', ...)` gets the change before all handlers.
+- A subscription with `keys` is in an index by collection and key. A write calls only the handlers of that key. Thus 20,000 components, each with one key, cost about 2.5 µs for each write in Chromium. A subscription with no `keys` gets each change of its collection, so use `keys` when a component shows only some keys.
 
 ## Options
 

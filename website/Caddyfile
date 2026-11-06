@@ -1,0 +1,11 @@
+# For a local run of the image only. In the cluster, the pysocha-site chart mounts its own
+# Caddyfile, which serves the same root with file_server.
+:80 {
+  root * /site/root
+  encode gzip
+  file_server
+  log {
+    output file /site/logs/access.log
+    format json
+  }
+}

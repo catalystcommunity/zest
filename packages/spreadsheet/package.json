@@ -1,0 +1,43 @@
+{
+  "name": "@catalystcommunity/spreadsheet",
+  "version": "0.1.0",
+  "description": "Spreadsheet: a grid of typed cells with formulas, keyboard navigation, editing, selection, clipboard, and undo.",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/spreadsheet#readme",
+  "main": "src/index.js",
+  "type": "module",
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystcommunity/zest.git"
+  },
+  "keywords": [
+    "spreadsheet",
+    "grid",
+    "formulas",
+    "cells"
+  ],
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/catalystcommunity/zest/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@catalystcommunity/actions": ">=0.1.0 <1.0.0",
+    "@catalystcommunity/base-components": ">=0.2.5 <1.0.0",
+    "@catalystcommunity/date-model": ">=0.1.1 <1.0.0"
+  }
+}

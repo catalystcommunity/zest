@@ -26,6 +26,20 @@ describe('the umbrella package', () => {
         expect(customElements.get('two-tier-menu')).toBeUndefined();
     });
 
+    it('loses no name of a package that it exports with export *', async () => {
+        const source = readFileSync(resolve(root, 'src/index.js'), 'utf8');
+        const starred = [...source.matchAll(/export \* from '(@catalystcommunity\/[^']+)'/g)].map(match => match[1]);
+        const seen = new Map();
+        for (const name of starred) {
+            const dir = name.split('/')[1];
+            for (const exported of Object.keys(await import(`../packages/${dir}/src/index.js`))) {
+                expect(seen.get(exported), `${exported} is in ${seen.get(exported)} and ${name}`).toBeUndefined();
+                seen.set(exported, name);
+                expect(zest[exported], exported).toBeDefined();
+            }
+        }
+    });
+
     it('imports and depends on each package', () => {
         const source = readFileSync(resolve(root, 'src/index.js'), 'utf8');
         for (const pkg of packages) {
@@ -38,7 +52,11 @@ describe('the umbrella package', () => {
 describe('each package', () => {
     it.each(packages.map(pkg => [pkg.name, pkg]))('%s declares each package that it imports', (name, pkg) => {
         const dir = name.split('/')[1];
-        const source = readFileSync(resolve(root, 'packages', dir, pkg.main), 'utf8');
+        // Each file of the published source, because index.js can export from other files
+        const source = readdirSync(resolve(root, 'packages', dir, 'src'), {recursive: true})
+            .filter(file => String(file).endsWith('.js'))
+            .map(file => readFileSync(resolve(root, 'packages', dir, 'src', String(file)), 'utf8'))
+            .join('\n');
         const imported = [...source.matchAll(/from\s+["'](@catalystcommunity\/[^"']+)["']/g)].map(match => match[1]);
         for (const dependency of imported) {
             expect(pkg.dependencies, dependency).toHaveProperty(dependency);

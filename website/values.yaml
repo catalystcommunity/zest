@@ -1,0 +1,6 @@
+# Values for the catalyst-helm/pysocha-site chart
+domain: zest.catalystsquad.com
+sitefilePath: "/site/root"
+image:
+  repository: containers.catalystsquad.com/public/catalystcommunity/zest-website
+  # The deploy job sets the tag.

@@ -5,7 +5,7 @@ const menu = (page) => page.locator('#menu');
 test.describe('the demo application', () => {
     test('shows the menu and the home page', async ({page}) => {
         await page.goto('/');
-        await expect(page.getByRole('heading', {name: 'Zest demo'})).toBeVisible();
+        await expect(page.getByRole('heading', {name: 'Zest', exact: true, level: 1})).toBeVisible();
         await expect(menu(page).locator('menu-logo .logoText')).toHaveText('Zest');
         await expect(menu(page).locator('menu-gutter')).toContainText('Catalyst Squad');
     });
@@ -25,13 +25,13 @@ test.describe('the demo application', () => {
         await expect(page.getByRole('heading', {name: 'Component gallery'})).toBeVisible();
         await page.goBack();
         await expect(page).toHaveURL(/\/$/);
-        await expect(page.getByRole('heading', {name: 'Zest demo'})).toBeVisible();
+        await expect(page.getByRole('heading', {name: 'Zest', exact: true, level: 1})).toBeVisible();
         expect(await page.evaluate(() => window.noReloadMark)).toEqual(true);
     });
 
     test('opens /home as the same page as /', async ({page}) => {
         await page.goto('/home');
-        await expect(page.getByRole('heading', {name: 'Zest demo'})).toBeVisible();
+        await expect(page.getByRole('heading', {name: 'Zest', exact: true, level: 1})).toBeVisible();
     });
 
     test('shows the not found page for an unknown path, and a prefix of a route is not a match', async ({page}) => {

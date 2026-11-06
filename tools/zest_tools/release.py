@@ -31,6 +31,13 @@ UMBRELLA_TARGET = "zest"
 UMBRELLA_PATHS = "src,package.json,README.md,LICENSE"
 LICENSE = "LICENSE"
 
+SITE_TARGET = "website"
+SITE_MARKER = "website-release.json"
+#: What the demo site build reads.
+SITE_PATHS = "website,demo,packages,src,public,vite.config.js,package.json,package-lock.json"
+#: A site release asks for no approval, so a change to the words or the look also deploys.
+SITE_PATCH_TYPES = (*commits.PATCH_TYPES, "docs", "refactor", "style")
+
 
 @dataclass(frozen=True)
 class Package:
@@ -75,7 +82,7 @@ def semver_tags_arguments(root: Path = REPOSITORY_ROOT) -> list[str]:
     return arguments
 
 
-def parse_plan(output: str, packages: list[Package]) -> list[dict]:
+def _results_by_target(output: str) -> dict[str, tuple[str, str, str, str]]:
     """semver-tags logs first and prints one JSON object last, with one value per target."""
     for line in reversed(output.strip().splitlines()):
         if line.startswith("{"):
@@ -87,10 +94,14 @@ def parse_plan(output: str, packages: list[Package]) -> list[dict]:
     def column(name: str) -> list[str]:
         return computed[name].split(",")
 
-    by_target = dict(zip(column("Release_package"), zip(
+    return dict(zip(column("Release_package"), zip(
         column("New_release_published"), column("New_release_version"),
         column("New_release_git_tag"), column("Last_release_version"),
     )))
+
+
+def parse_plan(output: str, packages: list[Package]) -> list[dict]:
+    by_target = _results_by_target(output)
     plan = []
     for package in packages:
         if package.target not in by_target:
@@ -108,6 +119,42 @@ def compute_plan(root: Path = REPOSITORY_ROOT) -> list[dict]:
         cwd=root, capture=True, quiet=True, merge_stderr=True,
     )
     return parse_plan(result.stdout, find_packages(root))
+
+
+def site_semver_tags_arguments() -> list[str]:
+    arguments = ["run", "--dry_run", "--output_json", "--skip-short-versions", "--target", f"{SITE_TARGET}={SITE_PATHS}"]
+    for kind in SITE_PATCH_TYPES:
+        arguments += ["--patch_types", kind]
+    for kind in commits.MINOR_TYPES:
+        arguments += ["--minor_types", kind]
+    return arguments
+
+
+def compute_site_release(root: Path = REPOSITORY_ROOT) -> dict | None:
+    """The next `website/vX.Y.Z`, or None. The tag is the site version, and the deploy job pushes it."""
+    result = run(
+        [deps.semver_tags_program(), *site_semver_tags_arguments()],
+        cwd=root, capture=True, quiet=True, merge_stderr=True,
+    )
+    by_target = _results_by_target(result.stdout)
+    if SITE_TARGET not in by_target:
+        raise ToolFailed(f"semver-tags said nothing about {SITE_TARGET}. It said: {sorted(by_target)}")
+    published, version, tag, last = by_target[SITE_TARGET]
+    if published != "true":
+        return None
+    return {"version": version, "tag": tag, "last": last}
+
+
+def site_plan(root: Path = REPOSITORY_ROOT) -> None:
+    """Say what the next site release is, and write it to the artifact directory for the deploy job."""
+    found = compute_site_release(root)
+    artifacts = artifact_directory(root)
+    artifacts.mkdir(parents=True, exist_ok=True)
+    (artifacts / SITE_MARKER).write_text(json.dumps(found) + "\n")
+    if found is None:
+        say("No site release. No commit since the last website tag changes what the site shows.")
+    else:
+        say(f"The next site release is {found['tag']} (the last was {found['last']}).")
 
 
 def plan_report(root: Path = REPOSITORY_ROOT) -> None:

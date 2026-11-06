@@ -1,5 +1,13 @@
 // A store of data by collection and key. Events come in through listen(), and each change goes out as
 // one `data-changed` event, so that a component holds no state and decides what a change means to it.
+// Reports an error now, as the browser does for an event listener that throws
+function report(error) {
+    if (typeof reportError === 'function') { reportError(error); return; }
+    const event = typeof ErrorEvent === 'function' ? new ErrorEvent('error', {error, message: String(error?.message ?? error), cancelable: true}) : null;
+    if (event && typeof dispatchEvent === 'function' && !dispatchEvent(event)) { return; }
+    console.error(error);
+}
+
 export default class BasicDataService extends EventTarget {
     data; // Read and write through the methods. A direct write sends no event.
     #broker;
@@ -9,6 +17,11 @@ export default class BasicDataService extends EventTarget {
     // Changes made while the store sends go out after the current send, so each subscriber hears them in order
     #outbox = [];
     #sending = false;
+    // Subscriptions in the order that they were made. A subscription with keys is also in an index
+    // by collection and key, so that a write reaches only its subscribers, not all of them.
+    #order = 0;
+    #general = new Set();
+    #keyed = new Map();
 
     constructor({broker = null, eventName = 'data-changed'} = {}){
         super();
@@ -82,17 +95,63 @@ export default class BasicDataService extends EventTarget {
     // Calls the handler with the changes that match. Returns the removal function. All the options are
     // optional: collection, keys, filter(change, collection), and isActive, as for listen.
     subscribe(handler, {collection, keys, filter, isActive} = {}) {
-        const wanted = keys ? new Set(keys) : null;
-        const listener = (event) => {
-            if (isActive && isActive() !== true) { remove(); return; }
-            if (collection !== undefined && event.detail.collection !== collection) { return; }
-            const changes = event.detail.changes.filter(change =>
-                (!wanted || wanted.has(change.key)) && (!filter || filter(change, event.detail.collection)));
-            if (changes.length) { handler({collection: event.detail.collection, changes}); }
+        const entry = {order: this.#order++, handler, collection, filter, isActive, keys: keys ? new Set(keys) : null, active: true};
+        const remove = () => {
+            if (!entry.active) { return; }
+            entry.active = false;
+            if (!entry.keys) { this.#general.delete(entry); return; }
+            const byKey = this.#keyed.get(collection);
+            for (const key of entry.keys) {
+                const entries = byKey?.get(key);
+                entries?.delete(entry);
+                if (entries && !entries.size) { byKey.delete(key); }
+            }
         };
-        const remove = () => this.removeEventListener(this.#eventName, listener);
-        this.addEventListener(this.#eventName, listener);
+        entry.remove = remove;
+        if (!entry.keys) {
+            this.#general.add(entry);
+        } else {
+            // A subscription with keys and no collection is in the index under undefined, which each collection reads
+            if (!this.#keyed.has(collection)) { this.#keyed.set(collection, new Map()); }
+            const byKey = this.#keyed.get(collection);
+            for (const key of entry.keys) {
+                if (!byKey.has(key)) { byKey.set(key, new Set()); }
+                byKey.get(key).add(entry);
+            }
+        }
         return remove;
+    }
+    // The subscriptions that a change of the collection reaches, with the changes for each, in order
+    #reached(collection, changes) {
+        const reached = new Map();
+        for (const entry of this.#general) {
+            if (entry.collection === undefined || entry.collection === collection) { reached.set(entry, changes); }
+        }
+        const indexes = [this.#keyed.get(collection), collection === undefined ? null : this.#keyed.get(undefined)].filter(Boolean);
+        for (const byKey of indexes) {
+            for (const change of changes) {
+                for (const entry of byKey.get(change.key) ?? []) {
+                    if (!reached.has(entry)) { reached.set(entry, []); }
+                    reached.get(entry).push(change);
+                }
+            }
+        }
+        return [...reached].sort(([a], [b]) => a.order - b.order);
+    }
+    #deliver(detail) {
+        for (const [entry, changes] of this.#reached(detail.collection, detail.changes)) {
+            // A handler before this one can remove it
+            if (!entry.active) { continue; }
+            if (entry.isActive && entry.isActive() !== true) { entry.remove(); continue; }
+            const wanted = entry.filter ? changes.filter(change => entry.filter(change, detail.collection)) : changes;
+            if (!wanted.length) { continue; }
+            try {
+                entry.handler({collection: detail.collection, changes: wanted});
+            } catch (e) {
+                // One subscriber that fails must not stop the others, the same as an event listener
+                report(e);
+            }
+        }
     }
     #record(collection, key, oldValue, newValue) {
         if (!this.#pending.has(collection)) { this.#pending.set(collection, new Map()); }
@@ -116,6 +175,7 @@ export default class BasicDataService extends EventTarget {
             while (this.#outbox.length) {
                 const detail = this.#outbox.shift();
                 this.dispatchEvent(new CustomEvent(this.#eventName, {detail}));
+                this.#deliver(detail);
                 this.#broker?.FireEvent(this.#eventName, detail);
             }
         } finally {

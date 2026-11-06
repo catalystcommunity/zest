@@ -1,0 +1,31 @@
+name: zest-website-deploy
+description: "When the commits ask for a site release: build the demo site, push its image, roll the Helm release, apply the route, and push the website tag."
+job:
+  image: containers.catalystsquad.com/public/reactorcide/runnerbase:latest
+  command: "runnerlib run --job-command true"
+  timeout: 1800
+  priority: 20
+  working_dir: /job
+  resources:
+    cpu:
+      request: "1"
+      limit: "2"
+    memory:
+      limit: "2Gi"
+  # A BuildKit sidecar builds the image
+  capabilities:
+    - builder
+  run_as:
+    user: runner
+  # A secret-bearing job must not run on a developer machine
+  disable_run_local: true
+environment:
+  ZEST_JOB: website-deploy
+  GITHUB_PAT: "${secret:catalystcommunity/ci:githubpat}"
+  REGISTRY: "containers.catalystsquad.com"
+  REGISTRY_PATH: "public/catalystcommunity/zest-website"
+  REGISTRY_USER: "${secret:catalystcommunity/registry:user}"
+  REGISTRY_PASSWORD: "${secret:catalystcommunity/registry:password}"
+  KUBECONFIG_CONTENT: "${secret:catalystcommunity/k8s:kubeconfig}"
+  K8S_NAMESPACE: "zest-website"
+  HELM_RELEASE: "zest-website"

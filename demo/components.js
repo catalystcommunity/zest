@@ -9,6 +9,13 @@ import {
   MenuLogo, ShadowMenuLogo,
   TwoTierMenu, ShadowTwoTierMenu,
 } from '../src/index.js';
+import {definitions as actionsTags} from './sections/actions.js';
+import {definitions as containersTags} from './sections/containers.js';
+import {definitions as controlsTags} from './sections/controls.js';
+import {definitions as dataViewsTags} from './sections/data-views.js';
+import {definitions as mediaTags} from './sections/media.js';
+import {definitions as menusTags} from './sections/menus.js';
+import {definitions as spreadsheetTags} from './sections/spreadsheet.js';
 
 // Examples of what an application writes with the base classes
 class GalleryBase extends BaseComponent {
@@ -67,10 +74,13 @@ const definitions = {
   'gallery-shadow': GalleryShadow,
   'gallery-observed': GalleryObserved,
   'gallery-data': GalleryData,
+  // Each section of a package with many components gives its own tags
+  ...actionsTags, ...containersTags, ...controlsTags, ...dataViewsTags, ...mediaTags, ...menusTags, ...spreadsheetTags,
 };
 
 export function defineComponents() {
   for (const [tag, componentClass] of Object.entries(definitions)) {
-    customElements.define(tag, componentClass);
+    // A parent can define a child tag first, with tagFor()
+    if (!customElements.get(tag)) { customElements.define(tag, componentClass); }
   }
 }

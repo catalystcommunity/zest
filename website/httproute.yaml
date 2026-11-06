@@ -1,0 +1,30 @@
+# The public route for the demo site. The pysocha-site chart only makes an Ingress, which
+# conflicts with the Gateway listeners of the cluster. The deploy job turns the Ingress off
+# and applies this route. Cloudflare ends HTTPS and connects to the origin with HTTP, so the
+# route attaches to the http listener too.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zest-website
+  namespace: zest-website
+  labels:
+    app.kubernetes.io/name: pysocha-site
+    app.kubernetes.io/instance: zest-website
+spec:
+  hostnames:
+    - zest.catalystsquad.com
+  parentRefs:
+    - name: contour
+      namespace: projectcontour
+      sectionName: https
+    - name: contour
+      namespace: projectcontour
+      sectionName: http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: zest-website-pysocha-site
+          port: 8080

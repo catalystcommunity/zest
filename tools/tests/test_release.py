@@ -123,6 +123,37 @@ class PlanTests(ReleaseRepository):
         self.assertEqual(self.plan(), {})
 
 
+class SitePlanTests(ReleaseRepository):
+    def site(self):
+        return release.compute_site_release(self.root)
+
+    def test_a_package_fix_releases_the_site_and_the_package_tags_do_not_count(self):
+        git(self.root, "tag", "website/v0.2.0")
+        self.commit("fix: repair alpha", "packages/alpha/src/index.js")
+        self.assertEqual(self.site(), {"version": "0.2.1", "tag": "website/v0.2.1", "last": "0.2.0"})
+
+    def test_a_docs_change_releases_the_site_and_no_package(self):
+        git(self.root, "tag", "website/v0.2.0")
+        self.commit("docs: reword the umbrella", "src/index.js")
+        self.assertEqual(self.site()["version"], "0.2.1")
+        self.assertEqual(self.plan(), {})
+
+    def test_a_test_change_or_a_change_outside_the_site_releases_nothing(self):
+        git(self.root, "tag", "website/v0.2.0")
+        self.commit("test: cover alpha", "packages/alpha/src/index.js")
+        (self.root / "notes.txt").write_text("notes\n")
+        self.commit("fix: repair the notes")
+        self.assertIsNone(self.site())
+
+    def test_the_plan_writes_the_marker_for_the_deploy_job(self):
+        git(self.root, "tag", "website/v0.2.0")
+        release.site_plan(self.root)
+        self.assertIsNone(json.loads((self.artifacts / release.SITE_MARKER).read_text()))
+        self.commit("feat: add to beta", "packages/beta/src/index.js")
+        release.site_plan(self.root)
+        self.assertEqual(json.loads((self.artifacts / release.SITE_MARKER).read_text())["tag"], "website/v0.3.0")
+
+
 class ApplyVersionTests(ReleaseRepository):
     def test_writes_versions_and_raises_the_low_bound_of_a_sibling_released_with_it(self):
         packages = release.find_packages(self.root)
@@ -340,6 +371,10 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(len(targets), len(release.find_packages()))
         self.assertIn("base-components=packages/base-components", targets)
         self.assertTrue(targets[-1].startswith("zest=src,"))
+
+    def test_each_site_path_exists(self):
+        for path in release.SITE_PATHS.split(","):
+            self.assertTrue((REPOSITORY_ROOT / path).exists(), path)
 
     def test_the_real_packages_pack_and_pass_the_check(self):
         with tempfile.TemporaryDirectory() as into:

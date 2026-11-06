@@ -27,8 +27,9 @@ test.describe('calendar-view', () => {
         const week = page.getByTestId('calendar-week-element');
         const lunch = week.locator('.item[data-id="lunch"] .item-main');
         await week.scrollIntoViewIfNeeded();
-        // The pointer takes the item at its middle, in the 12:30 slot, and leaves it 90 minutes later
-        await drag(page, lunch, slot(week, 'Friday, March 13, 2026, 2:00 PM'));
+        // The pointer takes the item just below its middle, in the 12:30 slot, and leaves it 90 minutes later.
+        // The middle itself is on the line between two slots, and Firefox gives whole pixels.
+        await drag(page, lunch, slot(week, 'Friday, March 13, 2026, 2:00 PM'), {fromOffset: (box) => [box.x + box.width / 2, box.y + box.height / 2 + 8]});
         await expect(log(page)).toContainText('calendar-week-element move lunch to 2026-03-13T13:30:00.000Z to 2026-03-13T14:30:00.000Z');
         // The store sent the saved item to each calendar
         await expect(week.locator('.item[data-id="lunch"]').locator('xpath=..').locator(':scope > .cell-label')).toHaveText('Friday, March 13, 2026, 1:30 PM');

@@ -1,3 +1,5 @@
+import { scheduleRender } from './scheduler.js';
+
 // We want to separate ourselves from "window" or whatever, so keep the "AppGlobal" object
 // at the execution context level. If there's a closure, now we have an organization point
 // that anyone can use to isolate things how they want. Attach things by name to this
@@ -70,6 +72,62 @@ function canAdopt(target) {
     return 'adoptedStyleSheets' in target && typeof CSSStyleSheet?.prototype?.replaceSync === 'function';
 }
 
+// Typed properties. `static properties = {value: {type: Number, default: 0}}` makes a property and
+// an attribute that agree. A change of either calls propertyChanged() and invalidate().
+const converters = {
+    String: {from: (text) => text, to: (value) => String(value)},
+    Number: {from: (text) => (text === '' ? null : Number(text)), to: (value) => String(value)},
+    Boolean: {from: (text) => text !== 'false', to: () => ''},
+    Array: {from: (text) => JSON.parse(text), to: (value) => JSON.stringify(value)},
+    Object: {from: (text) => JSON.parse(text), to: (value) => JSON.stringify(value)},
+};
+
+function converterOf(declaration) {
+    return converters[declaration.type?.name ?? 'String'] ?? converters.String;
+}
+
+// The declarations of a class and of each class that it extends, the nearest first
+const declaredCache = new WeakMap();
+function declaredProperties(componentClass) {
+    if (declaredCache.has(componentClass)) { return declaredCache.get(componentClass); }
+    const chain = [];
+    for (let at = componentClass; at && at !== HTMLElement; at = Object.getPrototypeOf(at)) {
+        if (Object.hasOwn(at, 'properties')) { chain.unshift(at.properties); }
+    }
+    const merged = {};
+    for (const properties of chain) {
+        for (const [name, declaration] of Object.entries(properties)) {
+            const attribute = declaration.attribute === false ? null : (declaration.attribute ?? kebabize(name));
+            merged[name] = {...declaration, name, attribute};
+        }
+    }
+    const byAttribute = new Map(Object.values(merged).filter(item => item.attribute).map(item => [item.attribute, item]));
+    const result = {byName: merged, byAttribute, names: Object.keys(merged)};
+    declaredCache.set(componentClass, result);
+    return result;
+}
+
+const installed = new WeakSet();
+function installProperties(componentClass) {
+    if (installed.has(componentClass)) { return; }
+    installed.add(componentClass);
+    for (const declaration of Object.values(declaredProperties(componentClass).byName)) {
+        if (Object.getOwnPropertyDescriptor(componentClass.prototype, declaration.name)) { continue; }
+        Object.defineProperty(componentClass.prototype, declaration.name, {
+            configurable: true,
+            enumerable: true,
+            get() { return this.readProperty(declaration.name); },
+            set(value) { this.writeProperty(declaration.name, value); },
+        });
+    }
+}
+
+function defaultOf(declaration) {
+    const value = declaration.default;
+    if (value === undefined && declaration.type === Boolean) { return false; }
+    return typeof value === 'function' && declaration.type !== Function ? value() : value;
+}
+
 // Give us some of the basic functionality to reduce boilerplate
 class BaseComponent extends HTMLElement {
     // The default CSS of the component as text. A child class declares it as a static field.
@@ -83,6 +141,13 @@ class BaseComponent extends HTMLElement {
     // Attributes that we observe. The browser reads this one time, when the element is defined,
     // so a child class must declare it as a static field: static changeAttributes = ['some-attr'];
     static changeAttributes = [];
+    // Typed properties, each with an attribute unless `attribute: false`:
+    // static properties = {value: {type: Number, default: 0}, open: {type: Boolean, reflect: true}};
+    // Do not also declare a class field with the same name. It would hide the property.
+    static properties = {};
+    // 'microtask' renders after the current work. 'frame' renders one time in the next animation
+    // frame, so that a storm of changes paints at the rate of the screen.
+    static renderTiming = 'microtask';
     // Default template id, should be set in the constructor of child components
     defaultTemplateId;
     // Override Id of the component template to use, if provided, otherwise defaulted
@@ -101,6 +166,9 @@ class BaseComponent extends HTMLElement {
     // The removal function of each thing that this element owns. disconnectedCallback calls them all.
     #owned = [];
     #invalidated = false;
+    #values = new Map();
+    #reflecting = false;
+    #early = [];
 
     // Keep in mind that the constructor doesn't have access to attributes until DOM connection
     // most functionality should start in connectedCallback
@@ -111,18 +179,92 @@ class BaseComponent extends HTMLElement {
         this.defaultTemplateId = 'defaultTemplateId';
         this.defaultStyleTemplateId = 'defaultStyleTemplateId';
         this.root = this;
+        installProperties(this.constructor);
+        // A value that was set before the tag was defined is an own field, which hides the property.
+        // The fields of the child class do not exist yet, so the change is told at the first connect.
+        for (const name of declaredProperties(this.constructor).names) {
+            if (Object.hasOwn(this, name)) {
+                const value = this[name];
+                delete this[name];
+                this.#values.set(name, value);
+                this.#early.push(name);
+            }
+        }
     }
     // changeAttributes must be declared as a static field on the child class, or attributeChangedCallback will never get called
     static get observedAttributes() {
-        return this.changeAttributes;
+        installProperties(this);
+        return [...new Set([...this.changeAttributes, ...declaredProperties(this).byAttribute.keys()])];
     }
     // Called any time one of the _observed_ attributes are changed
     // We would change the name, but this was set by the browser API
     attributeChangedCallback(property, oldValue, newValue) {
         if (oldValue === newValue) return;
+        const declaration = declaredProperties(this.constructor).byAttribute.get(property);
+        if (declaration) {
+            if (this.#reflecting) { return; }
+            let value;
+            try {
+                value = newValue === null ? defaultOf(declaration) : converterOf(declaration).from(newValue);
+            } catch (e) {
+                // The browser calls this, so a throw would not reach the code that set the attribute
+                const error = new Error(`The ${property} attribute of ${this.localName} is not a valid ${declaration.type?.name}: ${newValue}`);
+                if (typeof reportError === 'function') { reportError(error); } else { console.error(error); }
+                return;
+            }
+            this.#store(declaration, value, false);
+            return;
+        }
         this[camelize(property)] = newValue;
         this.postObservedAttributeChange();
     }
+    // The value of a declared property
+    readProperty(name) {
+        if (this.#values.has(name)) { return this.#values.get(name); }
+        const declaration = declaredProperties(this.constructor).byName[name];
+        const value = defaultOf(declaration);
+        // An array or an object default belongs to this instance, so a change to it must stay
+        if (value && typeof value === 'object') { this.#values.set(name, value); }
+        return value;
+    }
+    writeProperty(name, value) {
+        const declaration = declaredProperties(this.constructor).byName[name];
+        if (declaration.type === Boolean) { value = Boolean(value); }
+        if (declaration.type === Number && value !== null && value !== undefined) { value = Number(value); }
+        this.#store(declaration, value, true);
+    }
+    #store(declaration, value, reflect) {
+        const old = this.readProperty(declaration.name);
+        if (Object.is(old, value) && this.#values.has(declaration.name)) { return; }
+        this.#values.set(declaration.name, value);
+        if (reflect && declaration.reflect && declaration.attribute) {
+            this.#reflecting = true;
+            try {
+                if (value === null || value === undefined || value === false) {
+                    this.removeAttribute(declaration.attribute);
+                } else {
+                    this.setAttribute(declaration.attribute, converterOf(declaration).to(value));
+                }
+            } finally {
+                this.#reflecting = false;
+            }
+        }
+        if (Object.is(old, value)) { return; }
+        this.propertyChanged(declaration.name, old, value);
+        if (declaration.render !== false) { this.invalidate(); }
+    }
+    #tellEarlyValues() {
+        const names = this.#early;
+        this.#early = [];
+        for (const name of names) {
+            const declaration = declaredProperties(this.constructor).byName[name];
+            const value = this.#values.get(name);
+            this.#values.delete(name);
+            this.#store(declaration, value, true);
+        }
+    }
+    // Called after a declared property changes, from the property or from its attribute
+    propertyChanged(name, oldValue, newValue) { }
     // This should be overridden where we care about behavior after a change
     postObservedAttributeChange() { }
     // Called every time the element is connected, which can be more than one time, and can be overloaded
@@ -134,8 +276,11 @@ class BaseComponent extends HTMLElement {
 
         // A second connect with no disconnect between them must not keep two of each subscription
         this.#release();
+        if (this.#early.length) { this.#tellEarlyValues(); }
         // first get the override attributes from HTML into the JS world
-        this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
+        if (this.hasAttributes()) {
+            this.convertKebabAttributes(['override-template-id', 'override-style-template-id']);
+        }
         // This gets the template and styles, and if they aren't present they will be left alone
         let template = null;
         if (template === null && this.overrideTemplateId) {
@@ -187,6 +332,7 @@ class BaseComponent extends HTMLElement {
     }
     // The last thing owned is the first removed. Each removal runs, also when one before it throws.
     #release() {
+        if (!this.#owned.length) { return; }
         const owned = this.#owned;
         this.#owned = [];
         const errors = [];
@@ -197,17 +343,23 @@ class BaseComponent extends HTMLElement {
         if (errors.length) { throw new AggregateError(errors, 'More than one removal failed'); }
     }
     // Sends an event that a parent can hear, also from inside a shadow root
-    emit(name, detail) {
-        return this.dispatchEvent(new CustomEvent(name, {detail, bubbles: true, composed: true}));
+    // With {cancelable: true}, a listener can call preventDefault(), and the result is false
+    emit(name, detail, {cancelable = false} = {}) {
+        return this.dispatchEvent(new CustomEvent(name, {detail, bubbles: true, composed: true, cancelable}));
     }
     // Renders one time after the current work, however many times this is called
     invalidate() {
         if (this.#invalidated) { return; }
         this.#invalidated = true;
-        queueMicrotask(() => {
+        const paint = () => {
             this.#invalidated = false;
             if (this.isConnected) { this.render(); }
-        });
+        };
+        if (this.constructor.renderTiming === 'frame') {
+            scheduleRender(this, paint);
+        } else {
+            queueMicrotask(paint);
+        }
     }
     // An instance style template replaces the defaults of the class. Call this from render().
     // A browser with no adopted stylesheets gets a style element in the container.
@@ -387,3 +539,9 @@ class OpenShadowDataComponent extends DataComponent {
 }
 
 export { ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent, CheckCleanupCall }
+export { scheduleRender, isRenderScheduled, flushRenders } from './scheduler.js';
+export { tagFor, createElementOf, defineElements } from './elements.js';
+export { RovingFocus, isRtl, isDisabled } from './focus.js';
+export { placePopup, placePopupAt } from './popup.js';
+export { observeResize, observeVisibility } from './observe.js';
+export { tokenAliases, visuallyHidden } from './tokens.js';
