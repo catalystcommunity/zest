@@ -251,3 +251,66 @@ describe('a broker', () => {
         expect(FireEvent).toHaveBeenCalledWith('store-changed', seen[0]);
     });
 });
+
+describe('many subscribers with keys', () => {
+    it('calls only the subscribers of the keys that changed', () => {
+        const service = new BasicDataService();
+        const calls = new Array(1000).fill(0);
+        for (let i = 0; i < 1000; i++) {
+            service.subscribe(() => { calls[i]++; }, {collection: 'cells', keys: [i]});
+        }
+        const filter = vi.fn(() => true);
+        service.subscribe(() => {}, {collection: 'cells', keys: [5], filter});
+        service.set('cells', 5, 'x');
+        service.transaction(() => { service.set('cells', 7, 'y'); service.set('cells', 8, 'z'); });
+        expect(calls.reduce((a, b) => a + b, 0)).toBe(3);
+        expect([calls[5], calls[7], calls[8]]).toEqual([1, 1, 1]);
+        expect(filter).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the order of subscription, with and without keys', () => {
+        const service = new BasicDataService();
+        const order = [];
+        service.subscribe(() => order.push('keyed first'), {collection: 'c', keys: ['n']});
+        service.subscribe(() => order.push('all'));
+        service.subscribe(() => order.push('keyed, any collection'), {keys: ['n']});
+        service.subscribe(() => order.push('collection'), {collection: 'c'});
+        service.set('c', 'n', 1);
+        expect(order).toEqual(['keyed first', 'all', 'keyed, any collection', 'collection']);
+    });
+
+    it('gives a subscriber only the changes of its keys', () => {
+        const service = new BasicDataService();
+        const seen = collect(service, {collection: 'c', keys: ['a', 'b']});
+        service.transaction(() => { service.set('c', 'a', 1); service.set('c', 'x', 2); service.set('c', 'b', 3); });
+        expect(seen).toEqual([{collection: 'c', changes: [
+            {key: 'a', oldValue: undefined, newValue: 1},
+            {key: 'b', oldValue: undefined, newValue: 3},
+        ]}]);
+    });
+
+    it('does not call a subscriber that an earlier subscriber removed during the send', () => {
+        const service = new BasicDataService();
+        const later = vi.fn();
+        let removeLater = null;
+        service.subscribe(() => removeLater(), {collection: 'c', keys: ['n']});
+        removeLater = service.subscribe(later, {collection: 'c', keys: ['n']});
+        service.set('c', 'n', 1);
+        expect(later).not.toHaveBeenCalled();
+        removeLater();
+        service.set('c', 'n', 2);
+    });
+
+    it('removes a keyed subscriber with isActive, and removes its index entries', () => {
+        const service = new BasicDataService();
+        let active = true;
+        const handler = vi.fn();
+        service.subscribe(handler, {collection: 'c', keys: ['n'], isActive: () => active});
+        service.set('c', 'n', 1);
+        active = false;
+        service.set('c', 'n', 2);
+        active = true;
+        service.set('c', 'n', 3);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+});

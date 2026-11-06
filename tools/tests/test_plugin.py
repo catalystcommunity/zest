@@ -2,6 +2,7 @@
 real plugin against a local bare remote, with a fake `npm` for the publish commands only.
 The real npm still stamps and packs."""
 
+import base64
 import importlib.util
 import json
 import os
@@ -206,20 +207,133 @@ class ReleaseJobTests(unittest.TestCase):
 class WorkflowContractTests(unittest.TestCase):
     workflows = REPOSITORY_ROOT / ".reactorcide" / "workflows"
 
-    def test_only_the_release_job_names_a_secret(self):
+    def test_only_the_release_and_site_deploy_jobs_name_a_secret(self):
         for path in (REPOSITORY_ROOT / ".reactorcide" / "jobs").glob("*.yaml"):
-            if path.stem != "release":
+            if path.stem not in ("release", "website-deploy"):
                 self.assertNotIn("${secret:", path.read_text(), path.name)
 
-    def test_a_pull_request_workflow_has_no_release_node(self):
-        self.assertNotIn("release", (self.workflows / "pr.yaml").read_text().split("jobs:")[1])
-        self.assertNotIn("release", (self.workflows / "main.yaml").read_text().split("jobs:")[1])
+    def test_a_pull_request_workflow_has_no_release_or_deploy_node(self):
+        for name in ("pr.yaml", "main.yaml"):
+            nodes = (self.workflows / name).read_text().split("jobs:")[1]
+            self.assertNotIn("release", nodes)
+            self.assertNotIn("deploy", nodes)
+
+    def test_the_site_deploys_only_from_the_merge_workflow_after_the_checks(self):
+        self.assertFalse((self.workflows / "website.yaml").exists())
+        nodes = (self.workflows / "release.yaml").read_text().split("  zest-website-deploy:\n")[1]
+        for check in ("zest-test", "zest-test-e2e", "zest-audit"):
+            self.assertIn(f"      - {check}\n", nodes)
+        self.assertNotIn("      - zest-release\n", nodes)
+        grants = (REPOSITORY_ROOT / ".reactorcide" / "secret-grants.yaml").read_text()
+        self.assertEqual(grants.count("value: zest-website-deploy\n"), 3)
 
     def test_the_grant_matches_the_node_name_in_the_release_workflow(self):
         grants = (REPOSITORY_ROOT / ".reactorcide" / "secret-grants.yaml").read_text()
         self.assertIn("value: zest-release\n", grants)
         self.assertIn("  zest-release:\n", (self.workflows / "release.yaml").read_text())
 
+
+class WebsiteDeployTests(unittest.TestCase):
+    SECRETS = {
+        "GITHUB_PAT": PAT,
+        "REGISTRY": "registry.example.com",
+        "REGISTRY_PATH": "public/zest-website",
+        "REGISTRY_USER": "robot",
+        "REGISTRY_PASSWORD": "registry_sekret_value_for_the_test",
+        "KUBECONFIG_CONTENT": "kubeconfig_sekret_value_for_the_test",
+        "K8S_NAMESPACE": "zest-website",
+        "HELM_RELEASE": "zest-website",
+    }
+
+    def setUp(self):
+        self.log = []
+        self.plugin = load_plugin(self.log)
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.base = Path(self.temporary.name)
+        self.website = self.base / "website"
+        self.website.mkdir()
+        (self.website / "values.yaml").write_text("domain: zest.example.com\nsitefilePath: /site/root\n")
+
+    def test_the_committed_site_files_pass_the_checks(self):
+        website = REPOSITORY_ROOT / "website"
+        self.assertEqual(self.plugin.website_domain(website), "zest.catalystsquad.com")
+        route = (website / "httproute.yaml").read_text()
+        self.assertIn("    - zest.catalystsquad.com\n", route)
+        self.assertIn("namespace: zest-website\n", route)
+        self.assertIn("- name: zest-website-pysocha-site\n", route)
+
+    def test_refuses_a_placeholder_domain(self):
+        (self.website / "values.yaml").write_text("domain: zest.invalid\n")
+        with self.assertRaisesRegex(RuntimeError, "placeholder"):
+            self.plugin.website_domain(self.website)
+
+    def test_the_pull_secret_holds_the_registry_login(self):
+        manifest = json.loads(self.plugin.pull_secret_manifest("ns", "registry.example.com", "robot", "pw"))
+        self.assertEqual(manifest["type"], "kubernetes.io/dockerconfigjson")
+        config = json.loads(base64.b64decode(manifest["data"][".dockerconfigjson"]))
+        self.assertEqual(base64.b64decode(config["auths"]["registry.example.com"]["auth"]).decode(), "robot:pw")
+
+    def test_refuses_with_no_secrets(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            for name in self.SECRETS:
+                os.environ.pop(name, None)
+            with self.assertRaisesRegex(RuntimeError, "REGISTRY_PASSWORD"):
+                self.plugin.website_deploy(self.base)
+
+    def deploy(self, found):
+        """Run the deploy with each outside command faked. Gives the commands, child environments, and stdin."""
+        commands, children, inputs = [], [], []
+        (self.base / "home").mkdir(exist_ok=True)
+
+        def fake_run(command, *, cwd, env=None, check=True):
+            commands.append(command)
+            children.append({**os.environ, **(env or {})})
+            return True
+
+        def fake_subprocess(command, **options):
+            commands.append(command)
+            children.append(options.get("env") or dict(os.environ))
+            inputs.append(options.get("input") or "")
+            return subprocess.CompletedProcess(command, 0, stdout="kind: Namespace\n")
+
+        with mock.patch.dict(os.environ, {**self.SECRETS, "HOME": str(self.base / "home")}), \
+                mock.patch.object(self.plugin, "website_release", return_value=found), \
+                mock.patch.object(self.plugin, "_tools") as tools, \
+                mock.patch.object(self.plugin, "_ensure_deploy_tools"), \
+                mock.patch.object(self.plugin, "_wait_for_builder"), \
+                mock.patch.object(self.plugin, "_run", side_effect=fake_run), \
+                mock.patch.object(self.plugin.subprocess, "run", side_effect=fake_subprocess):
+            self.plugin.website_deploy(self.base)
+            leaked = [name for name in self.SECRETS if name.endswith(("PAT", "PASSWORD", "CONTENT")) and name in os.environ]
+        self.assertEqual(leaked, [])
+        return tools, commands, children, inputs
+
+    def test_with_no_site_release_builds_and_pushes_nothing(self):
+        tools, commands, _children, _inputs = self.deploy(None)
+        tools.assert_not_called()
+        self.assertFalse(any(command[:1] in (["buildctl"], ["helm"], ["kubectl"]) for command in commands))
+        self.assertFalse(any(command[:2] == ["git", "push"] for command in commands))
+        self.assertIn("No site release", " ".join(self.log))
+
+    def test_keeps_the_secrets_out_of_the_arguments_and_the_child_environment(self):
+        found = {"version": "0.2.1", "tag": "website/v0.2.1", "last": "0.2.0"}
+        tools, commands, children, inputs = self.deploy(found)
+
+        tools.assert_called_once_with(self.base, "site", "build")
+        for secret in (PAT, self.SECRETS["REGISTRY_PASSWORD"], self.SECRETS["KUBECONFIG_CONTENT"]):
+            self.assertFalse(any(secret in " ".join(map(str, command)) for command in commands))
+            self.assertFalse(any(secret in value for child in children for value in child.values()))
+            self.assertFalse(any(secret in line for line in self.log))
+        self.assertEqual((self.base / "home" / ".kube" / "config").read_text(), self.SECRETS["KUBECONFIG_CONTENT"])
+        self.assertIn(PAT, (self.base / "home" / ".git-credentials").read_text())
+        self.assertTrue(any("dockerconfigjson" in text for text in inputs))
+        helm = next(command for command in commands if command[:2] == ["helm", "upgrade"])
+        self.assertIn("image.tag=0.2.1", helm)
+        self.assertIn("ingress.enabled=false", helm)
+        # The tag goes only after the site is live
+        route = commands.index(["kubectl", "apply", "-f", "httproute.yaml"])
+        self.assertEqual(commands[route + 1:], [["git", "tag", "website/v0.2.1"], ["git", "push", "origin", "refs/tags/website/v0.2.1"]])
 
 if __name__ == "__main__":
     unittest.main()

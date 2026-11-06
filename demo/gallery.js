@@ -2,33 +2,14 @@
 // and drives each control below in a real browser.
 import {BasicDataRegistry, BasicDataService, CheckCleanupCall, EventBroker, SimpleRouter, dateModel} from '../src/index.js';
 
-function el(tag, attributes = {}, ...children) {
-  const element = document.createElement(tag);
-  for (const [name, value] of Object.entries(attributes)) {
-    element.setAttribute(name, value);
-  }
-  element.append(...children);
-  return element;
-}
-
-function card(testId, title, ...children) {
-  return el('div', {class: 'card', 'data-testid': testId}, el('h3', {}, title), ...children);
-}
-
-function button(testId, label, onClick) {
-  const element = el('button', {type: 'button', 'data-testid': testId}, label);
-  element.addEventListener('click', onClick);
-  return element;
-}
-
-function makeLog(testId) {
-  const element = el('div', {class: 'log', 'data-testid': testId});
-  element.add = (line) => {
-    element.textContent += line + '\n';
-    element.scrollTop = element.scrollHeight;
-  };
-  return element;
-}
+import {el, card, button, makeLog} from './kit.js';
+import {section as actionsSection} from './sections/actions.js';
+import {section as containersSection} from './sections/containers.js';
+import {section as controlsSection} from './sections/controls.js';
+import {section as dataViewsSection} from './sections/data-views.js';
+import {section as mediaSection} from './sections/media.js';
+import {section as menusSection} from './sections/menus.js';
+import {section as spreadsheetSection} from './sections/spreadsheet.js';
 
 const sampleMenuConfig = {
   logo: {text: 'Menu'},
@@ -526,18 +507,25 @@ function twoTierMenuSection(context) {
 }
 
 export const sections = [
+  actionsSection,
   {id: 'base-components', title: 'Base components', render: (context) => baseComponentsSection(context.registry)},
   {id: 'basic-data-registry', title: 'Basic data registry', render: dataRegistrySection},
   {id: 'basic-data-service', title: 'Basic data service', render: dataServiceSection},
   {id: 'calendar-view', title: 'Calendar view', render: calendarViewSection},
+  containersSection,
+  controlsSection,
+  dataViewsSection,
   {id: 'date-model', title: 'Date model', render: dateModelSection},
   {id: 'date-time-picker', title: 'Date time picker', render: dateTimePickerSection},
   {id: 'design-tokens', title: 'Design tokens', render: designTokensSection},
   {id: 'event-broker', title: 'Event broker', render: eventBrokerSection},
+  mediaSection,
   {id: 'menu-gutter', title: 'Menu gutter', render: menuGutterSection},
   {id: 'menu-item', title: 'Menu item', render: menuItemSection},
   {id: 'menu-logo', title: 'Menu logo', render: menuLogoSection},
+  menusSection,
   {id: 'simple-router', title: 'Simple router', render: simpleRouterSection},
+  spreadsheetSection,
   {id: 'two-tier-menu', title: 'Two tier menu', render: twoTierMenuSection},
 ];
 

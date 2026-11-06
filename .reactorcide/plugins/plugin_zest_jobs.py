@@ -4,16 +4,21 @@ A job calls the same Python modules that `tools.sh` calls, so that a local run a
 a CI run cannot drift. `ZEST_JOB` selects the job, so that the command in each job
 file is the same, and the work lives in this trusted CI source.
 
-Only the release job holds a secret, and only this file reads it.
+Only the release job and the site deploy job hold secrets, and only this file reads them.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
+import re
 import shlex
+import shutil
 import subprocess
 import tarfile
+import time
+import urllib.request
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -180,12 +185,206 @@ def release(code_dir: Path) -> None:
     )
 
 
+BUILDKIT_VERSION = "0.17.3"
+KUBECTL_VERSION = "v1.36.5"
+HELM_VERSION = "v3.19.0"
+HELM_REPOSITORY = "https://raw.githubusercontent.com/catalystcommunity/charts/main"
+HELM_CHART = "catalyst-helm/pysocha-site"
+HELM_CHART_VERSION = "1.1.1"
+PLATFORMS = "linux/amd64,linux/arm64"
+SIDECAR_TIMEOUT_SECONDS = 30
+VERSION_PATTERN = re.compile(r"\d+\.\d+\.\d+")
+
+
+def website_release(code_dir: Path) -> Dict[str, str] | None:
+    """The next `website/vX.Y.Z` from semver-tags, or None. The commits since the last site tag decide."""
+    if (code_dir / ".git" / "shallow").exists():
+        _run(["git", "fetch", "--unshallow", "origin"], cwd=code_dir)
+    _run(["git", "fetch", "--tags", "--force", "origin"], cwd=code_dir)
+    _tools(code_dir, "site", "plan")
+    artifacts = Path(os.environ.get("RC_ARTIFACT_DIR", code_dir / "dist-release"))
+    found = json.loads((artifacts / "website-release.json").read_text())
+    if found is not None and not VERSION_PATTERN.fullmatch(found["version"]):
+        raise RuntimeError(f"semver-tags gave the site version {found['version']!r}, which is not X.Y.Z")
+    return found
+
+
+def website_domain(website: Path) -> str:
+    """The domain in website/values.yaml. A route for a name that nobody owns is worse than none."""
+    match = re.search(r"^domain:\s*(\S+)\s*$", (website / "values.yaml").read_text(), re.M)
+    if match is None:
+        raise RuntimeError("website/values.yaml has no domain")
+    domain = match.group(1).strip("'\"")
+    if domain.endswith(".invalid") or "REPLACE-ME" in domain:
+        raise RuntimeError(f"website/values.yaml has the placeholder domain {domain}")
+    return domain
+
+
+def pull_secret_manifest(namespace: str, registry: str, user: str, password: str) -> str:
+    """The registry pull secret, for `kubectl apply -f -`. `kubectl create secret` would put the
+    password in the arguments, which the process table shows."""
+    auth = base64.b64encode(f"{user}:{password}".encode()).decode()
+    config = json.dumps({"auths": {registry: {"username": user, "password": password, "auth": auth}}})
+    return json.dumps({
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {"name": "regcred", "namespace": namespace},
+        "type": "kubernetes.io/dockerconfigjson",
+        "data": {".dockerconfigjson": base64.b64encode(config.encode()).decode()},
+    })
+
+
+def _local_bin() -> Path:
+    path = Path.home() / ".local" / "bin"
+    path.mkdir(parents=True, exist_ok=True)
+    os.environ["PATH"] = os.pathsep.join([str(path), os.environ.get("PATH", "")])
+    return path
+
+
+def _download(url: str) -> bytes:
+    log_stdout(f"Downloading {url}")
+    with urllib.request.urlopen(url, timeout=600) as response:
+        return response.read()
+
+
+def _ensure_deploy_tools() -> None:
+    """The runner image has no buildctl, helm, or kubectl."""
+    local_bin = _local_bin()
+    if not shutil.which("buildctl"):
+        archive = Path("/tmp/buildkit.tar.gz")
+        archive.write_bytes(_download(
+            f"https://github.com/moby/buildkit/releases/download/v{BUILDKIT_VERSION}"
+            f"/buildkit-v{BUILDKIT_VERSION}.linux-amd64.tar.gz"))
+        with tarfile.open(archive) as tar:
+            member = tar.getmember("bin/buildctl")
+            member.name = "buildctl"
+            tar.extract(member, local_bin, filter="data")
+        archive.unlink()
+    if not shutil.which("helm"):
+        archive = Path("/tmp/helm.tar.gz")
+        archive.write_bytes(_download(f"https://get.helm.sh/helm-{HELM_VERSION}-linux-amd64.tar.gz"))
+        with tarfile.open(archive) as tar:
+            member = tar.getmember("linux-amd64/helm")
+            member.name = "helm"
+            tar.extract(member, local_bin, filter="data")
+        archive.unlink()
+    if not shutil.which("kubectl"):
+        (local_bin / "kubectl").write_bytes(_download(f"https://dl.k8s.io/release/{KUBECTL_VERSION}/bin/linux/amd64/kubectl"))
+    for name in ("buildctl", "helm", "kubectl"):
+        if (local_bin / name).exists():
+            (local_bin / name).chmod(0o755)
+
+
+def _wait_for_builder(code_dir: Path) -> None:
+    log_stdout("Waiting for the builder sidecar")
+    for _ in range(SIDECAR_TIMEOUT_SECONDS):
+        if subprocess.run(["buildctl", "debug", "info"], cwd=code_dir, check=False,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            return
+        time.sleep(1)
+    raise RuntimeError(f"The builder sidecar is not ready after {SIDECAR_TIMEOUT_SECONDS} seconds.")
+
+
+def _private_file(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    path.chmod(0o600)
+    return path
+
+
+def website_deploy(code_dir: Path) -> None:
+    """Build the demo site from this checkout, push its image, roll the Helm release, apply the route,
+    and then push the `website/vX.Y.Z` tag.
+
+    The tag comes last. A failed deploy pushes no tag, so a retry computes the same version.
+
+    The secrets leave the environment first, so no child process gets them. They go only into
+    the git credentials, the docker config, the kubeconfig, and the stdin of one `kubectl apply`.
+    """
+    names = ("GITHUB_PAT", "REGISTRY", "REGISTRY_PATH", "REGISTRY_USER", "REGISTRY_PASSWORD", "KUBECONFIG_CONTENT", "K8S_NAMESPACE", "HELM_RELEASE")
+    values = {name: os.environ.pop(name, "").strip() for name in names}
+    missing = [name for name, value in values.items() if not value]
+    if missing:
+        raise RuntimeError("The site deploy needs: " + ", ".join(missing))
+
+    website = code_dir / "website"
+    domain = website_domain(website)
+    _git_credentials(code_dir, values["GITHUB_PAT"])
+    found = website_release(code_dir)
+    if found is None:
+        log_stdout("No site release: no commit since the last website tag changes what the site shows.")
+        return
+    version = found["version"]
+    image = f"{values['REGISTRY']}/{values['REGISTRY_PATH']}"
+    namespace = values["K8S_NAMESPACE"]
+    release = values["HELM_RELEASE"]
+    log_stdout(f"Deploying {image}:{version} for {domain}")
+
+    _tools(code_dir, "site", "build")
+    _ensure_deploy_tools()
+    _wait_for_builder(code_dir)
+
+    auth = base64.b64encode(f"{values['REGISTRY_USER']}:{values['REGISTRY_PASSWORD']}".encode()).decode()
+    docker_config = _private_file(Path.home() / ".docker" / "config.json", json.dumps({"auths": {values["REGISTRY"]: {"auth": auth}}}))
+    kubeconfig = _private_file(Path.home() / ".kube" / "config", values["KUBECONFIG_CONTENT"])
+    env = {"DOCKER_CONFIG": str(docker_config.parent), "KUBECONFIG": str(kubeconfig)}
+
+    _run(
+        [
+            "buildctl", "build",
+            "--frontend", "dockerfile.v0",
+            "--local", "context=.",
+            "--local", "dockerfile=.",
+            "--opt", f"platform={PLATFORMS}",
+            "--output", f'type=image,"name={image}:{version},{image}:latest",push=true',
+        ],
+        cwd=website, env=env,
+    )
+
+    namespace_manifest = subprocess.run(
+        ["kubectl", "create", "namespace", namespace, "--dry-run=client", "-o", "yaml"],
+        cwd=website, env={**os.environ, **env}, check=True, text=True, stdout=subprocess.PIPE,
+    ).stdout
+    secret_manifest = pull_secret_manifest(namespace, values["REGISTRY"], values["REGISTRY_USER"], values["REGISTRY_PASSWORD"])
+    for manifest in (namespace_manifest, secret_manifest):
+        log_stdout("Running: kubectl apply -f -")
+        subprocess.run(["kubectl", "apply", "-f", "-"], cwd=website, env={**os.environ, **env},
+                       check=True, text=True, input=manifest, stdout=subprocess.DEVNULL)
+
+    _run(["helm", "repo", "add", "--force-update", "catalyst-helm", HELM_REPOSITORY], cwd=website, env=env)
+    _run(["helm", "repo", "update", "catalyst-helm"], cwd=website, env=env)
+    _run(
+        [
+            "helm", "upgrade", "--install", "--wait", "--timeout", "5m",
+            "--namespace", namespace, release, HELM_CHART,
+            "--version", HELM_CHART_VERSION,
+            "-f", "values.yaml",
+            "--set", f"image.repository={image}",
+            "--set", f"image.tag={version}",
+            "--set", "imagePullSecrets[0].name=regcred",
+            # The chart Ingress conflicts with the Gateway listeners. httproute.yaml routes.
+            "--set", "ingress.enabled=false",
+        ],
+        cwd=website, env=env,
+    )
+    _run(["kubectl", "apply", "-f", "httproute.yaml"], cwd=website, env=env)
+    log_stdout(f"Deployed {release} {version} to {namespace}. https://{domain}/")
+
+    _run(["git", "tag", found["tag"]], cwd=code_dir)
+    if not _run(["git", "push", "origin", f"refs/tags/{found['tag']}"], cwd=code_dir, check=False):
+        raise RuntimeError(
+            f"The site {version} is live, and the tag {found['tag']} did not push. Another run probably pushed it "
+            "first. The next site release computes its version from the tags that are on the remote."
+        )
+
+
 JOBS: Dict[str, Callable[[Path], None]] = {
     "conventional-commits": conventional_commits,
     "test": test,
     "test-e2e": test_e2e,
     "audit": audit,
     "release": release,
+    "website-deploy": website_deploy,
 }
 
 

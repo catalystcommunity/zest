@@ -4,6 +4,10 @@ import './style.css';
 import {BasicDataRegistry, SimpleRouter} from '../src/index.js';
 import {defineComponents} from './components.js';
 import {renderSection, sections} from './gallery.js';
+import {examples} from './examples/index.js';
+import {bench} from './examples/bench.js';
+import {el} from './kit.js';
+import {renderHome} from './site/home.js';
 
 const dataRegistryName = 'appDataRegistry';
 const registry = new BasicDataRegistry();
@@ -15,12 +19,18 @@ registry.AddDataFunction('demoMenuDataFunc', function menuDataFunc() {
       logo: {text: 'Zest'},
       sections: [
         {
-          display: 'Demo',
+          display: 'Home',
           icon: '/caldo.svg',
           link: '/',
           items: [
             {display: 'Bookings', link: '/bookings'},
           ],
+        },
+        {
+          display: 'Examples',
+          icon: '/caldo.svg',
+          link: '/examples',
+          items: examples.map(example => ({display: example.title, link: `/examples/${example.id}`})),
         },
         {
           display: 'Component Gallery',
@@ -45,9 +55,10 @@ const context = {registry, router, onRoute: null};
 
 // A page keeps its state while the route stays on it, so a hash change does not wipe its logs
 let shownPage = null;
-function showPage(name, render) {
+function showPage(name, render, title) {
   if (shownPage === name) { return; }
   shownPage = name;
+  document.title = title ? `${title} · Zest` : 'Zest: web components for applications';
   context.onRoute = null;
   page.replaceChildren(...render());
   page.scrollTop = 0;
@@ -60,12 +71,7 @@ function heading(text) {
 }
 
 router.registerRoute('/', () => {
-  showPage('home', () => {
-    const intro = document.createElement('p');
-    intro.textContent = 'This small application uses Zest components together: the menu is a two-tier-menu that '
-      + 'gets its data from a data registry, and a simple-router shows each page.';
-    return [heading('Zest demo'), intro];
-  });
+  showPage('home', renderHome);
 }, ['/home']);
 
 router.registerRoute('/bookings', () => {
@@ -81,18 +87,36 @@ router.registerRoute('/bookings', () => {
       output.textContent = e.detail.date ? `Booking on ${e.detail.date.toDateString()}.` : 'No booking date.';
     });
     return [heading('Bookings'), label, picker, output];
-  });
+  }, 'Bookings');
 });
 
 router.registerRoute('/gallery', (routeData, state, changeType) => {
   const section = sections.find(candidate => candidate.id === routeData.path.split('/')[2]);
   if (section) {
-    showPage(`gallery-${section.id}`, () => [renderSection(section, context)]);
+    showPage(`gallery-${section.id}`, () => [renderSection(section, context)], `${section.title} · Gallery`);
     context.onRoute?.(routeData, state, changeType);
   } else {
-    showPage('gallery', () => [heading('Component gallery'), ...sections.map(item => renderSection(item, context))]);
+    showPage('gallery', () => [heading('Component gallery'), ...sections.map(item => renderSection(item, context))], 'Component gallery');
   }
 });
+
+router.registerRoute('/examples', (routeData) => {
+  const example = examples.find(candidate => candidate.id === routeData.path.split('/')[2]);
+  if (example) {
+    showPage(`example-${example.id}`, () => [
+      el('section', {class: 'example', 'data-testid': `example-${example.id}`}, heading(example.title), ...example.render(context)),
+    ], example.title);
+  } else {
+    showPage('examples', () => [
+      heading('Examples'),
+      el('ul', {class: 'example-list'}, ...examples.map(item => el('li', {},
+        el('a', {href: `/examples/${item.id}`}, item.title), ': ', item.description))),
+    ], 'Examples');
+  }
+});
+
+// The scale tests call the measurements directly
+window.zestBench = bench;
 
 router.registerRoute('/notfound', () => {
   shownPage = null;

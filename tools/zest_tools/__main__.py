@@ -18,6 +18,9 @@ tools.sh <verb>
   test-tools              The tests of this tooling
   audit                   Fail on an advisory in what a consumer installs
   deps                    Fetch the pinned Node and semver-tags into .deps
+  site build              Build the demo site into website/root
+  site plan               Say what the next site release would be (a website/v* tag).
+                          Writes it to the artifact directory, for the deploy job
 
   commits check [<base>]  Fail when a commit does not say what kind of change it is
 
@@ -39,6 +42,8 @@ VERBS = {
     ("test-tools",): checks.test_tools,
     ("audit",): checks.audit,
     ("deps",): deps.fetch_all,
+    ("site", "build"): checks.site_build,
+    ("site", "plan"): release.site_plan,
     ("commits", "check"): commits.check,
     ("release", "plan"): release.plan_report,
     ("release", "first-publish"): release.first_publish,

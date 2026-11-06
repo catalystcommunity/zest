@@ -2,7 +2,7 @@
 # workflow node name inside it. Keep both stable.
 id: zest-release
 name: Zest Release
-description: "On a merge to main: run each check, then tag and stage each package that the commits release."
+description: "On a merge to main: run each check, then tag and stage each package that the commits release, and deploy the demo site."
 
 on:
   events:
@@ -24,6 +24,15 @@ jobs:
 
   zest-release:
     job_file: release.yaml
+    depends_on:
+      - zest-test
+      - zest-test-e2e
+      - zest-audit
+
+  # It decides by itself whether the commits ask for a site release. It does not wait for
+  # the package release, because the site builds from this checkout, not from npm.
+  zest-website-deploy:
+    job_file: website-deploy.yaml
     depends_on:
       - zest-test
       - zest-test-e2e
