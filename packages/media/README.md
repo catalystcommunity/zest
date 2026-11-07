@@ -184,6 +184,7 @@ The components read the tokens in this order: the widget token, then `--zest-con
 | `--zest-canvas-view-height` | The height of the canvas, `15em`. |
 | `--zest-canvas-view-window` | The color behind the canvas. |
 | `--zest-image-view-height` | The height of the image view, `20em`. |
+| `--zest-image-view-control-height` | The height of the buttons of the image view. |
 
 The parts are `player`, `media`, `stage`, `caption`, `controls`, `time`, `title`, `playlist`, `view`, `canvas`, `tools`, `level`, `viewport`, and `image`.
 
