@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/containers",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Containers: group boxes, tabs, splitters, accordions, scroll areas, dialogs, windows, status bars, and layouts that hold other components.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/containers#readme",
   "main": "src/index.js",
