@@ -480,24 +480,15 @@ export default class DateTimePicker extends DataComponent {
             this.#refresh();
         }
     }
-    // The now button gives the full time here. Only that value goes to the nearest step: a value
-    // from outside stays as it is, and validation reports it when it is off the steps.
-    #resolveValue(now = null) {
-        if (now) {
-            if (this.#hasCalendar) {
-                this.#setView(now.year, now.month);
-                this.#focusDay = null;
-            }
-            this.#selectNow(this.#nowOnStep(now, this.#rules));
-            return;
-        }
+    #resolveValue() {
         const raw = this.#rawValue ?? '';
         this.#resolved = true;
         const parsed = model.parseSelection(raw, this.mode, this.selection, {timeZone: this.timeZone});
         if (parsed === null) {
             console.warn(`Can't read the value of a DateTimePicker in ${this.mode} mode: ${raw}`);
         }
-        this.#selected = parsed ?? [];
+        // Each value goes to the nearest step, from any source
+        this.#selected = (parsed ?? []).map(value => this.#onStep(value, this.#rules));
         this.#anchor = null;
         if (this.#selected.length && this.#hasCalendar) {
             this.#showViewOf(this.#selected[0]);
@@ -1814,14 +1805,20 @@ export default class DateTimePicker extends DataComponent {
         const right = document.createElement('div');
         const nowButton = this.#button('now', this.#nowLabel(), 'now', () => {
             const instant = new Date();
-            const exact = model.fromInstant(instant, this.timeZone);
-            this.#resolveValue(exact);
-            this.#draw();
+            const before = this.value;
+            this.#focusDay = null;
+            this.value = model.formatSelection(this.#selectionWith(this.#now()), this.mode, this.selection, this.#includeSeconds);
+            if (this.value !== before) { this.#sendValueEvents(); }
+            if (this.mode !== 'time' && this.selection !== 'multiple' && this.#closesAfterPick()) {
+                this.closePicker();
+                if (!this.#isInline) { this.input.focus(); }
+            }
             // The value is on the steps. This is the moment itself, for an application that wants it.
-            this.#sendEvent('date-now', {date: instant, parts: exact, value: this.value});
+            this.#sendEvent('date-now', {date: instant, parts: model.fromInstant(instant, this.timeZone), value: this.value});
         });
-        nowButton.disabled = this.#isDisabled || this.#isReadOnly
-            || (this.selection === 'single' && model.valueProblem(this.#nowOnStep(this.#now(), rules), rules) !== null);
+        const now = this.#onStep(model.truncate(this.#now(), this.mode), rules);
+        nowButton.disabled = this.#isDisabled || this.#isReadOnly || model.valueProblem(now, rules) !== null
+            || (this.selection === 'range' && model.rangeProblem(now, now, rules) !== null);
         if (this.#flag('showNow', true)) { left.appendChild(nowButton); }
         if ((this.#selected.length || this.#anchor) && !this.required && this.#flag('clearable', true) && !this.#isDisabled && !this.#isReadOnly) {
             left.appendChild(this.#button('clear', this.#label('clear'), 'clear', () => this.clearDate()));
@@ -1836,24 +1833,20 @@ export default class DateTimePicker extends DataComponent {
         footer.appendChild(right);
         return footer;
     }
-    #selectNow(now) {
-        const rules = this.#rules;
-        if (this.mode === 'time') {
-            const time = this.#clampTime(now);
-            if (!this.#reject(time, rules)) { this.#commit(this.selection === 'range' ? [time, time] : [time]); }
-        } else if (this.mode === 'datetime' && this.selection === 'single') {
-            if (!this.#reject(now, rules)) { this.#commit([now]); }
-        } else {
-            this.#pick(now);
-        }
-    }
-    // The value of the now button: the allowed step nearest to this time, on the same day. A time
-    // that is not allowed stays as it is, so that the button does not give a time from far away.
-    #nowOnStep(parts, rules) {
+    // The selection with this time in it, for the now button
+    #selectionWith(parts) {
         const value = model.truncate(parts, this.mode);
+        if (this.selection === 'range') { return [value, value]; }
+        if (this.selection !== 'multiple') { return [value]; }
+        const unit = this.mode === 'datetime' ? 'date' : this.mode;
+        return [...this.#selected.filter(item => model.compare(item, value, unit) !== 0), value].sort((a, b) => model.compare(a, b, this.mode));
+    }
+    // The allowed step nearest to this time, on the same day. A time that is not allowed stays as it
+    // is, so that validation can report it and it does not become a time from far away.
+    #onStep(value, rules) {
         if (!this.#hasTime) { return value; }
-        value.second = this.#includeSeconds ? value.second : 0;
         const time = model.truncate(value, 'time');
+        if (!this.#includeSeconds) { time.second = 0; }
         const day = this.mode === 'datetime' ? value : null;
         if (!model.stepIsWrong(time, rules) || model.timeIsDisabled(time, day, rules)) { return value; }
         const seconds = ({hour, minute, second}) => hour * 3600 + minute * 60 + second;

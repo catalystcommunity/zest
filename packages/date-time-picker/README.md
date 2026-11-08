@@ -62,7 +62,7 @@ An attribute comes before the same option from `updateConfig`. A boolean attribu
 | `disabled-weekdays` | | Numbers, with 0 for Sunday: `0,6`. |
 | `min-range-days`, `max-range-days` | | The length of a range, with both end days included. |
 | `allow-disabled-in-range` | false | Let a range hold a day that is not available. |
-| `hour-step`, `minute-step`, `second-step` | 1 | The steps of the time. Steps count from zero. |
+| `hour-step`, `minute-step`, `second-step` | 1 | The steps of the time. Steps count from zero. A value goes to the nearest allowed step on the same day, so `13:13` with a step of 15 is `13:15`. |
 | `include-seconds` | false | Show and write the seconds. |
 | `twenty-four-hour-format` | from the locale | `false` makes 12 hours. Present makes 24 hours. |
 | `default-time` | `00:00` | The time of a date with no time yet. |
@@ -78,7 +78,7 @@ An attribute comes before the same option from `updateConfig`. A boolean attribu
 | `fixed-weeks` | false | Always show six weeks. |
 | `inline` | false | Show the panel in the page, with no input. |
 | `clearable` | true | Show **Clear**. It does not show when the element is required. |
-| `show-now` | true | Show **Now**. With steps, it selects the nearest allowed time on the same day. |
+| `show-now` | true | Show **Now**. |
 | `no-typing` | false | The panel opens, but the input takes no text. This stops a phone keyboard. |
 | `placeholder` | a sample value | The text of the empty input. |
 | `label` | | The accessible name of the input. A `<label for>` or `aria-label` also gives it. |

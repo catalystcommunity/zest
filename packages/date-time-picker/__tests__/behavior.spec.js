@@ -544,8 +544,9 @@ describe('DateTimePicker', () => {
             expect(comp.value).toEqual('09:30');
         });
 
-        it('time: shows a value off the steps, and reports it', () => {
-            const comp = makePicker({mode: 'time', locale: 'en-GB', 'minute-step': '15', value: '09:07'});
+        it('time: a value that a new step puts off the steps still shows, and is not a choice', () => {
+            const comp = makePicker({mode: 'time', locale: 'en-GB', value: '09:07'});
+            comp.updateConfig({minuteStep: 15});
             const minute = comp.picker.querySelector('select.minute');
             expect(minute.value).toEqual('7');
             expect([...minute.options].filter(option => !option.hidden).map(option => option.value)).toEqual(['0', '15', '30', '45']);
@@ -901,6 +902,48 @@ describe('DateTimePicker', () => {
             const comp = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '30', min: '09:00', max: '17:00', locale: 'en-GB'});
             comp.input.click();
             expect(comp.picker.querySelector('.now').disabled).toBe(true);
+        });
+
+        it('a value from any source goes to the nearest step, and sends no event', () => {
+            const comp = makePicker({mode: 'datetime', 'minute-step': '15', locale: 'en-GB'});
+            const changes = [];
+            comp.addEventListener('date-changed', (e) => changes.push(e.detail.value));
+            comp.value = '2024-07-01T13:13';
+            expect(comp.value).toEqual('2024-07-01T13:15');
+            expect(changes).toEqual([]);
+            expect(makePicker({mode: 'time', 'minute-step': '15', value: '13:13'}).value).toEqual('13:15');
+            expect(makePicker({mode: 'time', value: '13:13'}).value).toEqual('13:13');
+            expect(makePicker({mode: 'time', selection: 'range', 'minute-step': '15', value: '09:07/13:13'}).value).toEqual('09:00/13:15');
+        });
+
+        it('a value out of the limits stays as it is, and is reported', () => {
+            const comp = makePicker({mode: 'time', 'minute-step': '15', min: '09:00', max: '17:00', value: '20:07'});
+            expect(comp.value).toEqual('20:07');
+            expect(comp.validationProblem).toEqual('after-max');
+        });
+
+        it('the now button sends the usual events', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
+            const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', locale: 'en-GB'});
+            const changes = [];
+            comp.addEventListener('date-changed', (e) => changes.push(e.detail.value));
+            comp.input.click();
+            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.now').click();
+            expect(changes).toEqual(['2024-07-01T13:07']);
+        });
+
+        it('the now button fills a range, and adds to multiple dates', () => {
+            vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
+            const range = makePicker({mode: 'datetime', selection: 'range', 'time-zone': 'UTC', locale: 'en-GB'});
+            range.input.click();
+            range.picker.querySelector('.now').click();
+            expect(range.value).toEqual('2024-07-01T13:07/2024-07-01T13:07');
+            const multiple = makePicker({selection: 'multiple', 'time-zone': 'UTC', value: '2024-03-15', locale: 'en-GB'});
+            multiple.input.click();
+            multiple.picker.querySelector('.now').click();
+            expect(multiple.value).toEqual('2024-03-15,2024-07-01');
+            expect(multiple.picker.style.display).toEqual('flex');
         });
 
         it('show-now="false" removes the now button', () => {
