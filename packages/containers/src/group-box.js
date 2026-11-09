@@ -14,11 +14,11 @@ export class GroupBox extends ShadowContainer {
     static shadowHtml = `
 <fieldset part="frame">
   <legend part="title">
-    <label class="check"><input type="checkbox"><span class="check-text"></span></label>
-    <span class="plain"></span>
-    <button type="button" class="toggle" aria-expanded="true"><span class="chevron" aria-hidden="true"></span><span class="toggle-text"></span></button>
+    <label class="zest-check"><input type="checkbox"><span class="zest-check-text"></span></label>
+    <span class="zest-plain"></span>
+    <button type="button" class="zest-toggle" aria-expanded="true"><span class="zest-chevron" aria-hidden="true"></span><span class="zest-toggle-text"></span></button>
   </legend>
-  <div class="content" part="content"><slot></slot></div>
+  <div class="zest-content" part="content"><slot></slot></div>
 </fieldset>`;
     static styles = `
 :host {
@@ -48,14 +48,14 @@ legend {
 legend [hidden] {
     display: none !important;
 }
-.check {
+.zest-check {
     display: inline-flex;
     align-items: center;
     gap: 0.375em;
     min-height: 24px;
     cursor: pointer;
 }
-.check input {
+.zest-check input {
     width: 1.125em;
     height: 1.125em;
     min-width: 18px;
@@ -63,56 +63,56 @@ legend [hidden] {
     margin: 0;
     accent-color: var(--_highlight);
 }
-${smallButton('.toggle')}
-.toggle {
+${smallButton('.zest-toggle')}
+.zest-toggle {
     gap: 0.375em;
     font-weight: inherit;
 }
-.chevron::before {
+.zest-chevron::before {
     content: "▾";
 }
-:host([collapsed]) .chevron::before {
+:host([collapsed]) .zest-chevron::before {
     content: "▸";
 }
-.content[hidden] {
+.zest-content[hidden] {
     display: none;
 }
-.content.off {
+.zest-content.zest-off {
     opacity: 0.6;
 }
 ${focusRing}
 `;
 
     built() {
-        this.part('.check input').addEventListener('change', (e) => {
+        this.shadowPart('.zest-check input').addEventListener('change', (e) => {
             this.checked = e.target.checked;
             // Not 'change': the change events of the fields in the group also reach the group
             this.emit('group-box-check', {checked: this.checked});
         });
-        this.part('.toggle').addEventListener('click', () => {
+        this.shadowPart('.zest-toggle').addEventListener('click', () => {
             this.collapsed = !this.collapsed;
             this.emit('group-box-toggle', {collapsed: this.collapsed});
         });
     }
 
     render() {
-        const check = this.part('.check');
-        const plain = this.part('.plain');
-        const toggle = this.part('.toggle');
-        const content = this.part('.content');
+        const check = this.shadowPart('.zest-check');
+        const plain = this.shadowPart('.zest-plain');
+        const toggle = this.shadowPart('.zest-toggle');
+        const content = this.shadowPart('.zest-content');
         check.hidden = !this.checkable;
         plain.hidden = this.checkable || this.collapsible;
         toggle.hidden = !this.collapsible;
-        this.part('.check-text').textContent = this.label;
+        this.shadowPart('.zest-check-text').textContent = this.label;
         plain.textContent = this.label;
         // With a check box, the check box has the words, and the button has only a name
-        this.part('.toggle-text').textContent = this.checkable ? '' : this.label;
+        this.shadowPart('.zest-toggle-text').textContent = this.checkable ? '' : this.label;
         if (this.checkable) { toggle.setAttribute('aria-label', this.label); } else { toggle.removeAttribute('aria-label'); }
         toggle.setAttribute('aria-expanded', String(!this.collapsed));
-        this.part('.check input').checked = this.checked;
+        this.shadowPart('.zest-check input').checked = this.checked;
         content.hidden = this.collapsible && this.collapsed;
         const off = this.checkable && !this.checked;
         content.inert = off;
-        content.classList.toggle('off', off);
+        content.classList.toggle('zest-off', off);
     }
 }

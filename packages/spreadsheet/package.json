@@ -4,6 +4,7 @@
   "description": "Spreadsheet: a grid of typed cells with formulas, keyboard navigation, editing, selection, clipboard, and undo.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/spreadsheet#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

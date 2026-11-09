@@ -50,6 +50,13 @@ export function shadowOf(ControlClass) {
     };
 }
 
+// True if the nodes have an element or text that is not only white space
+const hasText = (nodes) => [...nodes].some(node => node.nodeType === 1 || node.textContent.trim());
+
+// Attributes of the host that go to the inner control. aria-label names the inner control, and
+// aria-describedby adds descriptions to it. The host itself has no role.
+const HOST_ATTRIBUTES = ['aria-label', 'aria-describedby'];
+
 export class ZestElement extends BaseComponent {
     static properties = {
         labels: {type: Object, attribute: false, default: () => ({})},
@@ -59,10 +66,73 @@ export class ZestElement extends BaseComponent {
     get built() { return this.#built; }
     get text() { return {...DEFAULT_LABELS, ...this.labels}; }
 
+    static get observedAttributes() {
+        return [...new Set([...super.observedAttributes, ...HOST_ATTRIBUTES, ...this.forwardAttributes])];
+    }
+    // Attributes of the host that the control copies to its inner native element. A child class adds to it.
+    static forwardAttributes = [];
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (HOST_ATTRIBUTES.includes(name) || this.constructor.forwardAttributes.includes(name)) {
+            if (oldValue !== newValue && this.built) { this.invalidate(); }
+            return;
+        }
+        super.attributeChangedCallback(name, oldValue, newValue);
+    }
+
+    // Names the inner element. An aria-label on the host always wins, as an aria-label wins over a
+    // native label. The fallback is for a control with no visible text, for example an icon button.
+    // With labelledBy, the element has the visible label as its name when the host has no aria-label.
+    nameInner(element, {fallback = '', labelledBy = null} = {}) {
+        const name = this.getAttribute('aria-label') || '';
+        if (name || !labelledBy) {
+            element.removeAttribute('aria-labelledby');
+        } else {
+            element.setAttribute('aria-labelledby', labelledBy);
+        }
+        const label = name || (labelledBy ? '' : fallback);
+        if (label) { element.setAttribute('aria-label', label); } else { element.removeAttribute('aria-label'); }
+    }
+
+    // Gives the inner element its descriptions: the ids of the control (help text, error) and the ids
+    // in the host aria-describedby. In a shadow root, an id cannot refer across the boundary, so the
+    // element gets the elements themselves, where the browser supports it.
+    describe(ids, element = this.focusTarget) {
+        if (!element) { return; }
+        const own = ids.filter(Boolean);
+        const host = (this.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        if (this.root === this) {
+            const list = [...new Set([...own, ...host])].join(' ');
+            if (list) { element.setAttribute('aria-describedby', list); } else { element.removeAttribute('aria-describedby'); }
+            return;
+        }
+        if (host.length && 'ariaDescribedByElements' in element) {
+            const scope = this.getRootNode();
+            const elements = [
+                ...own.map(id => this.root.getElementById(id)),
+                ...host.map(id => scope.getElementById?.(id)),
+            ].filter(Boolean);
+            element.ariaDescribedByElements = elements.length ? elements : null;
+            return;
+        }
+        if ('ariaDescribedByElements' in element && element.ariaDescribedByElements) { element.ariaDescribedByElements = null; }
+        if (own.length) { element.setAttribute('aria-describedby', own.join(' ')); } else { element.removeAttribute('aria-describedby'); }
+    }
+
+    // Copies the forwardAttributes of the host to the inner native element
+    forwardTo(element) {
+        for (const name of this.constructor.forwardAttributes) {
+            const value = this.getAttribute(name);
+            if (value === null) { element.removeAttribute(name); } else { element.setAttribute(name, value); }
+        }
+    }
+
     connectedCallback() {
         super.connectedCallback();
         this.render();
-        this.connected();
+        // A parent can move this element through a detached container. The browser then calls
+        // connectedCallback late, while the element is out of the page. It connects again later.
+        if (this.isConnected) { this.connected(); }
     }
     // Called after each connect, after the first render. own() and listen() work here.
     connected() { }
@@ -85,11 +155,41 @@ export class ZestElement extends BaseComponent {
     takeContent(container, keep = (node) => true) {
         if (this.root !== this) {
             container.append(document.createElement('slot'));
-            return [...this.childNodes].some(node => node.nodeType === 1 || node.textContent.trim());
+            return hasText(this.childNodes);
         }
         const nodes = [...this.childNodes].filter(node => node.localName !== 'style' && keep(node));
         container.append(...nodes);
-        return nodes.some(node => node.nodeType === 1 || node.textContent.trim());
+        return hasText(nodes);
+    }
+
+    // In the light DOM, children that the application adds to the host later also go in the
+    // container. A change such as host.textContent = 'New' then does not remove the internals.
+    // inner is the internal child of the host, or a list of them. In a shadow root, the slot shows
+    // the children. changed() gets true if the content has text or an element. Call it in connected().
+    followContent(container, inner, changed, keep = (node) => true) {
+        if (this.root !== this) {
+            const slot = container.querySelector('slot');
+            if (slot) { this.listen(slot, 'slotchange', () => changed(hasText(slot.assignedNodes()))); }
+            return;
+        }
+        const parts = [inner].flat();
+        const move = () => {
+            const added = [...this.childNodes].filter(node => !parts.includes(node) && node.localName !== 'style' && keep(node));
+            if (parts.some(part => part.parentNode !== this)) {
+                // replaceChildren() or textContent on the host removed the internals
+                container.replaceChildren(...added);
+                this.append(...parts);
+            } else if (added.length) {
+                container.append(...added);
+            } else {
+                return;
+            }
+            changed(hasText(container.childNodes));
+        };
+        move();
+        const observer = new MutationObserver(move);
+        observer.observe(this, {childList: true});
+        this.own(() => observer.disconnect());
     }
 
     // The events of a native element inside must not leave the component. The component sends its own.
@@ -120,6 +220,11 @@ export class FormControl extends ZestElement {
         this.internals = this.attachInternals?.() ?? null;
     }
 
+    // True for a control that submits its form, so that Enter in a field can find the default button
+    get submitsForm() { return false; }
+    // True for a field in which Enter submits the form, as it does in a native text input
+    get blocksImplicitSubmission() { return false; }
+
     get isDisabled() { return this.disabled || this.#formDisabled; }
     get form() { return this.internals?.form ?? null; }
     get validity() { return this.internals?.validity; }
@@ -135,6 +240,12 @@ export class FormControl extends ZestElement {
         if (this.root === this && this.focusTarget) {
             if (!this.hasAttribute('tabindex')) { this.tabIndex = -1; }
             this.listen(this, 'focus', (e) => { if (e.target === this) { this.focusTarget?.focus(); } });
+        }
+        // The browser does autofocus only while the document loads. A control that is added later
+        // does it here, with the same rule: only when nothing else has the focus.
+        if (this.hasAttribute('autofocus') && this.focusTarget) {
+            const active = document.activeElement;
+            if (!active || active === document.body || active === document.documentElement) { this.focus(); }
         }
     }
 
@@ -167,6 +278,61 @@ export class FormControl extends ZestElement {
             this.internals.setValidity({});
         }
     }
+}
+
+// The types of a native input in which Enter submits the form
+const IMPLICIT_TYPES = new Set(['text', 'search', 'url', 'tel', 'email', 'password', 'number',
+    'date', 'month', 'week', 'time', 'datetime-local']);
+
+// The control that owns a native element in the light DOM, if there is one
+function ownerControl(element, form) {
+    for (let node = element.parentElement; node && node !== form; node = node.parentElement) {
+        if (node instanceof FormControl) { return node; }
+    }
+    return null;
+}
+
+const isNativeSubmit = (element) =>
+    (element.localName === 'button' || element.localName === 'input') && (element.type === 'submit' || element.type === 'image');
+
+// The default button of a form: its first submit button in tree order, a Zest push-button or a
+// native button
+export function defaultButton(form) {
+    for (const element of form?.elements ?? []) {
+        if (element instanceof FormControl ? element.submitsForm : isNativeSubmit(element)) { return element; }
+    }
+    return null;
+}
+
+// Implicit submission, as the browser does it for Enter in a native field of the form. If the form
+// has a default button, this clicks it. A disabled default button stops the submission. With no
+// submit button, the form submits only when it has one field in which Enter submits.
+// A native input in a shadow root is not in the form, so Zest fields call this themselves.
+export function submitImplicitly(form) {
+    if (!form) { return false; }
+    const button = defaultButton(form);
+    if (button) {
+        if (button.matches(':disabled') || button.isDisabled) { return false; }
+        button.click();
+        return true;
+    }
+    let fields = 0;
+    for (const element of form.elements) {
+        if (element instanceof FormControl) {
+            if (element.blocksImplicitSubmission) { fields++; }
+        } else if (element.localName === 'input' && IMPLICIT_TYPES.has(element.type) && !ownerControl(element, form)) {
+            fields++;
+        }
+    }
+    if (fields > 1) { return false; }
+    form.requestSubmit();
+    return true;
+}
+
+// True for an Enter key that would submit the form from a native field. A modifier key does not
+// change it, as in a native field. A key that ends a composition of an input method does not submit.
+export function isSubmitKey(e) {
+    return e.key === 'Enter' && !e.defaultPrevented && !e.isComposing && e.keyCode !== 229;
 }
 
 // The options of a list box or a combo box, from data or from <option> children:
@@ -215,13 +381,13 @@ ${selector} {
     min-width: 0;
     color: var(--_window-text);
 }
-${selector} .label {
+${selector} .zest-label {
     font-weight: 600;
 }
-${selector} .label:empty {
+${selector} .zest-label:empty {
     display: none;
 }
-${selector} .box {
+${selector} .zest-box {
     display: flex;
     align-items: stretch;
     box-sizing: border-box;
@@ -233,14 +399,14 @@ ${selector} .box {
     border-radius: var(--_radius);
     transition: border-color var(--_motion);
 }
-${selector} .box:hover {
+${selector} .zest-box:hover {
     border-color: var(--_highlight);
 }
-${selector} .box:has(:focus-visible) {
+${selector} .zest-box:has(:focus-visible) {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-${selector} .box input, ${selector} .box textarea {
+${selector} .zest-box input, ${selector} .zest-box textarea {
     flex: 1;
     min-width: 0;
     box-sizing: border-box;
@@ -252,36 +418,36 @@ ${selector} .box input, ${selector} .box textarea {
     /* The box shows the focus. A general page rule for :focus-visible must not add a second ring. */
     outline: none !important;
 }
-${selector} .box input::placeholder, ${selector} .box textarea::placeholder {
+${selector} .zest-box input::placeholder, ${selector} .zest-box textarea::placeholder {
     color: var(--_secondary-text);
     opacity: 1;
 }
-${selector} .help {
+${selector} .zest-help {
     font-size: 0.875em;
     color: var(--_secondary-text);
 }
-${selector} .help:empty {
+${selector} .zest-help:empty {
     display: none;
 }
-${selector} .help.error {
+${selector} .zest-help.zest-error {
     color: var(--_invalid);
 }
-${selector} .help.error::before {
+${selector} .zest-help.zest-error::before {
     content: "⚠ ";
 }
-${selector}.invalid .box, ${selector} .box:has([aria-invalid="true"]) {
+${selector}.zest-invalid .zest-box, ${selector} .zest-box:has([aria-invalid="true"]) {
     border-color: var(--_invalid);
     border-width: max(2px, var(--_border-width));
 }
-${selector}.disabled {
+${selector}.zest-disabled {
     color: var(--_disabled-text);
 }
-${selector}.disabled .box {
+${selector}.zest-disabled .zest-box {
     border-style: dashed;
     color: var(--_disabled-text);
     background: var(--_face);
 }
-${selector} .box button {
+${selector} .zest-box button {
     box-sizing: border-box;
     min-width: max(24px, 2em);
     min-height: 24px;
@@ -294,32 +460,32 @@ ${selector} .box button {
     font: inherit;
     cursor: pointer;
 }
-${selector} .box button:hover {
+${selector} .zest-box button:hover {
     background: var(--_hover-face);
     border-color: var(--_border);
 }
-${selector} .box button:focus-visible {
+${selector} .zest-box button:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: -2px;
 }
-${selector} .box button[hidden] {
+${selector} .zest-box button[hidden] {
     display: none;
 }
-${selector} .affix {
+${selector} .zest-affix {
     display: flex;
     align-items: center;
     padding-inline: calc(var(--_padding-inline) * 0.5);
     color: var(--_secondary-text);
     white-space: nowrap;
 }
-${selector} .affix:empty {
+${selector} .zest-affix:empty {
     display: none;
 }
 @media (forced-colors: active) {
-    ${selector} .box {
+    ${selector} .zest-box {
         border-color: ButtonText;
     }
-    ${selector}.disabled .box {
+    ${selector}.zest-disabled .zest-box {
         border-color: GrayText;
         color: GrayText;
     }

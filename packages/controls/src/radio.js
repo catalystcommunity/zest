@@ -14,29 +14,29 @@ radio-group, :host {
     min-width: 0;
     color: var(--_window-text);
 }
-.zest-radio-group .legend {
+.zest-radio-group .zest-legend {
     font-weight: 600;
 }
-.zest-radio-group .legend:empty {
+.zest-radio-group .zest-legend:empty {
     display: none;
 }
-.zest-radio-group .items {
+.zest-radio-group .zest-items {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
     gap: 0.25em var(--_gap-unrelated);
 }
-.zest-radio-group.horizontal .items {
+.zest-radio-group.zest-horizontal .zest-items {
     flex-direction: row;
 }
-.zest-radio-group .error {
+.zest-radio-group .zest-error {
     font-size: 0.875em;
     color: var(--_invalid);
 }
-.zest-radio-group .error::before {
+.zest-radio-group .zest-error::before {
     content: "⚠ ";
 }
-.zest-radio-group .error:empty {
+.zest-radio-group .zest-error:empty {
     display: none;
 }
 `;
@@ -119,12 +119,18 @@ export class RadioButton extends ZestElement {
         const circle = Object.assign(document.createElement('span'), {className: 'zest-radio-button'});
         circle.setAttribute('aria-hidden', 'true');
         circle.part = 'circle';
-        this.#text = Object.assign(document.createElement('span'), {className: 'text'});
+        this.#text = Object.assign(document.createElement('span'), {className: 'zest-text'});
         this.#hasContent = this.takeContent(this.#text);
         this.root.append(circle, this.#text);
+        this.#circle = circle;
     }
+    #circle;
 
     connected() {
+        this.followContent(this.#text, [this.#circle, this.#text], (hasContent) => {
+            this.#hasContent = hasContent;
+            this.invalidate();
+        });
         // The group can connect before its choices are defined, so a choice tells the group that it is here
         this.group?.invalidate();
     }
@@ -167,10 +173,9 @@ export class RadioGroup extends FormControl {
         this.wrapper.className = 'zest-radio-group';
         this.wrapper.setAttribute('role', 'radiogroup');
         this.wrapper.part = 'group';
-        this.#legend = Object.assign(document.createElement('span'), {className: 'legend', id: uniqueId('radio-legend')});
-        this.#items = Object.assign(document.createElement('div'), {className: 'items'});
-        this.#error = Object.assign(document.createElement('div'), {className: 'error', id: uniqueId('radio-error')});
-        this.wrapper.setAttribute('aria-labelledby', this.#legend.id);
+        this.#legend = Object.assign(document.createElement('span'), {className: 'zest-legend', id: uniqueId('radio-legend')});
+        this.#items = Object.assign(document.createElement('div'), {className: 'zest-items'});
+        this.#error = Object.assign(document.createElement('div'), {className: 'zest-error', id: uniqueId('radio-error')});
         this.takeContent(this.#items);
         this.wrapper.append(this.#legend, this.#items, this.#error);
         this.root.append(this.wrapper);
@@ -205,7 +210,8 @@ export class RadioGroup extends FormControl {
     update() {
         this.#makeOptions();
         this.#legend.textContent = this.label;
-        this.wrapper.classList.toggle('horizontal', this.orientation === 'horizontal');
+        this.nameInner(this.wrapper, {labelledBy: this.#legend.id});
+        this.wrapper.classList.toggle('zest-horizontal', this.orientation === 'horizontal');
         if (this.required) { this.wrapper.setAttribute('aria-required', 'true'); } else { this.wrapper.removeAttribute('aria-required'); }
         const radios = this.radios;
         // With no value attribute, a choice with the checked attribute gives the first value
@@ -224,7 +230,7 @@ export class RadioGroup extends FormControl {
         const missing = this.required && !this.value;
         this.setValidity(missing ? {valueMissing: true} : {}, this.text.selectOne, radios[0]);
         this.#error.textContent = missing && this.#touched ? this.text.selectOne : '';
-        if (this.#error.textContent) { this.wrapper.setAttribute('aria-describedby', this.#error.id); } else { this.wrapper.removeAttribute('aria-describedby'); }
+        this.describe([this.#error.textContent && this.#error.id], this.wrapper);
     }
 
     #makeOptions() {

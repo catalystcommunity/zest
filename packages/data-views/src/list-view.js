@@ -48,9 +48,9 @@ export class ListView extends VirtualView {
             return;
         }
         let label = row.firstElementChild;
-        if (!label?.classList.contains('label')) {
+        if (!label?.classList.contains('zest-label')) {
             label = document.createElement('span');
-            label.className = 'label';
+            label.className = 'zest-label';
             row.replaceChildren(label);
         }
         label.textContent = this.textAt(index);
@@ -59,7 +59,7 @@ export class ListView extends VirtualView {
     paintRow(row, index) {
         const selected = String(this.selection.has(this.keyAt(index)));
         if (row.getAttribute('aria-selected') !== selected) { row.setAttribute('aria-selected', selected); }
-        row.classList.toggle('active', index === this.active);
+        row.classList.toggle('zest-active', index === this.active);
     }
 
     onKey(e) {

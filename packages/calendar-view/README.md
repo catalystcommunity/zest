@@ -38,6 +38,8 @@ calendar.addEventListener('calendar-event-move', async (e) => {
 
 An attribute wins over the same option in `updateConfig`. When the application sets `view` or `date`, that value wins over a change that the user made.
 
+A set of `view` or `date` to the value that shows does nothing. The calendar does not render, and the focus stays. The calendar compares a date by its value, so `'2026-03-13'` in new text is the same date. Thus an application can copy `calendar-range-changed` into its state and set `view` and `date` back from that state. Use `detail.date` for the date, not `detail.startDate`. In the month, `startDate` can be in the month before.
+
 | Attribute | Default | Description |
 | --- | --- | --- |
 | `view` | `month` | `month`, `week`, `day`, or `agenda`. |
@@ -66,6 +68,7 @@ Set the `events` property to an array, or call `updateConfig({events})`. Use a p
   end: '2026-03-13T16:30:00Z',
   allDay: false,
   color: '#1e7a3a',                   // optional, any CSS color
+  tags: ['tentative'],                // optional, the state of the item
   busyOnly: false,                    // true: shows "Busy", with no title
   editable: true,                     // the user can move and resize it
   seriesId: 'daily-standup',          // optional, comes back in the events
@@ -77,13 +80,34 @@ Set the `events` property to an array, or call `updateConfig({events})`. Use a p
 - An item that crosses midnight shows on each day that it covers.
 - `color` paints a stripe on the start of the item. The text always uses the token colors, because a color from the application can have too little contrast. Color is never the only sign of a difference.
 
+### Tags
+
+`tags` is an array of text. A tag tells the state of an item, for example `declined`. The calendar keeps each tag of letters, digits, and `-`, and writes it in lower case. It ignores other text.
+
+For each tag, the item element gets:
+
+- The class `zest-tag-<tag>`, for a light DOM style, for example `.zest-tag-declined`.
+- The part `item-<tag>`, for a style through a shadow root, for example `::part(item-declined)`. The `item` part stays.
+- Hidden text before the title, for a screen reader, for example "Declined, 3:00 PM Retro". The text comes from the `tags` label.
+
+The calendar has default styles for four tags. Each style has a sign that is not a color.
+
+| Tag | Default style | Hidden text |
+| --- | --- | --- |
+| `tentative` | A dashed edge, and the window color behind the text. | Tentative |
+| `invited` | A dashed edge, and the window color behind the text. | Invited |
+| `declined` | A line through the title, and the secondary text color. | Declined |
+| `cancelled` | A line through the title, and the secondary text color. | Cancelled |
+
+Another tag has no default style and no hidden text. Give it a style with its class or its part. Give it hidden text with `updateConfig({labels: {tags: {'needs-action': 'Needs an answer'}}})`. This object adds to the default texts. An empty text removes the hidden text of a tag. The month, the time grid, the all-day row, and the agenda show the tags.
+
 ## Events
 
 Each event bubbles and is composed, so it leaves a shadow root. Each `detail` also has `instanceId`.
 
 | Event | `detail` | When |
 | --- | --- | --- |
-| `calendar-range-changed` | `{view, start, end, startDate, endDate, timeZone}` | The calendar connects, or the visible range changes. `start` and `end` are UTC instants. `endDate` is the day after the last day. |
+| `calendar-range-changed` | `{view, date, start, end, startDate, endDate, timeZone}` | The calendar connects, or the visible range changes. `date` is the anchor date, the same as the `date` property. `start` and `end` are UTC instants. `endDate` is the day after the last day. |
 | `calendar-event-select` | `{id, seriesId, calendarId, view}` | The user opens an item. |
 | `calendar-slot-select` | `{start, end, allDay, view}` | The user selects empty time. Dates for all day, UTC instants for a time. |
 | `calendar-event-move` | `{id, start, end, allDay, seriesId, calendarId, view}` | The user moves or resizes an editable item. The same form as `calendar-slot-select`. |
@@ -94,7 +118,7 @@ Each event bubbles and is composed, so it leaves a shadow root. Each `detail` al
 - `view` and `date`: read and set the view and the anchor date.
 - `range`: the same object as the detail of `calendar-range-changed`.
 - `previous()`, `next()`, `today()`, `goTo('2026-03-13')`.
-- `updateConfig({events, labels, now})`: `labels` replaces the words. `now` is a function that gives a `Date`, for tests and for demonstrations.
+- `updateConfig({events, labels, now})`: `labels` replaces the words. `labels.tags` gives the hidden text of each tag (see Tags). `now` is a function that gives a `Date`, for tests and for demonstrations.
 - A data registry works as for the other Zest components. The register function returns `{calendarConfig}`.
 
 ## Keyboard
@@ -136,7 +160,17 @@ The calendar reads tokens in this order: `--zest-calendar-view-*`, then the fami
 | `--zest-calendar-view-time-width` | The width of the time column. |
 | `--zest-calendar-view-grid-height` | The largest height of the time grid before it scrolls, `36em`. |
 
-The parts are `calendar`, `toolbar`, `title`, `status`, `grid`, `day`, `slot`, `item`, `more`, `now`, `agenda`, and `empty`.
+The parts are `calendar`, `toolbar`, `title`, `status`, `grid`, `day`, `slot`, `item`, `more`, `now`, `agenda`, and `empty`. An item with tags also has `item-<tag>` for each tag.
+
+Each class that the calendar puts on its own elements starts with `zest-`, so that a page rule for a plain class, such as `.row` or `.day`, does not change the calendar. The root class is `.zest-calendar`. Other classes for a light DOM style are `.zest-toolbar`, `.zest-title`, `.zest-status`, `.zest-month`, `.zest-week`, `.zest-day`, `.zest-today`, `.zest-other-month`, `.zest-time-grid`, `.zest-row`, `.zest-slot`, `.zest-all-day-cell`, `.zest-item`, `.zest-item-main`, `.zest-item-time`, `.zest-item-title`, `.zest-grip`, `.zest-more`, `.zest-now`, `.zest-agenda`, and `.zest-empty`.
+
+```css
+/* Light DOM */
+calendar-view .zest-tag-declined { font-style: italic; }
+calendar-view .zest-today .zest-day-number { outline: 1px solid; }
+/* Shadow DOM */
+shadow-calendar-view::part(item-tentative) { border-style: dashed; }
+```
 
 A narrow calendar hides the weekday names in the time grid and the times of month items. It decides from its own width, not the width of the page.
 

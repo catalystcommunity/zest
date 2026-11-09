@@ -98,7 +98,7 @@ test.describe('tab-view', () => {
         const view = page.getByTestId('tabs-closable');
         const tabs = view.getByRole('tab');
         await expect(tabs).toHaveCount(6);
-        await tabs.nth(1).locator('.close').click();
+        await tabs.nth(1).locator('.zest-close').click();
         await expect(tabs).toHaveCount(5);
         await expect(log(page)).toContainText('tab-view-close Document 2');
         await tabs.first().focus();
@@ -131,11 +131,11 @@ test.describe('floating-window', () => {
         const notes = page.getByTestId('window-notes');
         await area.scrollIntoViewIfNeeded();
         const start = await box(notes);
-        await drag(page, notes.locator('.title'), 100, 50);
+        await drag(page, notes.locator('.zest-title'), 100, 50);
         await expect.poll(async () => Math.round((await box(notes)).x - start.x)).toBe(100);
         await expect(notes).toHaveAttribute('active', '');
         await expect(log(page)).toContainText('floating-window-move Notes');
-        await drag(page, notes.locator('.title'), 3000, 3000);
+        await drag(page, notes.locator('.zest-title'), 3000, 3000);
         const areaBox = await box(area);
         const end = await box(notes);
         expect(end.x + end.width).toBeLessThanOrEqual(areaBox.x + areaBox.width + 1);
@@ -147,7 +147,7 @@ test.describe('floating-window', () => {
         const help = page.getByTestId('window-help');
         await help.scrollIntoViewIfNeeded();
         const start = await box(help);
-        const corner = help.locator('.corner');
+        const corner = help.locator('.zest-corner');
         const c = await box(corner);
         await page.mouse.move(c.x + c.width - 4, c.y + c.height - 4);
         await page.mouse.down();
@@ -162,8 +162,8 @@ test.describe('floating-window', () => {
         const area = page.getByTestId('window-area');
         const tasks = page.getByTestId('window-tasks');
         await area.scrollIntoViewIfNeeded();
-        await tasks.locator('.handle').click();
-        await expect(tasks.locator('.hint')).toContainText('Move');
+        await tasks.locator('.zest-handle').click();
+        await expect(tasks.locator('.zest-hint')).toContainText('Move');
         await area.click({position: {x: 500, y: 200}});
         await expect.poll(async () => {
             const a = await box(area);
@@ -171,13 +171,13 @@ test.describe('floating-window', () => {
             // The corner is at the click, inside the 1px border. Firefox rounds a part of a pixel the other way.
             return Math.abs(t.x - a.x - 501) <= 1 && Math.abs(t.y - a.y - 201) <= 1;
         }).toBe(true);
-        await expect(tasks.locator('.hint')).toBeEmpty();
+        await expect(tasks.locator('.zest-hint')).toBeEmpty();
     });
 
     test('moves with the keyboard, and the window buttons work', async ({page}) => {
         await open(page);
         const notes = page.getByTestId('window-notes');
-        await notes.locator('.handle').focus();
+        await notes.locator('.zest-handle').focus();
         const start = await box(notes);
         await page.keyboard.press('Alt+F7');
         await page.keyboard.press('ArrowRight');
@@ -239,6 +239,89 @@ test.describe('dialog-window', () => {
         await page.getByRole('button', {name: 'OK'}).click();
         await expect(log(page)).toContainText('message: "ok"');
         await expect(page.locator('dialog-window[label="Done"]')).toHaveCount(0);
+    });
+
+    test('a push-button Save stays open while the application saves, and after an error', async ({page}) => {
+        await open(page);
+        const opener = page.getByTestId('dialog-open-saving');
+        await opener.click();
+        const dialog = page.getByRole('dialog', {name: 'Rename the project'});
+        await expect(dialog).toBeVisible();
+        const save = page.getByTestId('dialog-saving-save').getByRole('button', {name: 'Save'});
+        const status = page.getByTestId('dialog-saving-status');
+        await save.click();
+        await expect(status).toHaveText('Saving…');
+        await expect(save).toBeDisabled();
+        await expect(status).toContainText('Error: the server did not save');
+        await expect(dialog).toBeVisible();
+        await expect(save).toBeEnabled();
+        await expect(log(page)).toContainText('dialog-window-before-close {"value":"save","reason":"button"}');
+        await page.getByTestId('dialog-saving-fail').uncheck();
+        // Enter in a field clicks the default push-button
+        await page.getByRole('textbox', {name: 'Name'}).press('Enter');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('saving: "save"');
+        await expect(opener).toBeFocused();
+        await opener.click();
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('saving: "cancel"');
+        await expect(log(page)).toContainText('dialog-window-before-close {"value":"cancel","reason":"escape"}');
+        await opener.click();
+        await page.getByTestId('dialog-saving-cancel').click();
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('dialog-window-before-close {"value":"cancel","reason":"button"}');
+    });
+
+    test('a stopped Escape keeps a modal dialog open also after more presses, and the close button asks first', async ({page}) => {
+        await open(page);
+        await page.getByTestId('dialog-saving').evaluate((dialog) => {
+            window.keepDialog = (e) => e.preventDefault();
+            dialog.addEventListener('dialog-window-before-close', window.keepDialog);
+        });
+        await page.getByTestId('dialog-open-saving').click();
+        const dialog = page.getByRole('dialog', {name: 'Rename the project'});
+        await expect(dialog).toBeVisible();
+        // A browser closes a dialog with no cancel event after a second Escape with no user activation
+        for (let i = 0; i < 3; i++) { await page.keyboard.press('Escape'); }
+        await dialog.getByRole('button', {name: 'Close'}).click();
+        await page.waitForTimeout(100);
+        await expect(dialog).toBeVisible();
+        await page.getByTestId('dialog-saving').evaluate(dialog => dialog.removeEventListener('dialog-window-before-close', window.keepDialog));
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('saving: "cancel"');
+    });
+
+    test('a danger confirmation is filled with the danger color and has a sign, in light and dark', async ({page}) => {
+        for (const colorScheme of ['light', 'dark']) {
+            await page.emulateMedia({colorScheme});
+            await open(page);
+            await page.getByTestId('dialog-confirm-danger').click();
+            const dialog = page.getByRole('alertdialog', {name: 'Delete the project?'});
+            await expect(dialog).toBeVisible();
+            const remove = page.getByRole('button', {name: 'Delete', exact: true});
+            await expect(remove).toBeFocused();
+            await expect(remove).toHaveText('⚠ Delete');
+            const look = await remove.evaluate((button) => {
+                const style = getComputedStyle(button);
+                const probe = document.createElement('div');
+                probe.style.color = 'var(--zest-color-invalid)';
+                document.body.append(probe);
+                const invalid = getComputedStyle(probe).color;
+                probe.remove();
+                return {background: style.backgroundColor, border: style.borderTopColor, width: style.borderTopWidth, weight: style.fontWeight, invalid};
+            });
+            expect(look.background).toBe(look.invalid);
+            expect(look.border).toBe(look.invalid);
+            expect(look.width).toBe('2px');
+            expect(Number(look.weight)).toBeGreaterThanOrEqual(600);
+            await dialog.screenshot({path: test.info().outputPath(`danger-${colorScheme}.png`)});
+            const {violations} = await new AxeBuilder({page}).include('dialog-window').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+            expect(violations.map(item => `${item.id}: ${item.nodes.map(node => node.target.join(' ')).join(', ')}`)).toEqual([]);
+            await page.keyboard.press('Enter');
+            await expect(log(page)).toContainText('danger: true');
+        }
     });
 
     test('asks for text, and an error tells its kind in words', async ({page}) => {
@@ -305,7 +388,7 @@ test.describe('other containers', () => {
             const visit = (root) => {
                 for (const element of root.querySelectorAll('*')) {
                     if (element.shadowRoot) { visit(element.shadowRoot); }
-                    if (element.matches('button, [role="tab"], [role="separator"], .close')) {
+                    if (element.matches('button, [role="tab"], [role="separator"], .zest-close')) {
                         const rect = element.getBoundingClientRect();
                         if (rect.width && rect.height) { found.push({name: element.className || element.textContent, width: rect.width, height: rect.height}); }
                     }
@@ -337,7 +420,7 @@ test.describe('states that the gallery test does not open', () => {
             const divider = page.getByTestId('split-outer').locator('[role="separator"]').first();
             await divider.focus();
             await page.keyboard.press('Enter');
-            await page.getByTestId('window-tasks').locator('.handle').click();
+            await page.getByTestId('window-tasks').locator('.zest-handle').click();
             await page.getByTestId('window-notes').getByRole('button', {name: 'Minimize'}).click();
             await page.getByTestId('group-collapsible').getByRole('button', {name: 'Advanced'}).click();
             expect(await axe(page)).toEqual([]);

@@ -32,7 +32,7 @@ spread-sheet, :host {
     min-width: 0;
     color: var(--_window-text);
 }
-.zest-sheet .viewport {
+.zest-sheet .zest-viewport {
     position: relative;
     box-sizing: border-box;
     height: var(--_grid-height);
@@ -48,25 +48,25 @@ spread-sheet, :host {
     overscroll-behavior: contain;
     touch-action: pan-x pan-y;
 }
-.zest-sheet .viewport:focus-visible {
+.zest-sheet .zest-viewport:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-sheet .sizer {
+.zest-sheet .zest-sizer {
     position: relative;
     isolation: isolate;
 }
-.zest-sheet .head-row, .zest-sheet .row {
+.zest-sheet .zest-head-row, .zest-sheet .zest-row {
     position: absolute;
     left: 0;
     height: var(--_row-px);
 }
-.zest-sheet .head-row {
+.zest-sheet .zest-head-row {
     position: sticky;
     top: 0;
     z-index: 3;
 }
-.zest-sheet .head, .zest-sheet .row-head, .zest-sheet .corner {
+.zest-sheet .zest-head, .zest-sheet .zest-row-head, .zest-sheet .zest-corner {
     position: absolute;
     top: 0;
     box-sizing: border-box;
@@ -83,25 +83,25 @@ spread-sheet, :host {
     user-select: none;
     cursor: default;
 }
-.zest-sheet .head {
+.zest-sheet .zest-head {
     overflow: visible;
 }
-.zest-sheet .corner, .zest-sheet .row-head {
+.zest-sheet .zest-corner, .zest-sheet .zest-row-head {
     position: sticky;
     left: 0;
     z-index: 2;
     width: var(--_head-px);
 }
-.zest-sheet .corner {
+.zest-sheet .zest-corner {
     z-index: 4;
     border-color: var(--_border);
 }
-.zest-sheet .head.in-range, .zest-sheet .row-head.in-range {
+.zest-sheet .zest-head.zest-in-range, .zest-sheet .zest-row-head.zest-in-range {
     background: var(--_header-selected);
     font-weight: bold;
     text-decoration: underline;
 }
-.zest-sheet .resize {
+.zest-sheet .zest-resize {
     position: absolute;
     top: 0;
     right: -12px;
@@ -111,7 +111,7 @@ spread-sheet, :host {
     cursor: col-resize;
     touch-action: none;
 }
-.zest-sheet .resize::after {
+.zest-sheet .zest-resize::after {
     content: '';
     position: absolute;
     left: 11px;
@@ -119,10 +119,10 @@ spread-sheet, :host {
     bottom: 20%;
     width: 2px;
 }
-.zest-sheet .resize:hover::after, .zest-sheet .resize.active::after {
+.zest-sheet .zest-resize:hover::after, .zest-sheet .zest-resize.zest-active::after {
     background: var(--_highlight);
 }
-.zest-sheet .row .zest-cell {
+.zest-sheet .zest-row .zest-cell {
     position: absolute;
     top: 0;
     box-sizing: border-box;
@@ -137,40 +137,40 @@ spread-sheet, :host {
     border-block-end: var(--_border-width) solid var(--_line);
     cursor: cell;
 }
-.zest-sheet .row .zest-cell.editing {
+.zest-sheet .zest-row .zest-cell.zest-editing {
     z-index: 2;
     overflow: visible;
 }
-.zest-sheet .selection, .zest-sheet .active {
+.zest-sheet .zest-selection, .zest-sheet .zest-active {
     position: absolute;
     z-index: 1;
     box-sizing: border-box;
     pointer-events: none;
 }
-.zest-sheet .selection {
+.zest-sheet .zest-selection {
     background: var(--_range-face);
     border: var(--_border-width) solid var(--_highlight);
 }
-.zest-sheet .active {
+.zest-sheet .zest-active {
     border: var(--_focus-width) solid var(--_highlight);
 }
-.zest-sheet .viewport:not(:focus-within) .active {
+.zest-sheet .zest-viewport:not(:focus-within) .zest-active {
     border-style: dashed;
 }
 .zest-sheet [hidden] {
     display: none !important;
 }
-.zest-sheet .live {
+.zest-sheet .zest-live {
     ${visuallyHidden}
 }
-.zest-sheet.readonly .viewport {
+.zest-sheet.zest-readonly .zest-viewport {
     background: color-mix(in srgb, var(--_field) 92%, var(--_face));
 }
 
 @media (forced-colors: active) {
-    .zest-sheet .selection { background: transparent; border: 2px solid Highlight; }
-    .zest-sheet .active { border-color: Highlight; }
-    .zest-sheet .head.in-range, .zest-sheet .row-head.in-range { background: Highlight; color: HighlightText; }
+    .zest-sheet .zest-selection { background: transparent; border: 2px solid Highlight; }
+    .zest-sheet .zest-active { border-color: Highlight; }
+    .zest-sheet .zest-head.zest-in-range, .zest-sheet .zest-row-head.zest-in-range { background: Highlight; color: HighlightText; }
 }
 `;
 
@@ -178,31 +178,31 @@ spread-sheet, :host {
 const cellCss = `.zest-sheet-cell {
     ${tokenAliases('sheet-cell')}
 }
-.zest-cell.number, .zest-cell.currency, .zest-cell.percent, .zest-cell.date {
+.zest-cell.zest-number, .zest-cell.zest-currency, .zest-cell.zest-percent, .zest-cell.zest-date {
     text-align: end;
     font-variant-numeric: tabular-nums;
 }
-.zest-cell.boolean, .zest-cell.error {
+.zest-cell.zest-boolean, .zest-cell.zest-error {
     text-align: center;
 }
-.zest-cell.error {
+.zest-cell.zest-error {
     color: var(--_invalid);
     font-weight: bold;
 }
-.zest-cell.bold {
+.zest-cell.zest-bold {
     font-weight: bold;
 }
-.zest-cell.italic {
+.zest-cell.zest-italic {
     font-style: italic;
 }
-.zest-cell.align-start { text-align: start; }
-.zest-cell.align-center { text-align: center; }
-.zest-cell.align-end { text-align: end; }
-.zest-cell.editing {
+.zest-cell.zest-align-start { text-align: start; }
+.zest-cell.zest-align-center { text-align: center; }
+.zest-cell.zest-align-end { text-align: end; }
+.zest-cell.zest-editing {
     z-index: 2;
     overflow: visible;
 }
-.zest-cell .editor {
+.zest-cell .zest-editor {
     position: absolute;
     inset: -1px;
     box-sizing: border-box;
@@ -223,7 +223,7 @@ const cellCss = `.zest-sheet-cell {
     outline: none;
     box-shadow: 0 0.125em 0.5em color-mix(in srgb, CanvasText 25%, transparent);
 }
-.zest-cell:not(.in-sheet) {
+.zest-cell:not(.zest-in-sheet) {
     min-height: 1.75em;
     line-height: 1.75em;
     padding: 0 0.3em;
@@ -234,7 +234,7 @@ const cellCss = `.zest-sheet-cell {
     white-space: pre;
     overflow: hidden;
 }
-.zest-cell:not(.in-sheet):focus-visible {
+.zest-cell:not(.zest-in-sheet):focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
@@ -268,16 +268,16 @@ const barCss = `.zest-formula-bar {
     border-color: var(--_invalid);
     border-width: 2px;
 }
-.zest-formula-bar .name {
+.zest-formula-bar .zest-name {
     flex: 0 1 7em;
     width: 7em;
     font-variant-numeric: tabular-nums;
 }
-.zest-formula-bar .formula {
+.zest-formula-bar .zest-formula {
     flex: 1 1 12em;
     font-family: ui-monospace, monospace;
 }
-.zest-formula-bar .fx {
+.zest-formula-bar .zest-fx {
     align-self: center;
     font-style: italic;
     font-weight: bold;
@@ -307,7 +307,7 @@ class SheetCell extends BaseComponent {
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.classList.contains('in-sheet')) { return; }
+        if (this.classList.contains('zest-in-sheet')) { return; }
         // A cell that stands alone shows its own input, and can take the keyboard
         this.applyStyles();
         this.classList.add('zest-sheet-cell');
@@ -322,11 +322,11 @@ class SheetCell extends BaseComponent {
     show(cell) {
         if (this.#editor) { return; }
         const display = cell.display;
-        const parts = [cell.error ? 'error' : cell.type];
-        if (cell.style?.bold) { parts.push('bold'); }
-        if (cell.style?.italic) { parts.push('italic'); }
-        if (cell.style?.align) { parts.push(`align-${cell.style.align}`); }
-        const className = `in-sheet zest-cell ${parts.join(' ')}`;
+        const parts = [cell.error ? 'zest-error' : `zest-${cell.type}`];
+        if (cell.style?.bold) { parts.push('zest-bold'); }
+        if (cell.style?.italic) { parts.push('zest-italic'); }
+        if (cell.style?.align) { parts.push(`zest-align-${cell.style.align}`); }
+        const className = `zest-in-sheet zest-cell ${parts.join(' ')}`;
         if (this.#shown.display !== display) {
             this.textContent = display;
             this.#shown.display = display;
@@ -344,7 +344,7 @@ class SheetCell extends BaseComponent {
     startEdit(text, {caret = 'end', label = ''} = {}) {
         if (this.#editor) { return this.#editor; }
         const editor = document.createElement('textarea');
-        editor.className = 'editor';
+        editor.className = 'zest-editor';
         editor.rows = 1;
         // No soft wrap, so that the editor grows to the right with the text, as in other spreadsheets
         editor.wrap = 'off';
@@ -353,7 +353,7 @@ class SheetCell extends BaseComponent {
         editor.value = text;
         this.#shown.display = null;
         this.textContent = '';
-        this.classList.add('editing');
+        this.classList.add('zest-editing');
         this.append(editor);
         this.#editor = editor;
         const grow = () => {
@@ -376,18 +376,18 @@ class SheetCell extends BaseComponent {
         if (!editor) { return null; }
         this.#editor = null;
         editor.remove();
-        this.classList.remove('editing');
+        this.classList.remove('zest-editing');
         return editor.value;
     }
 
     render() {
-        if (this.classList.contains('in-sheet') || this.#editor) { return; }
+        if (this.classList.contains('zest-in-sheet') || this.#editor) { return; }
         const read = readInput(this.input, this.cellType);
         const type = this.cellType !== 'auto' ? this.cellType : (read.type ?? 'auto');
         const value = read.formula ? evaluate(read.formula, {value: () => null, values: () => []}) : read.value;
         const display = looseFormatter.format(value, type, read.symbol ? {currency: {'$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY'}[read.symbol]} : null);
         this.textContent = display;
-        this.className = `zest-sheet-cell zest-cell ${value instanceof SheetError ? 'error' : type}`;
+        this.className = `zest-sheet-cell zest-cell ${value instanceof SheetError ? 'zest-error' : `zest-${type}`}`;
         if (this.editable) { this.setAttribute('aria-label', display || 'Blank'); }
     }
 
@@ -464,9 +464,9 @@ class FormulaBar extends BaseComponent {
         const wrapper = document.createElement('div');
         wrapper.className = 'zest-formula-bar';
         wrapper.setAttribute('part', 'formula-bar');
-        wrapper.innerHTML = `<input class="name" aria-label="Cell address" autocomplete="off" spellcheck="false">`
-            + `<span class="fx" aria-hidden="true">fx</span>`
-            + `<input class="formula" aria-label="Cell input" autocomplete="off" spellcheck="false">`;
+        wrapper.innerHTML = `<input class="zest-name" aria-label="Cell address" autocomplete="off" spellcheck="false">`
+            + `<span class="zest-fx" aria-hidden="true">fx</span>`
+            + `<input class="zest-formula" aria-label="Cell input" autocomplete="off" spellcheck="false">`;
         this.replaceChildren(wrapper);
         const [name, formula] = wrapper.querySelectorAll('input');
         this.#built = {name, formula};
@@ -761,34 +761,34 @@ class SpreadSheet extends BaseComponent {
         wrapper.className = 'zest-sheet';
         wrapper.setAttribute('part', 'sheet');
         const viewport = document.createElement('div');
-        viewport.className = 'viewport';
+        viewport.className = 'zest-viewport';
         viewport.setAttribute('part', 'grid');
         viewport.setAttribute('role', 'grid');
         viewport.setAttribute('aria-multiselectable', 'true');
         viewport.tabIndex = 0;
         const sizer = document.createElement('div');
-        sizer.className = 'sizer';
+        sizer.className = 'zest-sizer';
         sizer.setAttribute('role', 'presentation');
         const headRow = document.createElement('div');
-        headRow.className = 'head-row';
+        headRow.className = 'zest-head-row';
         headRow.setAttribute('role', 'row');
         headRow.setAttribute('aria-rowindex', '1');
         const corner = document.createElement('div');
-        corner.className = 'corner';
+        corner.className = 'zest-corner';
         corner.setAttribute('role', 'columnheader');
         corner.setAttribute('aria-colindex', '1');
         corner.dataset.kind = 'corner';
         headRow.append(corner);
         const selection = document.createElement('div');
-        selection.className = 'selection';
+        selection.className = 'zest-selection';
         selection.setAttribute('aria-hidden', 'true');
         const active = document.createElement('div');
-        active.className = 'active';
+        active.className = 'zest-active';
         active.setAttribute('aria-hidden', 'true');
         sizer.append(headRow, selection, active);
         viewport.append(sizer);
         const live = document.createElement('div');
-        live.className = 'live';
+        live.className = 'zest-live';
         live.setAttribute('aria-live', 'polite');
         wrapper.append(viewport, live);
         this.root.replaceChildren(wrapper);
@@ -870,7 +870,7 @@ class SpreadSheet extends BaseComponent {
         if (!this.#built) { return; }
         const model = this.model;
         const {wrapper, viewport, sizer, headRow, selection: selectionBox, active: activeBox} = this.#built;
-        wrapper.classList.toggle('readonly', this.readOnly);
+        wrapper.classList.toggle('zest-readonly', this.readOnly);
         this.#formulaBar();
         const rowCount = model.rowCount;
         const colCount = model.columnCount;
@@ -917,7 +917,7 @@ class SpreadSheet extends BaseComponent {
             }
             if (head.inRange !== inRange) {
                 head.inRange = inRange;
-                head.element.classList.toggle('in-range', inRange);
+                head.element.classList.toggle('zest-in-range', inRange);
             }
         }
 
@@ -936,7 +936,7 @@ class SpreadSheet extends BaseComponent {
             const rowInRange = row >= selection.top && row <= selection.bottom;
             if (slot.inRange !== rowInRange) {
                 slot.inRange = rowInRange;
-                slot.head.classList.toggle('in-range', rowInRange);
+                slot.head.classList.toggle('zest-in-range', rowInRange);
             }
             for (let col = view.c0; col <= view.c1; col++) {
                 const q = col % C;
@@ -993,14 +993,14 @@ class SpreadSheet extends BaseComponent {
         this.#headPool = [];
         for (let q = 0; q < cols; q++) {
             const element = document.createElement('div');
-            element.className = 'head';
+            element.className = 'zest-head';
             // A part of the pool is hidden until it gets a column, so that it does not cover a real one
             element.hidden = true;
             element.setAttribute('role', 'columnheader');
             element.dataset.kind = 'column';
             const label = document.createElement('span');
             const resize = document.createElement('div');
-            resize.className = 'resize';
+            resize.className = 'zest-resize';
             resize.dataset.kind = 'resize';
             resize.setAttribute('aria-hidden', 'true');
             element.append(label, resize);
@@ -1010,11 +1010,11 @@ class SpreadSheet extends BaseComponent {
         const fragment = document.createDocumentFragment();
         for (let p = 0; p < rows; p++) {
             const element = document.createElement('div');
-            element.className = 'row';
+            element.className = 'zest-row';
             element.hidden = true;
             element.setAttribute('role', 'row');
             const head = document.createElement('div');
-            head.className = 'row-head';
+            head.className = 'zest-row-head';
             head.setAttribute('role', 'rowheader');
             head.setAttribute('aria-colindex', '1');
             head.dataset.kind = 'row';
@@ -1022,7 +1022,7 @@ class SpreadSheet extends BaseComponent {
             const cells = [];
             for (let q = 0; q < cols; q++) {
                 const cell = document.createElement(cellTag);
-                cell.classList.add('in-sheet');
+                cell.classList.add('zest-in-sheet');
                 cell.hidden = true;
                 cell.setAttribute('role', 'gridcell');
                 cell.id = `${this.#id}-${p}-${q}`;
@@ -1395,7 +1395,7 @@ class SpreadSheet extends BaseComponent {
             e.preventDefault();
             const col = Number(target.dataset.col);
             this.#drag = {kind: 'resize', col, startX: e.clientX, startWidth: this.widthOf(col), handle: target, pointer: e.pointerId};
-            target.classList.add('active');
+            target.classList.add('zest-active');
             this.#built.viewport.setPointerCapture?.(e.pointerId);
             return;
         }
@@ -1461,7 +1461,7 @@ class SpreadSheet extends BaseComponent {
         if (!drag || drag.pointer !== e.pointerId) { return; }
         this.#drag = null;
         if (drag.kind === 'resize') {
-            drag.handle.classList.remove('active');
+            drag.handle.classList.remove('zest-active');
             const width = this.#widths.get(drag.col);
             if (width !== undefined) {
                 this.#asUser(() => this.setColumnWidth(drag.col, width));

@@ -53,6 +53,11 @@ The `items` property of a menu bar, a popup menu, a menu button, and a toolbar i
 | `{label, items}` or `{action, items}` | A submenu. In a toolbar, a button that opens a menu. |
 
 - `&` in a label marks the mnemonic letter: `&File` shows "File" with the "F" underlined. `&&` shows one `&`.
+- A label from user data can contain `&`, for example "R&D". Use one of these ways, or the menu reads "R&D" as "RD" with the "D" underlined:
+  - `escapeMnemonic(text)` doubles each `&`. `escapeMnemonic('R&D')` gives `'R&&D'`.
+  - `mnemonic: false` on an entry (`{label, run, mnemonic: false}`, `{action, mnemonic: false}`, or `{label, items, mnemonic: false}`) shows each `&` of its label as text.
+  - The `mnemonics="false"` attribute of a menu bar, a popup menu, a menu button, or a toolbar does this for all of its labels, also in its menus. `attachContextMenu` takes the `mnemonics: false` option.
+- An item with no mnemonic has no letter key. Typeahead still moves to it.
 - An `icon` is the path of an image, or a short text such as a symbol.
 - `menuEntries(items)` gives the entries as the menus read them. `menuActions(items)` gives each action, also from submenus.
 
@@ -63,9 +68,10 @@ The `items` property of a menu bar, a popup menu, a menu button, and a toolbar i
 | `label` | `Menu` | The name of the menu bar. |
 | `shortcuts-for` | | `document`, or the ID of an element. Each shortcut of the menus works while the focus is in that element. |
 | `alt-key` | `true` | Alt alone moves the focus to the bar. Set `alt-key="false"` to stop this. |
+| `mnemonics` | `true` | Set `mnemonics="false"` to show each `&` of the labels as text. Alt and a letter then open no menu. |
 
 - `bindShortcuts(element)` does the same as `shortcuts-for`, and returns the removal function.
-- `focusBar()`, `openMenu(indexOrLabel, focus)`, and `closeMenus()`.
+- `focusBar()`, `openMenu(indexOrLabel, focus)`, and `closeMenus()`. The label of `openMenu` is the text with no mnemonic marker.
 - The bar sends `menu-bar-select` for an item of the bar that is not a menu. The menus send `popup-menu-select`.
 
 | Key | Action |
@@ -93,6 +99,7 @@ menu.close();
 
 - `open({anchor, x, y, placement, focus, opener})`. `focus` is `first`, `last`, or `none`. `opener` gets the focus when the menu closes. The default is the focused element.
 - `close({returnFocus})`, `isOpen`, and `menuElement` (the element with `role="menu"`).
+- `mnemonics="false"` shows each `&` of the labels as text, also in the submenus.
 - The menu sends `popup-menu-open`, `popup-menu-close` with `{reason}`, and `popup-menu-select` with `{id, action}`.
 - A submenu opens on the right side, and on the left side in a right-to-left page.
 - A pointer press outside the menus, a change of the window size, and a scroll of the page close the menus. A scroll that starts before the menu opens does not close it. For example, a focus that moves the page and then the key that opens the menu.
@@ -113,6 +120,8 @@ menu.close();
 const remove = attachContextMenu(element, (event) => [cut, copy, paste], {label: 'Document'});
 ```
 
+Options: `label` (the name of the menu), `container`, and `mnemonics` (`false` shows each `&` as text).
+
 - The menu opens on a right click at the pointer, and on Shift+F10 or the context menu key at the focused element.
 - `items` is the data, or a function that gets the event and gives the data. With no items, the menu does not open, and the browser shows its own menu.
 - The `container` option is where the menu element goes. The default is the root of the element. Put it in a part of the page that goes away with the element.
@@ -128,6 +137,20 @@ const remove = attachContextMenu(element, (event) => [cut, copy, paste], {label:
 - A button that opens a menu. The Down arrow, Enter, and Space open it with the focus on the first item. The Up arrow opens it with the focus on the last item.
 - `split`: the main part runs `action`, or the first action of the items. The arrow part opens the menu.
 - `open(focus)`, `close()`, and `menu` (the popup menu). It sends `menu-button-select` with `{id, action}`.
+- `mnemonics="false"` shows each `&` of the label and of the menu as text.
+
+The children of the element are the face of the button. They show in place of the icon and the label. In a split button, they go on the main part. Use this for an avatar or other custom content:
+
+```html
+<menu-button label="Account">
+  <img src="avatar.png" alt="" class="avatar">
+</menu-button>
+```
+
+- If the content has no text, `label` is the accessible name of the button.
+- If the content has text, the text is the name. Text in an `aria-hidden` element does not count. The `alt` text of an image counts.
+- Visible text in the face must be in the name (WCAG 2.5.3). For an avatar with initials, use an image with `alt=""`, not text.
+- In the light DOM, the button moves its children into the face, also children that you add later. A shadow menu button shows them in a slot.
 
 ## ToolBar
 
@@ -138,6 +161,7 @@ const remove = attachContextMenu(element, (event) => [cut, copy, paste], {label:
 | `orientation` | `horizontal` | `horizontal` or `vertical`. |
 | `wrap` | | The items go on more lines. With no `wrap`, the items that do not fit go into a "More" menu. |
 | `more-label` | `More` | The name of the "More" button. |
+| `mnemonics` | `true` | Set `mnemonics="false"` to show each `&` of the labels as text. |
 
 - A checkable action is a toggle button with `aria-pressed`.
 - A button with a shortcut, a description, or only an icon gets a tooltip with the label and the shortcut.

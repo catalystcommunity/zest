@@ -195,4 +195,6 @@ To change one picker or a group of pickers, set these on the element or on a par
 
 To add rules to each picker, call `DateTimePicker.addStyles(css)`. These rules win over the defaults, which are in the `zest` layer.
 
-To replace all the styles, use `override-style-template-id`. The class names to style are `.day`, `.selected`, `.in-range`, `.in-range-preview`, `.today`, `.other-month`, `.unavailable`, `.cell`, `.slot`, and `.badge`.
+To replace all the styles, use `override-style-template-id`. The root class is `.zest-date-time-picker`. The class names to style are `.zest-day`, `.zest-selected`, `.zest-in-range`, `.zest-in-range-preview`, `.zest-today`, `.zest-other-month`, `.zest-unavailable`, `.zest-cell`, `.zest-slot`, and `.zest-badge`.
+
+Each class that the picker puts on its own elements starts with `zest-`, so that a page rule for a plain class, such as `.day` or `.weekday`, does not change the picker. The month grid uses `.zest-date-time-picker-calendar`, because `.zest-calendar` is the root class of `calendar-view`. A class that `getDayInfo` gives (`className`) is put on the day with no change.

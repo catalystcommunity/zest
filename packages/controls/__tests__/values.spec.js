@@ -46,7 +46,7 @@ describe('TextField', () => {
         element.field.dispatchEvent(new Event('change', {bubbles: true}));
         expect(element.internals.flags.typeMismatch).toBe(true);
         expect(element.field.getAttribute('aria-invalid')).toBe('true');
-        expect(element.help.classList.contains('error')).toBe(true);
+        expect(element.help.classList.contains('zest-error')).toBe(true);
         type(element.field, 'ada@example.com');
         expect(element.internals.flags).toEqual({});
         expect(element.field.hasAttribute('aria-invalid')).toBe(false);
@@ -70,7 +70,7 @@ describe('TextField', () => {
         const element = make('text-field', {type: 'search', value: 'zest'});
         const events = record(element);
         await settle();
-        const clear = element.wrapper.querySelector('.clear');
+        const clear = element.wrapper.querySelector('.zest-clear');
         expect(clear.hidden).toBe(false);
         expect(clear.getAttribute('aria-label')).toBe('Clear');
         clear.click();
@@ -85,7 +85,7 @@ describe('TextField', () => {
     it('shows and hides a password', async () => {
         const element = make('text-field', {type: 'password'});
         await settle();
-        const reveal = element.wrapper.querySelector('.reveal');
+        const reveal = element.wrapper.querySelector('.zest-reveal');
         expect(element.field.type).toBe('password');
         reveal.click();
         expect(element.field.type).toBe('text');
@@ -118,7 +118,7 @@ describe('TextArea', () => {
     it('counts the characters and speaks only near the limit', async () => {
         const element = make('text-area', {maxlength: '50', rows: '4'});
         await settle();
-        const count = element.wrapper.querySelector('.count');
+        const count = element.wrapper.querySelector('.zest-count');
         const live = element.wrapper.querySelector('[aria-live]');
         expect(element.field.rows).toBe(4);
         expect(count.textContent).toBe('0 of 50');
@@ -128,7 +128,7 @@ describe('TextArea', () => {
         expect(count.textContent).toBe('42 of 50');
         expect(live.textContent).toBe('8 characters left');
         type(element.field, 'x'.repeat(50));
-        expect(count.classList.contains('full')).toBe(true);
+        expect(count.classList.contains('zest-full')).toBe(true);
         expect(live.textContent).toBe('0 characters left');
         expect(element.field.getAttribute('aria-describedby')).toContain(count.id);
     });
@@ -136,7 +136,7 @@ describe('TextArea', () => {
     it('can grow with its text', async () => {
         const element = make('text-area', {autogrow: ''});
         await settle();
-        expect(element.wrapper.classList.contains('grow')).toBe(true);
+        expect(element.wrapper.classList.contains('zest-grow')).toBe(true);
     });
 });
 
@@ -210,7 +210,7 @@ describe('SpinBox', () => {
         expect(element.internals.flags).toEqual({valueMissing: true});
         element.value = 1;
         await settle();
-        const [up, down] = element.wrapper.querySelectorAll('.steps button');
+        const [up, down] = element.wrapper.querySelectorAll('.zest-steps button');
         expect(up.disabled).toBe(true);
         expect(down.disabled).toBe(false);
         expect(element.internals.value).toBe('1');
@@ -220,7 +220,7 @@ describe('SpinBox', () => {
         vi.useFakeTimers();
         const element = make('spin-box', {value: '0'});
         await settle();
-        const up = element.wrapper.querySelector('.steps button');
+        const up = element.wrapper.querySelector('.zest-steps button');
         up.dispatchEvent(new PointerEvent('pointerdown', {button: 0, bubbles: true}));
         expect(element.value).toBe(1);
         vi.advanceTimersByTime(400 + 60 * 3);
@@ -267,7 +267,7 @@ describe('SliderControl', () => {
         const element = make('slider-control', {value: '0'});
         const events = record(element);
         await settle();
-        const area = element.wrapper.querySelector('.area');
+        const area = element.wrapper.querySelector('.zest-area');
         area.getBoundingClientRect = () => ({left: 100, top: 0, width: 200, height: 20});
         area.dispatchEvent(new PointerEvent('pointerdown', {button: 0, clientX: 150, pointerId: 1}));
         expect(element.value).toBe(25);
@@ -281,7 +281,7 @@ describe('SliderControl', () => {
     it('puts the bottom at the minimum when vertical', async () => {
         const element = make('slider-control', {orientation: 'vertical'});
         await settle();
-        const area = element.wrapper.querySelector('.area');
+        const area = element.wrapper.querySelector('.zest-area');
         area.getBoundingClientRect = () => ({left: 0, top: 0, width: 20, height: 100});
         area.dispatchEvent(new PointerEvent('pointerdown', {button: 0, clientY: 20, pointerId: 1}));
         expect(element.value).toBe(80);
@@ -292,8 +292,8 @@ describe('SliderControl', () => {
         const element = make('slider-control', {min: '1', max: '5', ticks: '', '.marks': [{value: 1, label: 'Bad'}, {value: 5, label: 'Good'}]});
         element.format = (value) => `${value} stars`;
         await settle();
-        expect(element.wrapper.querySelectorAll('.tick').length).toBe(5);
-        expect([...element.wrapper.querySelectorAll('.mark')].map(mark => mark.textContent)).toEqual(['Bad', 'Good']);
+        expect(element.wrapper.querySelectorAll('.zest-tick').length).toBe(5);
+        expect([...element.wrapper.querySelectorAll('.zest-mark')].map(mark => mark.textContent)).toEqual(['Bad', 'Good']);
         expect(element.thumb.getAttribute('aria-valuetext')).toBe('1 stars');
     });
 
@@ -318,7 +318,7 @@ describe('ProgressBar', () => {
         await settle();
         expect(bar.hasAttribute('aria-valuenow')).toBe(false);
         expect(bar.getAttribute('aria-valuetext')).toBe('Working');
-        expect(element.wrapper.classList.contains('indeterminate')).toBe(true);
+        expect(element.wrapper.classList.contains('zest-indeterminate')).toBe(true);
     });
 
     it('uses its own value text and maximum', async () => {

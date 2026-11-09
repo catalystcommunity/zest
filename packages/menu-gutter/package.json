@@ -4,6 +4,7 @@
   "description": "MenuGutter: Container for items that go in the bottom of a Zest menu.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/menu-gutter#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

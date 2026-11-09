@@ -35,7 +35,7 @@ ${selector} [role="option"]:hover {
 ${selector} [role="option"][aria-selected="true"]:hover {
     background: var(--_selected-face);
 }
-${selector} [role="option"].active {
+${selector} [role="option"].zest-active {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
@@ -44,12 +44,12 @@ ${selector} [role="option"][aria-disabled="true"] {
     cursor: default;
     text-decoration: line-through;
 }
-${selector} [role="option"] .description {
+${selector} [role="option"] .zest-description {
     margin-inline-start: auto;
     font-size: 0.875em;
     opacity: 0.85;
 }
-${selector} .empty {
+${selector} .zest-empty {
     padding: 0.5em;
     color: var(--_secondary-text);
 }
@@ -59,7 +59,7 @@ ${selector} .empty {
         color: HighlightText;
         forced-color-adjust: none;
     }
-    ${selector} [role="option"].active {
+    ${selector} [role="option"].zest-active {
         outline-color: CanvasText;
     }
 }
@@ -71,10 +71,10 @@ export function optionElement(option, id) {
     element.setAttribute('role', 'option');
     element.id = id;
     element.dataset.value = option.value;
-    const label = Object.assign(document.createElement('span'), {className: 'option-label', textContent: option.label});
+    const label = Object.assign(document.createElement('span'), {className: 'zest-option-label', textContent: option.label});
     element.append(label);
     if (option.description) {
-        element.append(Object.assign(document.createElement('span'), {className: 'description', textContent: option.description}));
+        element.append(Object.assign(document.createElement('span'), {className: 'zest-description', textContent: option.description}));
     }
     if (option.disabled) { element.setAttribute('aria-disabled', 'true'); }
     return element;
@@ -93,13 +93,13 @@ list-box, :host {
     min-width: 0;
     color: var(--_window-text);
 }
-.zest-list-box .label {
+.zest-list-box .zest-label {
     font-weight: 600;
 }
-.zest-list-box .label:empty {
+.zest-list-box .zest-label:empty {
     display: none;
 }
-.zest-list-box .list {
+.zest-list-box .zest-list {
     box-sizing: border-box;
     max-height: var(--zest-list-box-max-height, 15em);
     overflow-y: auto;
@@ -109,14 +109,14 @@ list-box, :host {
     border-radius: var(--_radius);
     overscroll-behavior: contain;
 }
-.zest-list-box .list:focus-visible {
+.zest-list-box .zest-list:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-list-box.disabled .list {
+.zest-list-box.zest-disabled .zest-list {
     border-style: dashed;
 }
-.zest-list-box.disabled [role="option"] {
+.zest-list-box.zest-disabled [role="option"] {
     color: var(--_disabled-text);
     cursor: default;
 }
@@ -151,8 +151,8 @@ export class ListBox extends FormControl {
     build() {
         this.wrapper = Object.assign(document.createElement('div'), {className: 'zest-list-box'});
         this.wrapper.part = 'control';
-        this.#label = Object.assign(document.createElement('span'), {className: 'label', id: uniqueId('list-label')});
-        this.list = Object.assign(document.createElement('div'), {className: 'list', tabIndex: 0});
+        this.#label = Object.assign(document.createElement('span'), {className: 'zest-label', id: uniqueId('list-label')});
+        this.list = Object.assign(document.createElement('div'), {className: 'zest-list', tabIndex: 0});
         this.list.setAttribute('role', 'listbox');
         this.list.part = 'list';
         this.wrapper.append(this.#label, this.list);
@@ -196,16 +196,16 @@ export class ListBox extends FormControl {
             }
         }
         this.#label.textContent = this.label;
-        if (this.label) { this.list.setAttribute('aria-labelledby', this.#label.id); } else { this.list.removeAttribute('aria-labelledby'); }
-        if (!this.label && this.getAttribute('aria-label')) { this.list.setAttribute('aria-label', this.getAttribute('aria-label')); }
+        this.nameInner(this.list, {labelledBy: this.label ? this.#label.id : null});
+        this.describe([], this.list);
         this.list.setAttribute('aria-multiselectable', String(this.multiple));
         if (this.required) { this.list.setAttribute('aria-required', 'true'); } else { this.list.removeAttribute('aria-required'); }
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         if (this.isDisabled) { this.list.setAttribute('aria-disabled', 'true'); } else { this.list.removeAttribute('aria-disabled'); }
         const selected = new Set(this.values);
         for (const [value, element] of this.#elements) {
             element.setAttribute('aria-selected', String(selected.has(value)));
-            element.classList.toggle('active', value === this.#active);
+            element.classList.toggle('zest-active', value === this.#active);
         }
         const active = this.#elements.get(this.#active);
         if (active) { this.list.setAttribute('aria-activedescendant', active.id); } else { this.list.removeAttribute('aria-activedescendant'); }

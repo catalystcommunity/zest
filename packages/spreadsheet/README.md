@@ -219,6 +219,8 @@ An editable cell edits with Enter, F2, or a double click. Enter saves and sends 
 
 The parts are `sheet`, `grid`, and `formula-bar`. The row height is 1.75 times the font size.
 
+Each class that the sheet puts on its own elements starts with `zest-`, so that a page rule for a class such as `.row` or `.bold` does not change the sheet. A cell has `zest-cell`, a class for its type (`zest-text`, `zest-number`, `zest-currency`, `zest-percent`, `zest-date`, `zest-boolean`, or `zest-error`), and a class for each style (`zest-bold`, `zest-italic`, `zest-align-start`, `zest-align-center`, `zest-align-end`).
+
 ## Performance
 
 Measured in headless Chromium on a workstation, 2026-11-04:

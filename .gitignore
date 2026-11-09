@@ -152,3 +152,4 @@ playwright-report-*/
 
 # The demo site that the deploy job builds into the image
 website/root/
+types/exports.generated.ts

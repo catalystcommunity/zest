@@ -4,6 +4,7 @@
   "description": "Menus: menu bars, popup and context menus, and toolbars that use shared actions and shortcuts.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/menus#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

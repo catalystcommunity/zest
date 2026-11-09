@@ -45,7 +45,7 @@ test.describe('the demo application', () => {
         await page.goto('/bookings');
         const picker = page.getByTestId('booking-picker');
         await picker.locator('input').click();
-        await picker.locator('.day:not(.other-month)[data-day="10"]').click();
+        await picker.locator('.zest-day:not(.zest-other-month)[data-day="10"]').click();
         await expect(page.getByTestId('booking-output')).toContainText(/Booking on .* 10 /);
     });
 

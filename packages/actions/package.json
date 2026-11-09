@@ -4,6 +4,7 @@
   "description": "Actions: commands with a label, a shortcut, and enabled and checked states, that menus, toolbars, and keys share.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/actions#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

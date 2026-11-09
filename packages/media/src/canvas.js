@@ -26,7 +26,7 @@ canvas-view, :host {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-canvas-view .description {
+.zest-canvas-view .zest-description {
     ${visuallyHidden}
 }
 `;
@@ -69,7 +69,8 @@ export class CanvasView extends BaseComponent {
         // The options of getContext, for example {willReadFrequently: true} or {alpha: false}
         contextOptions: {type: Object, attribute: false, default: null},
         // Draws again in each frame while the canvas is on the screen and the page is visible
-        animate: {type: Boolean},
+        // Not animate: that name would hide Element.animate()
+        animated: {type: Boolean, attribute: 'animate'},
         // The animation is necessary to understand the content, so it continues with reduced motion
         essentialMotion: {type: Boolean},
         // Puts the canvas in the tab order, for an application that uses keys on it
@@ -111,7 +112,7 @@ export class CanvasView extends BaseComponent {
 
     // True while the animation runs
     get running() {
-        return this.animate && this.#visible && this.#pageVisible && this.isConnected && (this.essentialMotion || !reducedMotion());
+        return this.animated && this.#visible && this.#pageVisible && this.isConnected && (this.essentialMotion || !reducedMotion());
     }
 
     // The 2D or WebGL context. The first call makes it.
@@ -174,7 +175,7 @@ export class CanvasView extends BaseComponent {
             canvas.append(document.createElement('slot'));
         }
         const description = document.createElement('div');
-        description.className = 'description';
+        description.className = 'zest-description';
         description.id = `zest-canvas-${Math.random().toString(36).slice(2)}`;
         this.#description = description;
         wrapper.append(canvas, description);

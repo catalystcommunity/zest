@@ -68,6 +68,18 @@ describe('items', () => {
         expect(busy.editable).toBe(false);
     });
 
+    it('keeps the tags of letters, digits, and "-", in lower case, one time each', () => {
+        expect(layout.readTags(['Declined', 'needs-action', 'x_y', 'two words', '', 7, null, 'declined', 'a1'])).toEqual(['declined', 'needs-action', 'a1']);
+        expect(layout.readTags('declined')).toEqual([]);
+        expect(layout.readTags(undefined)).toEqual([]);
+        const [tagged, plain] = layout.normalizeEvents([
+            {id: 'a', start: '2026-03-13T09:00:00Z', tags: ['Tentative']},
+            {id: 'b', start: '2026-03-13T10:00:00Z'},
+        ], UTC);
+        expect(tagged.tags).toEqual(['tentative']);
+        expect(plain.tags).toEqual([]);
+    });
+
     it('does not put an item that ends at midnight on the next day', () => {
         expect(layout.coveredDays(item('x', at(2026, 3, 13, 22), at(2026, 3, 14)))).toEqual([layout.minuteOf(d(2026, 3, 13)) / 1440, layout.minuteOf(d(2026, 3, 13)) / 1440]);
         expect(layout.spansDays(item('x', at(2026, 3, 13, 22), at(2026, 3, 14, 1)))).toBe(true);

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Action, ActionGroup } from '@catalystcommunity/actions';
 import {
-    PopupMenu, ShadowPopupMenu, MenuBar, ShadowMenuBar, MenuButton, ToolBar, ShadowToolBar, ToolTip, NoticeArea,
-    attachContextMenu, attachToolTip, showNotice, menuEntries, menuActions, parseMnemonic,
+    PopupMenu, ShadowPopupMenu, MenuBar, ShadowMenuBar, MenuButton, ShadowMenuButton, ToolBar, ShadowToolBar, ToolTip, NoticeArea,
+    attachContextMenu, attachToolTip, showNotice, menuEntries, menuActions, parseMnemonic, escapeMnemonic,
 } from '../src';
 
 customElements.define('popup-menu', PopupMenu);
@@ -10,6 +10,7 @@ customElements.define('shadow-popup-menu', ShadowPopupMenu);
 customElements.define('menu-bar', MenuBar);
 customElements.define('shadow-menu-bar', ShadowMenuBar);
 customElements.define('menu-button', MenuButton);
+customElements.define('shadow-menu-button', ShadowMenuButton);
 customElements.define('tool-bar', ToolBar);
 customElements.define('shadow-tool-bar', ShadowToolBar);
 customElements.define('tool-tip', ToolTip);
@@ -26,7 +27,7 @@ const deepActive = () => {
     while (active?.shadowRoot?.activeElement) { active = active.shadowRoot.activeElement; }
     return active;
 };
-const label = (item) => item.querySelector('.label').textContent;
+const label = (item) => item.querySelector('.zest-label').textContent;
 
 function editorActions() {
     const run = vi.fn();
@@ -74,6 +75,88 @@ describe('menu data', () => {
         expect(parseMnemonic('Save && E&xit')).toEqual({text: 'Save & Exit', mnemonic: {index: 8, key: 'x'}});
         expect(parseMnemonic('Plain').mnemonic).toBeNull();
     });
+
+    it('escapes a text from user data, so that each & shows and there is no mnemonic', () => {
+        expect(escapeMnemonic('R&D & Sales')).toBe('R&&D && Sales');
+        expect(parseMnemonic(escapeMnemonic('R&D & Sales'))).toEqual({text: 'R&D & Sales', mnemonic: null});
+        expect(escapeMnemonic(null)).toBe('');
+    });
+
+    it('keeps mnemonic: false of an item on its entry', () => {
+        const {save} = editorActions();
+        const entries = menuEntries([{label: 'R&D', run() {}, mnemonic: false}, {action: save, mnemonic: false}, save, {label: 'A&B', items: [], mnemonic: false}]);
+        expect(entries.map(entry => entry.mnemonic)).toEqual([false, false, true, false]);
+        // The id of a plain object is its label with each '&'
+        expect(entries[0].action.id).toBe('R&D');
+    });
+});
+
+describe('mnemonics off', () => {
+    it('an item with mnemonic: false shows each & and has no letter key', () => {
+        const run = vi.fn();
+        const {items} = openMenu([{label: 'R&D', run, mnemonic: false}, {label: '&Sales', run}]);
+        const [rd, sales] = items();
+        expect(label(rd)).toBe('R&D');
+        expect(rd.querySelector('u')).toBeNull();
+        expect(rd.dataset.mnemonic).toBe('');
+        press(rd, 'd');
+        expect(run).not.toHaveBeenCalled();
+        expect(sales.querySelector('u').textContent).toBe('S');
+    });
+
+    it('mnemonics="false" on a popup menu turns them off, also in its submenus', () => {
+        const menu = document.createElement('popup-menu');
+        menu.setAttribute('mnemonics', 'false');
+        menu.items = [{label: 'R&D', run() {}}, {label: 'Team&s', items: [{label: 'A&B', run() {}}]}];
+        document.body.append(menu);
+        const labels = [...menu.querySelectorAll('.zest-item .zest-label')].map(element => element.textContent);
+        expect(labels).toEqual(['R&D', 'Team&s', 'A&B']);
+        expect(menu.querySelector('u')).toBeNull();
+        expect(menu.querySelector('popup-menu').menuElement.getAttribute('aria-label')).toBe('Team&s');
+    });
+
+    it('mnemonics="false" on a menu bar: Alt and a letter open nothing', () => {
+        const bar = document.createElement('menu-bar');
+        bar.setAttribute('mnemonics', 'false');
+        bar.items = [{label: 'R&D', items: [{label: 'Plan', run() {}}]}];
+        document.body.append(bar);
+        const top = bar.menuBarElement.querySelector('.zest-top');
+        expect(label(top)).toBe('R&D');
+        expect(top.dataset.mnemonic).toBe('');
+        const unbind = bar.bindShortcuts(document);
+        press(document.body, 'd', {altKey: true});
+        expect(top.getAttribute('aria-expanded')).toBe('false');
+        unbind();
+        bar.mnemonics = true;
+        bar.render();
+        expect(label(bar.menuBarElement.querySelector('.zest-top'))).toBe('RD');
+    });
+
+    it('mnemonics="false" on a menu button and a toolbar', async () => {
+        const button = document.createElement('menu-button');
+        button.setAttribute('mnemonics', 'false');
+        button.label = 'R&D';
+        button.items = [{label: 'A&B', run() {}}];
+        document.body.append(button);
+        await Promise.resolve();
+        expect(button.querySelector('.zest-toggle .zest-label').textContent).toBe('R&D');
+        expect(button.menu.menuElement.getAttribute('aria-label')).toBe('R&D');
+        expect(button.menu.querySelector('.zest-item .zest-label').textContent).toBe('A&B');
+        const toolbar = document.createElement('tool-bar');
+        toolbar.setAttribute('mnemonics', 'false');
+        toolbar.items = [{label: 'R&D', shortcut: 'Ctrl+R', run() {}}];
+        document.body.append(toolbar);
+        const tool = toolbar.querySelector('button.zest-tool');
+        expect(tool.textContent).toBe('R&D');
+        expect(document.getElementById(tool.getAttribute('aria-describedby')).textContent).toBe('R&D (Ctrl+R)');
+    });
+
+    it('attachContextMenu takes mnemonics: false', () => {
+        const box = document.body.appendChild(document.createElement('div'));
+        attachContextMenu(box, [{label: 'R&D', run() {}}], {mnemonics: false});
+        box.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true, clientX: 5, clientY: 5}));
+        expect(document.querySelector('popup-menu .zest-item .zest-label').textContent).toBe('R&D');
+    });
 });
 
 function openMenu(items, {shadow = false} = {}) {
@@ -83,7 +166,7 @@ function openMenu(items, {shadow = false} = {}) {
     menu.items = items;
     menu.open({anchor: opener});
     const root = shadow ? menu.shadowRoot : menu;
-    const items_ = () => [...menu.menuElement.children].map(child => (child.classList.contains('entry') ? child.firstElementChild : child)).filter(child => child.classList.contains('item'));
+    const items_ = () => [...menu.menuElement.children].map(child => (child.classList.contains('zest-entry') ? child.firstElementChild : child)).filter(child => child.classList.contains('zest-item'));
     return {opener, menu, root, items: items_};
 }
 
@@ -94,7 +177,7 @@ describe('popup menus', () => {
         const [save, undo, wrap, left, right] = items();
         expect(label(save)).toBe('Save');
         expect(save.querySelector('u').textContent).toBe('S');
-        expect(save.querySelector('.shortcut').textContent).toBe('Ctrl+S');
+        expect(save.querySelector('.zest-shortcut').textContent).toBe('Ctrl+S');
         expect(save.getAttribute('aria-keyshortcuts')).toBe('Control+S');
         expect(undo.getAttribute('aria-disabled')).toBe('true');
         expect(wrap.getAttribute('role')).toBe('menuitemcheckbox');
@@ -173,7 +256,7 @@ describe('popup menus', () => {
         const a = editorActions();
         const {menu, items, opener} = openMenu([{label: 'Recent', items: [a.open]}]);
         items()[0].click();
-        items()[0]._zestSubmenu.menuElement.querySelector('.item').click();
+        items()[0]._zestSubmenu.menuElement.querySelector('.zest-item').click();
         expect(a.run).toHaveBeenCalled();
         expect(menu.isOpen).toBe(false);
         expect(document.activeElement).toBe(opener);
@@ -235,7 +318,7 @@ function makeBar(a = editorActions(), {shadow = false} = {}) {
         {label: '&View', items: [a.wrap, {separator: true}, a.left, a.right]},
     ];
     document.body.append(bar);
-    const tops = () => [...bar.menuBarElement.querySelectorAll('.top')];
+    const tops = () => [...bar.menuBarElement.querySelectorAll('.zest-top')];
     return {a, bar, tops};
 }
 
@@ -352,7 +435,7 @@ describe('menu buttons', () => {
         button.label = 'Options';
         button.items = [a.save, a.open];
         document.body.append(button);
-        const toggle = button.querySelector('.toggle');
+        const toggle = button.querySelector('.zest-toggle');
         expect(toggle.getAttribute('aria-haspopup')).toBe('menu');
         const selected = vi.fn();
         button.addEventListener('menu-button-select', selected);
@@ -371,9 +454,73 @@ describe('menu buttons', () => {
         button.split = true;
         button.items = [a.save, a.open];
         document.body.append(button);
-        button.querySelector('.main').click();
+        button.querySelector('.zest-main').click();
         expect(a.run).toHaveBeenCalledWith(expect.objectContaining({action: a.save}));
-        expect(button.querySelector('.toggle').getAttribute('aria-label')).toBe('More options');
+        expect(button.querySelector('.zest-toggle').getAttribute('aria-label')).toBe('More options');
+    });
+
+    it('takes its children as its face, and the label names a face with no text', async () => {
+        const holder = document.body.appendChild(document.createElement('div'));
+        holder.innerHTML = '<menu-button label="Account" icon="👤"><img src="avatar.png" alt="" class="avatar"></menu-button>';
+        const button = holder.firstElementChild;
+        button.items = [{label: 'Sign out', run() {}}];
+        await Promise.resolve();
+        const toggle = button.querySelector('.zest-toggle');
+        expect(toggle.querySelector('.zest-content img.avatar')).not.toBeNull();
+        expect([...button.children].filter(child => child.localName !== 'style').map(child => child.localName)).toEqual(['span']);
+        expect(toggle.querySelector('.zest-label').textContent).toBe('');
+        expect(toggle.querySelector('.zest-icon').hasAttribute('data-icon')).toBe(false);
+        expect(toggle.getAttribute('aria-label')).toBe('Account');
+        expect(toggle.getAttribute('aria-haspopup')).toBe('menu');
+        // A child that comes later also goes in the face. Text in the face is the name.
+        const name = document.createElement('span');
+        name.textContent = 'Account';
+        button.append(name);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(name.parentElement.classList.contains('zest-content')).toBe(true);
+        expect(toggle.hasAttribute('aria-label')).toBe(false);
+        // Text in an aria-hidden element does not count
+        name.setAttribute('aria-hidden', 'true');
+        button.render();
+        expect(toggle.getAttribute('aria-label')).toBe('Account');
+    });
+
+    it('shows the children of a shadow menu button in a slot', async () => {
+        const holder = document.body.appendChild(document.createElement('div'));
+        holder.innerHTML = '<shadow-menu-button label="Account"><span aria-hidden="true">TH</span></shadow-menu-button>';
+        const button = holder.firstElementChild;
+        await new Promise(resolve => setTimeout(resolve, 0));
+        button.render();
+        const toggle = button.shadowRoot.querySelector('.zest-toggle');
+        expect(toggle.querySelector('.zest-content slot').assignedElements()[0].textContent).toBe('TH');
+        expect(toggle.getAttribute('aria-label')).toBe('Account');
+        expect(toggle.querySelector('.zest-label').textContent).toBe('');
+    });
+
+    it('puts the face on the main part of a split button', () => {
+        const a = editorActions();
+        const button = document.createElement('menu-button');
+        button.split = true;
+        button.items = [a.save];
+        button.append(Object.assign(document.createElement('b'), {textContent: 'Save now'}));
+        document.body.append(button);
+        const main = button.querySelector('.zest-main');
+        expect(main.querySelector('.zest-content b').textContent).toBe('Save now');
+        expect(main.querySelector('.zest-label').textContent).toBe('');
+        expect(main.hasAttribute('aria-label')).toBe(false);
+        expect(button.querySelector('.zest-toggle').getAttribute('aria-label')).toBe('More options');
+    });
+
+    it('with no children, shows the icon and the label as before', () => {
+        const button = document.createElement('menu-button');
+        button.label = '&Export';
+        button.icon = '📤';
+        document.body.append(button);
+        const toggle = button.querySelector('.zest-toggle');
+        expect(toggle.querySelector('.zest-content').hidden).toBe(true);
+        expect(toggle.querySelector('.zest-label').textContent).toBe('Export');
+        expect(toggle.querySelector('.zest-icon').dataset.icon).toBe('📤');
+        expect(toggle.hasAttribute('aria-label')).toBe(false);
     });
 });
 
@@ -384,7 +531,7 @@ describe('toolbars', () => {
         toolbar.items = [a.save, a.undo, {separator: true}, a.wrap, {label: 'Align', items: [a.left, a.right]}];
         document.body.append(toolbar);
         const root = toolbar.shadowRoot ?? toolbar;
-        return {a, toolbar, buttons: () => [...root.querySelectorAll('button.tool')]};
+        return {a, toolbar, buttons: () => [...root.querySelectorAll('button.zest-tool')]};
     }
 
     it('shows a button for each action, with its states', () => {
@@ -413,7 +560,7 @@ describe('toolbars', () => {
         const {buttons} = makeToolBar();
         buttons()[0].focus();
         press(buttons()[0], 'End');
-        expect(document.activeElement.classList.contains('more')).toBe(false);
+        expect(document.activeElement.classList.contains('zest-more')).toBe(false);
         expect(document.activeElement).toBe(buttons()[3]);
         press(buttons()[3], 'ArrowDown');
         expect(label(document.activeElement)).toBe('Left');
@@ -511,12 +658,12 @@ describe('notices', () => {
         vi.advanceTimersByTime(150);
         const run = vi.fn();
         const notice = area.add({text: 'Deleted', action: {label: 'Undo', run}});
-        notice.element.querySelector('.action').click();
+        notice.element.querySelector('.zest-action').click();
         expect(run).toHaveBeenCalled();
         expect(await notice.closed).toBe('action');
         const other = area.add({text: 'Other'});
-        expect(other.element.querySelector('.dismiss').getAttribute('aria-label')).toBe('Dismiss');
-        other.element.querySelector('.dismiss').click();
+        expect(other.element.querySelector('.zest-dismiss').getAttribute('aria-label')).toBe('Dismiss');
+        other.element.querySelector('.zest-dismiss').click();
         expect(await other.closed).toBe('dismiss');
     });
 

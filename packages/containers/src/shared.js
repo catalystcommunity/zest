@@ -71,7 +71,7 @@ export class ShadowContainer extends OpenShadowComponent {
     built() { }
     // Called on each connect. Add listeners to things outside the element here, with own() and listen().
     connected() { }
-    part(selector) {
+    shadowPart(selector) {
         return this.root.querySelector(selector);
     }
     // The text of a label, from the labels property, or the default of the class

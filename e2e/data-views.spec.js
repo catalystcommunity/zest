@@ -7,7 +7,7 @@ const open = async (page) => {
     await page.goto('/gallery/data-views');
     await expect(page.getByTestId('section-data-views')).toBeVisible();
 };
-const visibleRows = (view) => view.locator('.row:not([hidden])');
+const visibleRows = (view) => view.locator('.zest-row:not([hidden])');
 
 test.describe('tree-view', () => {
     test('opens a folder with the keyboard, loads its children, and checks a file', async ({page}) => {
@@ -28,7 +28,7 @@ test.describe('tree-view', () => {
         await expect(tree.locator('[role="treeitem"]', {hasText: 'src'}).first()).toHaveAttribute('aria-checked', 'true');
         await expect(home).toHaveAttribute('aria-checked', 'mixed');
         await page.keyboard.press('ArrowLeft');
-        await expect(home).toHaveClass(/active/);
+        await expect(home).toHaveClass(/\bzest-active\b/);
         await expect(page.getByTestId('data-views-log')).toContainText('tree-view-check home/src true');
     });
 
@@ -36,7 +36,7 @@ test.describe('tree-view', () => {
         await open(page);
         const tree = page.getByTestId('data-views-tree');
         const zest = tree.locator('[role="treeitem"]', {hasText: 'zest'});
-        await zest.locator('.twisty').click();
+        await zest.locator('.zest-twisty').click();
         await expect(tree.locator('[role="treeitem"][aria-level="3"]').first()).toBeVisible();
         await expect(zest).toHaveAttribute('aria-expanded', 'true');
     });
@@ -69,7 +69,7 @@ test.describe('list-view', () => {
             const opened = performance.now() - start;
             view.scroller.scrollTop = view.scroller.scrollHeight;
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            const rows = [...view.querySelectorAll('.row:not([hidden])')];
+            const rows = [...view.querySelectorAll('.zest-row:not([hidden])')];
             const box = view.scroller.getBoundingClientRect();
             const last = rows.find(row => row.textContent === 'Row 1000000');
             const lastBox = last?.getBoundingClientRect();
@@ -108,7 +108,7 @@ test.describe('table-view', () => {
         const table = page.getByTestId('data-views-table');
         const name = table.locator('[role="columnheader"]', {hasText: 'Name'});
         const before = (await name.boundingBox()).width;
-        const handle = await name.locator('.resize').boundingBox();
+        const handle = await name.locator('.zest-resize').boundingBox();
         await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
         await page.mouse.down();
         await page.mouse.move(handle.x + 80, handle.y + handle.height / 2, {steps: 5});
@@ -152,7 +152,7 @@ test.describe('table-view', () => {
                 view.scroller.scrollTop = step % 2 ? max * step / 100 : max * step / 100 + 96;
                 await frame();
                 await frame();
-                largest = Math.max(largest, view.querySelectorAll('.row').length);
+                largest = Math.max(largest, view.querySelectorAll('.zest-row').length);
             }
             view.render = render;
             delete view.render;
@@ -188,7 +188,7 @@ test.describe('data views together', () => {
             await page.emulateMedia({colorScheme});
             await open(page);
             const tree = page.getByTestId('data-views-tree');
-            await tree.locator('[role="treeitem"]', {hasText: 'zest'}).locator('.twisty').click();
+            await tree.locator('[role="treeitem"]', {hasText: 'zest'}).locator('.zest-twisty').click();
             await tree.locator('[role="treeitem"]', {hasText: 'notes.md'}).click();
             const list = page.getByTestId('data-views-list');
             await list.locator('[role="option"]').nth(1).click();
@@ -217,6 +217,6 @@ test.describe('tree-view without check boxes', () => {
         await page.goto('/examples/desktop');
         const tree = page.getByTestId('desktop-tree');
         await expect(tree.locator('[role="treeitem"]').first()).toBeVisible();
-        expect(await tree.locator('.check').evaluateAll(checks => checks.filter(check => check.getBoundingClientRect().width > 0).length)).toBe(0);
+        expect(await tree.locator('.zest-check').evaluateAll(checks => checks.filter(check => check.getBoundingClientRect().width > 0).length)).toBe(0);
     });
 });

@@ -33,10 +33,10 @@ check-box, toggle-switch, :host {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-check-box .text:empty, .zest-toggle-switch .text:empty {
+.zest-check-box .zest-text:empty, .zest-toggle-switch .zest-text:empty {
     display: none;
 }
-.zest-check-box.disabled, .zest-toggle-switch.disabled {
+.zest-check-box.zest-disabled, .zest-toggle-switch.zest-disabled {
     color: var(--_disabled-text);
     cursor: default;
 }
@@ -55,7 +55,7 @@ const switchStyles = `
     opacity: 0;
     cursor: inherit;
 }
-.zest-toggle-switch .track {
+.zest-toggle-switch .zest-track {
     position: relative;
     flex: none;
     box-sizing: border-box;
@@ -68,7 +68,7 @@ const switchStyles = `
     border-radius: 0.75em;
     transition: background-color var(--_motion);
 }
-.zest-toggle-switch .thumb {
+.zest-toggle-switch .zest-thumb {
     position: absolute;
     inset-block: 2px;
     inset-inline-start: 2px;
@@ -84,45 +84,45 @@ const switchStyles = `
     color: var(--_highlight);
     transition: inset-inline-start var(--_motion);
 }
-.zest-toggle-switch.on .track {
+.zest-toggle-switch.zest-on .zest-track {
     background: var(--_highlight);
     border-color: var(--_highlight);
 }
 /* The thumb moves to the end, and shows a check mark: the state is not color only */
-.zest-toggle-switch.on .thumb {
+.zest-toggle-switch.zest-on .zest-thumb {
     inset-inline-start: calc(100% - 2px - (1.5em - 4px - var(--_border-width) * 2));
     border-color: var(--_highlight);
 }
-.zest-toggle-switch.on .thumb::before {
+.zest-toggle-switch.zest-on .zest-thumb::before {
     content: "✓";
 }
-.zest-toggle-switch input:focus-visible + .track {
+.zest-toggle-switch input:focus-visible + .zest-track {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-toggle-switch .state {
+.zest-toggle-switch .zest-state {
     min-width: 2em;
     font-size: 0.875em;
     color: var(--_secondary-text);
 }
-.zest-toggle-switch.disabled .track {
+.zest-toggle-switch.zest-disabled .zest-track {
     border-style: dashed;
     background: var(--_face);
 }
 @media (forced-colors: active) {
-    .zest-toggle-switch .track {
+    .zest-toggle-switch .zest-track {
         border-color: ButtonText;
     }
-    .zest-toggle-switch.on .track {
+    .zest-toggle-switch.zest-on .zest-track {
         background: Highlight;
         border-color: Highlight;
         forced-color-adjust: none;
     }
-    .zest-toggle-switch .thumb {
+    .zest-toggle-switch .zest-thumb {
         background: ButtonText;
         forced-color-adjust: none;
     }
-    .zest-toggle-switch.on .thumb {
+    .zest-toggle-switch.zest-on .zest-thumb {
         background: HighlightText;
         color: Highlight;
     }
@@ -145,13 +145,20 @@ export class CheckBox extends FormControl {
 
     get focusTarget() { return this.input; }
 
+    connected() {
+        this.followContent(this.#text, this.wrapper, (hasContent) => {
+            this.#hasContent = hasContent;
+            this.invalidate();
+        });
+    }
+
     build() {
         this.wrapper = document.createElement('label');
         this.wrapper.className = `zest-${this.constructor.kind}`;
         this.wrapper.part = 'control';
         this.input = document.createElement('input');
         this.input.type = 'checkbox';
-        this.#text = Object.assign(document.createElement('span'), {className: 'text'});
+        this.#text = Object.assign(document.createElement('span'), {className: 'zest-text'});
         this.#hasContent = this.takeContent(this.#text);
         this.wrapper.append(this.input, ...this.extraParts(), this.#text);
         this.stopInner(this.wrapper);
@@ -171,8 +178,10 @@ export class CheckBox extends FormControl {
         this.input.indeterminate = this.indeterminate && !this.checked;
         this.input.disabled = this.isDisabled;
         this.input.required = this.required;
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         if (!this.#hasContent) { this.#text.textContent = this.label; }
+        this.nameInner(this.input);
+        this.describe([], this.input);
         this.setFormValue(this.checked ? this.value : null, this.checked ? 'checked' : '');
         this.setValidity(this.required && !this.checked ? {valueMissing: true} : {}, this.text.checkThis);
     }
@@ -203,10 +212,10 @@ export class ToggleSwitch extends CheckBox {
 
     extraParts() {
         this.input.setAttribute('role', 'switch');
-        const track = Object.assign(document.createElement('span'), {className: 'track'});
+        const track = Object.assign(document.createElement('span'), {className: 'zest-track'});
         track.setAttribute('aria-hidden', 'true');
-        track.append(Object.assign(document.createElement('span'), {className: 'thumb'}));
-        this.#state = Object.assign(document.createElement('span'), {className: 'state'});
+        track.append(Object.assign(document.createElement('span'), {className: 'zest-thumb'}));
+        this.#state = Object.assign(document.createElement('span'), {className: 'zest-state'});
         this.#state.setAttribute('aria-hidden', 'true');
         return [track, this.#state];
     }
@@ -214,7 +223,7 @@ export class ToggleSwitch extends CheckBox {
     update() {
         this.indeterminate = false;
         super.update();
-        this.wrapper.classList.toggle('on', this.checked);
+        this.wrapper.classList.toggle('zest-on', this.checked);
         this.#state.hidden = !this.showState;
         this.#state.textContent = this.checked ? this.text.on : this.text.off;
     }

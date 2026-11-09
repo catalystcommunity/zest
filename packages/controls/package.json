@@ -4,6 +4,7 @@
   "description": "Controls: buttons, check boxes, radio groups, switches, text fields, spin boxes, sliders, progress bars, combo boxes, and list boxes.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/controls#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

@@ -233,13 +233,13 @@ test.describe('two-tier-menu', () => {
             const content = await open(page, 'two-tier-menu');
             const card = content.getByTestId(testId);
             await expect(card.locator('.logoText')).toHaveText('Menu');
-            await expect(card.locator('menu-item.section-header')).toHaveCount(2);
-            await expect(card.locator('menu-item.item')).toHaveCount(3);
+            await expect(card.locator('menu-item.zest-section-header')).toHaveCount(2);
+            await expect(card.locator('menu-item.zest-item')).toHaveCount(3);
             await expect(card.getByTestId('gutter-override-content')).toBeVisible();
-            await expect(card.locator('menu-item.section-header a').first()).toHaveAttribute('href', /first$/);
+            await expect(card.locator('menu-item.zest-section-header a').first()).toHaveAttribute('href', /first$/);
             const background = await card.locator('two-tier-menu, shadow-two-tier-menu').evaluate(element => getComputedStyle(element).backgroundColor);
             expect(background).not.toEqual('rgba(0, 0, 0, 0)');
-            const items = await card.locator('.items').evaluate(element => getComputedStyle(element).display);
+            const items = await card.locator('.zest-items').evaluate(element => getComputedStyle(element).display);
             expect(items).toEqual('flex');
             // The menu fills its box, and the box does not grow past its own height
             const boxes = await card.locator('.menu-box').evaluate(box => [box.clientHeight, box.firstElementChild.offsetHeight]);
@@ -274,14 +274,14 @@ test.describe('two-tier-menu', () => {
         await content.getByTestId('menu-remove').click();
         await expect(log).toContainText('unregister light-menu');
         await content.getByTestId('menu-add').click();
-        await expect(content.getByTestId('menu-light').locator('menu-item.item')).toHaveCount(3);
+        await expect(content.getByTestId('menu-light').locator('menu-item.zest-item')).toHaveCount(3);
     });
 
     test('keeps its light DOM styles out of the rest of the page', async ({page}) => {
         await open(page, 'two-tier-menu');
         const display = await page.evaluate(() => {
             const outside = document.createElement('div');
-            outside.className = 'items';
+            outside.className = 'zest-items';
             document.body.append(outside);
             const value = getComputedStyle(outside).display;
             outside.remove();

@@ -21,7 +21,7 @@ describe('DateTimePicker', () => {
 
     // The day buttons of the shown month, by the number on the button
     function dayButton(comp, day) {
-        return comp.picker.querySelector(`.day:not(.other-month)[data-day="${day}"]`);
+        return comp.picker.querySelector(`.zest-day:not(.zest-other-month)[data-day="${day}"]`);
     }
 
     it('makes no new formatter for another picker in the same locale', () => {
@@ -79,8 +79,8 @@ describe('DateTimePicker', () => {
 
     describe('calendar grid', () => {
         function weeks(comp) {
-            return [...comp.picker.querySelectorAll('.week')].map(week =>
-                [...week.querySelectorAll('.day')].map(day => Number(day.dataset.day)));
+            return [...comp.picker.querySelectorAll('.zest-week')].map(week =>
+                [...week.querySelectorAll('.zest-day')].map(day => Number(day.dataset.day)));
         }
 
         it('has seven days in each week', () => {
@@ -116,7 +116,7 @@ describe('DateTimePicker', () => {
             comp.picker.style.display = 'flex';
             dayButton(comp, 20).click();
             comp.input.click();
-            expect(comp.picker.querySelector('.selected').dataset.day).toEqual('20');
+            expect(comp.picker.querySelector('.zest-selected').dataset.day).toEqual('20');
         });
     });
 
@@ -142,33 +142,33 @@ describe('DateTimePicker', () => {
 
         it('moves to the other month when the user picks a day from it', () => {
             const comp = makePicker({'initial-date': '2024-03-15'});
-            comp.picker.querySelector('.day.other-month[data-day="25"]').click();
+            comp.picker.querySelector('.zest-day.zest-other-month[data-day="25"]').click();
             expect(comp.selectedDate.getMonth()).toEqual(1);
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('February 2024');
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('February 2024');
         });
     });
 
     describe('month navigation', () => {
         it('moves to the next and previous month, over a year boundary', () => {
             const comp = makePicker({'initial-date': '2024-12-15'});
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('December 2024');
-            comp.picker.querySelector('.next-month').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('January 2025');
-            comp.picker.querySelector('.prev-month').click();
-            comp.picker.querySelector('.prev-month').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('November 2024');
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('December 2024');
+            comp.picker.querySelector('.zest-next-month').click();
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('January 2025');
+            comp.picker.querySelector('.zest-prev-month').click();
+            comp.picker.querySelector('.zest-prev-month').click();
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('November 2024');
         });
 
         it('does not skip a short month from the 31st', () => {
             const comp = makePicker({'initial-date': '2024-01-31'});
-            comp.picker.querySelector('.next-month').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('February 2024');
+            comp.picker.querySelector('.zest-next-month').click();
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('February 2024');
         });
 
         it('stays open and does not change the selection', () => {
             const comp = makePicker({'initial-date': '2024-03-15'});
             comp.input.click();
-            comp.picker.querySelector('.next-month').click();
+            comp.picker.querySelector('.zest-next-month').click();
             expect(comp.picker.style.display).not.toEqual('none');
             expect(comp.selectedDate.getMonth()).toEqual(2);
         });
@@ -195,7 +195,7 @@ describe('DateTimePicker', () => {
             const outside = document.createElement('button');
             document.body.appendChild(outside);
             comp.input.click();
-            comp.picker.querySelector('.month-name').click();
+            comp.picker.querySelector('.zest-month-name').click();
             expect(comp.picker.style.display).toEqual('flex');
             outside.click();
             expect(comp.picker.style.display).toEqual('none');
@@ -205,7 +205,7 @@ describe('DateTimePicker', () => {
             const comp = makePicker({}, 'shadow-date-time-picker');
             expect(comp.shadowRoot.querySelector('input')).toBe(comp.input);
             comp.input.click();
-            comp.picker.querySelector('.month-name').click();
+            comp.picker.querySelector('.zest-month-name').click();
             expect(comp.picker.style.display).toEqual('flex');
             document.body.click();
             expect(comp.picker.style.display).toEqual('none');
@@ -243,7 +243,7 @@ describe('DateTimePicker', () => {
             comp.input.dispatchEvent(new Event('change'));
             expect(comp.selectedDate.getMonth()).toEqual(6);
             expect(comp.selectedDate.getDate()).toEqual(4);
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('July 2024');
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('July 2024');
             expect(heard).toHaveBeenCalledOnce();
         });
 
@@ -396,7 +396,7 @@ describe('DateTimePicker', () => {
             comp.addEventListener('date-view-changed', heard);
             comp.input.click();
             expect(heard).not.toHaveBeenCalled();
-            comp.picker.querySelector('.next-month').click();
+            comp.picker.querySelector('.zest-next-month').click();
             expect(heard.mock.calls[0][0].detail).toMatchObject({
                 year: 2024, month: 4, firstDate: '2024-04-01', lastDate: '2024-04-30',
                 firstVisibleDate: '2024-03-31', lastVisibleDate: '2024-05-04',
@@ -434,7 +434,7 @@ describe('DateTimePicker', () => {
             expect(booked.classList.contains('booked')).toEqual(true);
             expect(booked.getAttribute('aria-disabled')).toEqual('true');
             expect(booked.title).toEqual('Full');
-            expect(booked.querySelector('.badge').textContent).toEqual('!');
+            expect(booked.querySelector('.zest-badge').textContent).toEqual('!');
             expect(booked.getAttribute('aria-label')).toMatch(/March 20, 2024, Full$/);
             booked.click();
             expect(comp.value).toEqual('2024-03-15');
@@ -457,10 +457,10 @@ describe('DateTimePicker', () => {
         it('takes new data at any time, and an attribute still wins', () => {
             const comp = makePicker({'initial-date': '2024-03-15', max: '2024-03-20'});
             comp.updateConfig({disabledDates: ['2024-03-12'], max: '2024-03-25'});
-            expect(dayButton(comp, 12).classList.contains('unavailable')).toEqual(true);
-            expect(dayButton(comp, 22).classList.contains('unavailable')).toEqual(true);
+            expect(dayButton(comp, 12).classList.contains('zest-unavailable')).toEqual(true);
+            expect(dayButton(comp, 22).classList.contains('zest-unavailable')).toEqual(true);
             comp.removeAttribute('max');
-            expect(dayButton(comp, 22).classList.contains('unavailable')).toEqual(false);
+            expect(dayButton(comp, 22).classList.contains('zest-unavailable')).toEqual(false);
         });
     });
 
@@ -471,17 +471,17 @@ describe('DateTimePicker', () => {
             dayButton(comp, 20).click();
             expect(comp.value).toEqual('2024-03-20T00:00');
             expect(comp.picker.style.display).toEqual('flex');
-            const hour = comp.picker.querySelector('select.hour');
+            const hour = comp.picker.querySelector('select.zest-hour');
             hour.value = '14';
             hour.dispatchEvent(new Event('change'));
-            const minute = comp.picker.querySelector('select.minute');
+            const minute = comp.picker.querySelector('select.zest-minute');
             expect([...minute.options].map(option => option.value)).toEqual(['0', '15', '30', '45']);
             minute.value = '30';
             minute.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('2024-03-20T14:30');
             dayButton(comp, 21).click();
             expect(comp.value).toEqual('2024-03-21T14:30');
-            comp.picker.querySelector('.done').click();
+            comp.picker.querySelector('.zest-done').click();
             expect(comp.picker.style.display).toEqual('none');
         });
 
@@ -493,8 +493,8 @@ describe('DateTimePicker', () => {
 
         it('time: has a blank until something is selected, then the rest take defaults', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB'});
-            expect(comp.picker.querySelector('.calendars')).toBeNull();
-            const hour = comp.picker.querySelector('select.hour');
+            expect(comp.picker.querySelector('.zest-calendars')).toBeNull();
+            const hour = comp.picker.querySelector('select.zest-hour');
             expect(hour.value).toEqual('');
             hour.value = '7';
             hour.dispatchEvent(new Event('change'));
@@ -503,15 +503,15 @@ describe('DateTimePicker', () => {
 
         it('time: 12 hour selects, with the hour list for the half of the day', () => {
             const comp = makePicker({mode: 'time', locale: 'en-US', value: '15:05'});
-            const hour = comp.picker.querySelector('select.hour');
+            const hour = comp.picker.querySelector('select.zest-hour');
             expect(hour.options[0].textContent).toEqual('12');
             expect(hour.options[hour.selectedIndex].textContent).toEqual('3');
-            const period = comp.picker.querySelector('select.period');
+            const period = comp.picker.querySelector('select.zest-period');
             expect(period.value).toEqual('pm');
             period.value = 'am';
             period.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('03:05');
-            const twelve = comp.picker.querySelector('select.hour');
+            const twelve = comp.picker.querySelector('select.zest-hour');
             twelve.value = '0';
             twelve.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('00:05');
@@ -520,14 +520,14 @@ describe('DateTimePicker', () => {
 
         it('time: obeys twenty-four-hour-format over the locale, both ways', () => {
             const on = makePicker({mode: 'time', locale: 'en-US', 'twenty-four-hour-format': ''});
-            expect(on.picker.querySelector('select.period')).toBeNull();
+            expect(on.picker.querySelector('select.zest-period')).toBeNull();
             const off = makePicker({mode: 'time', locale: 'de-DE', 'twenty-four-hour-format': 'false'});
-            expect(off.picker.querySelector('select.period')).not.toBeNull();
+            expect(off.picker.querySelector('select.zest-period')).not.toBeNull();
         });
 
         it('time: shows seconds and their step with include-seconds', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB', 'include-seconds': '', 'second-step': '30', value: '09:15:30'});
-            const second = comp.picker.querySelector('select.second');
+            const second = comp.picker.querySelector('select.zest-second');
             expect([...second.options].map(option => option.value)).toEqual(['0', '30']);
             expect(second.value).toEqual('30');
             expect(comp.value).toEqual('09:15:30');
@@ -535,7 +535,7 @@ describe('DateTimePicker', () => {
 
         it('time: disables the hours and the minutes outside the limits, and moves a time into them', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB', min: '09:30', max: '17:00', value: '10:00'});
-            const hour = comp.picker.querySelector('select.hour');
+            const hour = comp.picker.querySelector('select.zest-hour');
             expect(hour.querySelector('[value="8"]').disabled).toEqual(true);
             expect(hour.querySelector('[value="9"]').disabled).toEqual(false);
             expect(hour.querySelector('[value="18"]').disabled).toEqual(true);
@@ -547,7 +547,7 @@ describe('DateTimePicker', () => {
         it('time: a value that a new step puts off the steps still shows, and is not a choice', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB', value: '09:07'});
             comp.updateConfig({minuteStep: 15});
-            const minute = comp.picker.querySelector('select.minute');
+            const minute = comp.picker.querySelector('select.zest-minute');
             expect(minute.value).toEqual('7');
             expect([...minute.options].filter(option => !option.hidden).map(option => option.value)).toEqual(['0', '15', '30', '45']);
             expect(comp.validationProblem).toEqual('step');
@@ -556,13 +556,13 @@ describe('DateTimePicker', () => {
         it('time: a list from the steps, and slots from data', () => {
             const comp = makePicker({mode: 'time', locale: 'en-GB', 'time-view': 'list', 'minute-step': '30', min: '09:00'});
             comp.input.click();
-            expect(comp.picker.querySelectorAll('.slot')).toHaveLength(48);
+            expect(comp.picker.querySelectorAll('.zest-slot')).toHaveLength(48);
             expect(comp.picker.querySelector('[data-time="08:30"]').getAttribute('aria-disabled')).toEqual('true');
             comp.picker.querySelector('[data-time="09:30"]').click();
             expect(comp.value).toEqual('09:30');
             expect(comp.picker.style.display).toEqual('none');
             comp.updateConfig({timeSlots: [{value: '10:00', label: 'Morning'}, {value: '14:00', disabled: true}, '16:00']});
-            const slots = [...comp.picker.querySelectorAll('.slot')];
+            const slots = [...comp.picker.querySelectorAll('.zest-slot')];
             expect(slots.map(slot => slot.textContent)).toEqual(['Morning', '14:00', '16:00']);
             slots[1].click();
             expect(comp.value).toEqual('09:30');
@@ -571,8 +571,8 @@ describe('DateTimePicker', () => {
         it('month: selects from a month grid', () => {
             const comp = makePicker({mode: 'month', 'initial-date': '2024-03-15', locale: 'en-US'});
             comp.input.click();
-            expect(comp.picker.querySelectorAll('.cell')).toHaveLength(12);
-            expect(comp.picker.querySelector('.day')).toBeNull();
+            expect(comp.picker.querySelectorAll('.zest-cell')).toHaveLength(12);
+            expect(comp.picker.querySelector('.zest-day')).toBeNull();
             comp.picker.querySelector('[data-date="2024-07"]').click();
             expect(comp.value).toEqual('2024-07');
             expect(comp.input.value).toEqual('July 2024');
@@ -582,23 +582,23 @@ describe('DateTimePicker', () => {
         it('year: selects from a year grid, and moves by pages', () => {
             const comp = makePicker({mode: 'year', 'initial-date': '2024-03-15', locale: 'en-US'});
             comp.input.click();
-            expect(comp.picker.querySelectorAll('.cell')).toHaveLength(12);
+            expect(comp.picker.querySelectorAll('.zest-cell')).toHaveLength(12);
             comp.picker.querySelector('[data-date="2025"]').click();
             expect(comp.value).toEqual('2025');
             comp.input.click();
-            const before = comp.picker.querySelector('.cell').dataset.date;
-            comp.picker.querySelector('.next-month').click();
-            expect(Number(comp.picker.querySelector('.cell').dataset.date)).toEqual(Number(before) + 12);
+            const before = comp.picker.querySelector('.zest-cell').dataset.date;
+            comp.picker.querySelector('.zest-next-month').click();
+            expect(Number(comp.picker.querySelector('.zest-cell').dataset.date)).toEqual(Number(before) + 12);
         });
 
         it('week: selects a whole week, in ISO form, with week numbers', () => {
             const comp = makePicker({mode: 'week', 'initial-date': '2024-03-15', locale: 'en-GB'});
             comp.input.click();
-            expect(comp.picker.querySelector('.week-number[role="rowheader"]')).not.toBeNull();
+            expect(comp.picker.querySelector('.zest-week-number[role="rowheader"]')).not.toBeNull();
             dayButton(comp, 13).click();
             expect(comp.value).toEqual('2024-W11');
             comp.input.click();
-            expect([...comp.picker.querySelectorAll('.day.selected')].map(day => day.dataset.day)).toEqual(['11', '12', '13', '14', '15', '16', '17']);
+            expect([...comp.picker.querySelectorAll('.zest-day.zest-selected')].map(day => day.dataset.day)).toEqual(['11', '12', '13', '14', '15', '16', '17']);
         });
 
         it('falls back to date for a mode that it does not know', () => {
@@ -610,48 +610,48 @@ describe('DateTimePicker', () => {
         it('goes from days to months to years, and back with a selection', () => {
             const comp = makePicker({'initial-date': '2024-03-15', locale: 'en-US'});
             comp.input.click();
-            comp.picker.querySelector('.month-name').click();
-            expect(comp.picker.querySelectorAll('.cell')).toHaveLength(12);
-            comp.picker.querySelector('.month-name').click();
+            comp.picker.querySelector('.zest-month-name').click();
+            expect(comp.picker.querySelectorAll('.zest-cell')).toHaveLength(12);
+            comp.picker.querySelector('.zest-month-name').click();
             expect(comp.picker.querySelector('[data-date="2024"]')).not.toBeNull();
             comp.picker.querySelector('[data-date="2026"]').click();
             comp.picker.querySelector('[data-date="2026-06"]').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('June 2026');
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('June 2026');
             expect(comp.value).toEqual('');
         });
 
         it('moves a year at a time', () => {
             const comp = makePicker({'initial-date': '2024-03-15', locale: 'en-US'});
-            comp.picker.querySelector('.next-year').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('March 2025');
-            comp.picker.querySelector('.prev-year').click();
-            comp.picker.querySelector('.prev-year').click();
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('March 2023');
+            comp.picker.querySelector('.zest-next-year').click();
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('March 2025');
+            comp.picker.querySelector('.zest-prev-year').click();
+            comp.picker.querySelector('.zest-prev-year').click();
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('March 2023');
         });
 
         it('hides the arrows that go past the limits', () => {
             const comp = makePicker({'initial-date': '2024-03-15', min: '2024-03-01', max: '2024-04-30'});
-            expect(comp.picker.querySelector('.prev-month').disabled).toEqual(true);
-            expect(comp.picker.querySelector('.next-month').disabled).toEqual(false);
-            comp.picker.querySelector('.next-month').click();
-            expect(comp.picker.querySelector('.next-month').disabled).toEqual(true);
+            expect(comp.picker.querySelector('.zest-prev-month').disabled).toEqual(true);
+            expect(comp.picker.querySelector('.zest-next-month').disabled).toEqual(false);
+            comp.picker.querySelector('.zest-next-month').click();
+            expect(comp.picker.querySelector('.zest-next-month').disabled).toEqual(true);
         });
 
         it('shows more than one month, with no day twice', () => {
             const comp = makePicker({'initial-date': '2024-03-15', months: '2', locale: 'en-US'});
-            expect([...comp.picker.querySelectorAll('.month-name')].map(name => name.textContent)).toEqual(['March 2024', 'April 2024']);
-            const dates = [...comp.picker.querySelectorAll('.day')].map(day => day.dataset.date);
+            expect([...comp.picker.querySelectorAll('.zest-month-name')].map(name => name.textContent)).toEqual(['March 2024', 'April 2024']);
+            const dates = [...comp.picker.querySelectorAll('.zest-day')].map(day => day.dataset.date);
             expect(new Set(dates).size).toEqual(dates.length);
-            expect(comp.picker.querySelectorAll('.next-month')).toHaveLength(1);
+            expect(comp.picker.querySelectorAll('.zest-next-month')).toHaveLength(1);
         });
 
         it('shows six weeks with fixed-weeks', () => {
             const comp = makePicker({'initial-date': '2015-02-10', 'fixed-weeks': '', locale: 'en-US'});
-            expect(comp.picker.querySelectorAll('.week')).toHaveLength(6);
+            expect(comp.picker.querySelectorAll('.zest-week')).toHaveLength(6);
         });
 
         it('starts the week where it is told, or where the locale does', () => {
-            const headers = (comp) => [...comp.picker.querySelectorAll('.weekday')].map(cell => cell.textContent);
+            const headers = (comp) => [...comp.picker.querySelectorAll('.zest-weekday')].map(cell => cell.textContent);
             expect(headers(makePicker({locale: 'en-US'}))[0]).toEqual('Sun');
             expect(headers(makePicker({locale: 'en-GB'}))[0]).toEqual('Mon');
             expect(headers(makePicker({locale: 'en-US', 'first-day-of-week': '3'}))[0]).toEqual('Wed');
@@ -660,13 +660,13 @@ describe('DateTimePicker', () => {
 
         it('lines up the days under a week that starts on Monday', () => {
             const comp = makePicker({'initial-date': '2024-03-15', locale: 'en-GB'});
-            const first = [...comp.picker.querySelector('.week').querySelectorAll('.day')].map(day => Number(day.dataset.day));
+            const first = [...comp.picker.querySelector('.zest-week').querySelectorAll('.zest-day')].map(day => Number(day.dataset.day));
             expect(first).toEqual([26, 27, 28, 29, 1, 2, 3]);
         });
 
         it('writes in the language of the locale', () => {
             const comp = makePicker({'initial-date': '2024-03-15', locale: 'de-DE'});
-            expect(comp.picker.querySelector('.month-name').textContent).toEqual('März 2024');
+            expect(comp.picker.querySelector('.zest-month-name').textContent).toEqual('März 2024');
             expect(comp.input.placeholder).toEqual('15.03.2024');
         });
     });
@@ -693,9 +693,9 @@ describe('DateTimePicker', () => {
             expect(changed.mock.calls[0][0].detail.end.getDate()).toEqual(20);
             expect(comp.picker.style.display).toEqual('none');
             comp.input.click();
-            expect(dayButton(comp, 10).classList.contains('range-start')).toEqual(true);
-            expect(dayButton(comp, 15).classList.contains('in-range')).toEqual(true);
-            expect(dayButton(comp, 20).classList.contains('range-end')).toEqual(true);
+            expect(dayButton(comp, 10).classList.contains('zest-range-start')).toEqual(true);
+            expect(dayButton(comp, 15).classList.contains('zest-in-range')).toEqual(true);
+            expect(dayButton(comp, 20).classList.contains('zest-range-end')).toEqual(true);
         });
 
         it('range: previews on hover, and a half range leaves the old value when it closes', () => {
@@ -705,8 +705,8 @@ describe('DateTimePicker', () => {
             comp.input.click();
             dayButton(comp, 10).click();
             dayButton(comp, 14).dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-            expect(dayButton(comp, 12).classList.contains('in-range-preview')).toEqual(true);
-            expect(dayButton(comp, 16).classList.contains('in-range-preview')).toEqual(false);
+            expect(dayButton(comp, 12).classList.contains('zest-in-range-preview')).toEqual(true);
+            expect(dayButton(comp, 16).classList.contains('zest-in-range-preview')).toEqual(false);
             expect(comp.value).toEqual('2024-03-01/2024-03-02');
             comp.closePicker();
             expect(comp.input.value).toEqual('Mar 1, 2024 \u2013 Mar 2, 2024');
@@ -754,11 +754,11 @@ describe('DateTimePicker', () => {
 
         it('range of date and time: has a start row and an end row', () => {
             const comp = makePicker({mode: 'datetime', selection: 'range', locale: 'en-GB', value: '2024-03-10T09:00/2024-03-12T17:00'});
-            const rows = comp.picker.querySelectorAll('.time-row');
+            const rows = comp.picker.querySelectorAll('.zest-time-row');
             expect(rows).toHaveLength(2);
-            expect(rows[0].querySelector('select.hour').value).toEqual('9');
-            expect(rows[1].querySelector('select.hour').value).toEqual('17');
-            const end = rows[1].querySelector('select.hour');
+            expect(rows[0].querySelector('select.zest-hour').value).toEqual('9');
+            expect(rows[1].querySelector('select.zest-hour').value).toEqual('17');
+            const end = rows[1].querySelector('select.zest-hour');
             end.value = '18';
             end.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('2024-03-10T09:00/2024-03-12T18:00');
@@ -766,11 +766,11 @@ describe('DateTimePicker', () => {
 
         it('range of times: works with no calendar, and keeps them in sequence', () => {
             const comp = makePicker({mode: 'time', selection: 'range', locale: 'en-GB'});
-            const start = comp.picker.querySelector('.time-row[data-row="0"] select.hour');
+            const start = comp.picker.querySelector('.zest-time-row[data-row="0"] select.zest-hour');
             start.value = '9';
             start.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('09:00/09:00');
-            const end = comp.picker.querySelector('.time-row[data-row="1"] select.hour');
+            const end = comp.picker.querySelector('.zest-time-row[data-row="1"] select.zest-hour');
             end.value = '17';
             end.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('09:00/17:00');
@@ -779,7 +779,7 @@ describe('DateTimePicker', () => {
         it('range of times: a value goes to the other row only when the start is past the end', () => {
             const comp = makePicker({mode: 'time', selection: 'range', locale: 'en-GB'});
             const set = (row, part, value) => {
-                const select = comp.picker.querySelector(`.time-row[data-row="${row}"] select.${part}`);
+                const select = comp.picker.querySelector(`.zest-time-row[data-row="${row}"] select.zest-${part}`);
                 select.value = value;
                 select.dispatchEvent(new Event('change'));
             };
@@ -823,11 +823,11 @@ describe('DateTimePicker', () => {
         it('clear and today buttons', () => {
             const comp = makePicker({value: '2024-03-15', locale: 'en-US'});
             comp.input.click();
-            comp.picker.querySelector('.clear').click();
+            comp.picker.querySelector('.zest-clear').click();
             expect(comp.value).toEqual('');
-            expect(comp.picker.querySelector('.clear')).toBeNull();
-            expect(comp.picker.querySelector('.now').textContent).toEqual('Today');
-            comp.picker.querySelector('.now').click();
+            expect(comp.picker.querySelector('.zest-clear')).toBeNull();
+            expect(comp.picker.querySelector('.zest-now').textContent).toEqual('Today');
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.input.value).toEqual(new Intl.DateTimeFormat('en-US', {dateStyle: 'medium'}).format(new Date()));
         });
 
@@ -835,7 +835,7 @@ describe('DateTimePicker', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T02:00:00Z'), toFake: ['Date']});
             const comp = makePicker({mode: 'datetime', 'time-zone': 'America/New_York', locale: 'en-GB'});
             comp.input.click();
-            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.value).toEqual('2024-06-30T22:00');
         });
 
@@ -845,7 +845,7 @@ describe('DateTimePicker', () => {
             const sent = [];
             comp.addEventListener('date-now', (e) => sent.push(e.detail));
             comp.input.click();
-            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.value).toEqual('2024-07-01T13:00');
             expect(comp.validationProblem).toBeNull();
             expect(comp.picker.textContent).toContain('July 2024');
@@ -858,23 +858,23 @@ describe('DateTimePicker', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
             const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', locale: 'en-GB', value: '2024-03-15T09:30'});
             comp.input.click();
-            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.value).toEqual('2024-07-01T13:07');
-            expect(comp.picker.querySelector('.day.selected').dataset.date).toEqual('2024-07-01');
-            expect(comp.picker.querySelector('select.hour').value).toEqual('13');
-            expect(comp.picker.querySelector('select.minute').value).toEqual('7');
+            expect(comp.picker.querySelector('.zest-day.zest-selected').dataset.date).toEqual('2024-07-01');
+            expect(comp.picker.querySelector('select.zest-hour').value).toEqual('13');
+            expect(comp.picker.querySelector('select.zest-minute').value).toEqual('7');
         });
 
         it('the now button rounds up, and a time at the same distance goes to the later step', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T13:08:00Z'), toFake: ['Date']});
             const up = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '15', locale: 'en-GB'});
             up.input.click();
-            up.picker.querySelector('.now').click();
+            up.picker.querySelector('.zest-now').click();
             expect(up.value).toEqual('13:15');
             vi.setSystemTime(new Date('2024-07-01T13:15:00Z'));
             const tie = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '30', locale: 'en-GB'});
             tie.input.click();
-            tie.picker.querySelector('.now').click();
+            tie.picker.querySelector('.zest-now').click();
             expect(tie.value).toEqual('13:30');
         });
 
@@ -882,7 +882,7 @@ describe('DateTimePicker', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T23:53:00Z'), toFake: ['Date']});
             const comp = makePicker({mode: 'datetime', 'time-zone': 'UTC', 'minute-step': '15', locale: 'en-GB'});
             comp.input.click();
-            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.value).toEqual('2024-07-01T23:45');
         });
 
@@ -890,18 +890,18 @@ describe('DateTimePicker', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
             const comp = makePicker({mode: 'time', 'time-zone': 'UTC', 'time-view': 'list', 'minute-step': '30', locale: 'en-GB'});
             comp.input.click();
-            const count = comp.picker.querySelectorAll('.slot').length;
-            comp.picker.querySelector('.now').click();
+            const count = comp.picker.querySelectorAll('.zest-slot').length;
+            comp.picker.querySelector('.zest-now').click();
             expect(comp.value).toEqual('13:00');
-            expect(comp.picker.querySelectorAll('.slot').length).toEqual(count);
-            expect(comp.picker.querySelector('.slot.selected').dataset.time).toEqual('13:00');
+            expect(comp.picker.querySelectorAll('.zest-slot').length).toEqual(count);
+            expect(comp.picker.querySelector('.zest-slot.zest-selected').dataset.time).toEqual('13:00');
         });
 
         it('the now button is disabled when now is out of the limits', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T20:07:00Z'), toFake: ['Date']});
             const comp = makePicker({mode: 'time', 'time-zone': 'UTC', 'minute-step': '30', min: '09:00', max: '17:00', locale: 'en-GB'});
             comp.input.click();
-            expect(comp.picker.querySelector('.now').disabled).toBe(true);
+            expect(comp.picker.querySelector('.zest-now').disabled).toBe(true);
         });
 
         it('a value from any source goes to the nearest step, and sends no event', () => {
@@ -928,8 +928,8 @@ describe('DateTimePicker', () => {
             const changes = [];
             comp.addEventListener('date-changed', (e) => changes.push(e.detail.value));
             comp.input.click();
-            comp.picker.querySelector('.now').click();
-            comp.picker.querySelector('.now').click();
+            comp.picker.querySelector('.zest-now').click();
+            comp.picker.querySelector('.zest-now').click();
             expect(changes).toEqual(['2024-07-01T13:07']);
         });
 
@@ -937,11 +937,11 @@ describe('DateTimePicker', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T13:07:00Z'), toFake: ['Date']});
             const range = makePicker({mode: 'datetime', selection: 'range', 'time-zone': 'UTC', locale: 'en-GB'});
             range.input.click();
-            range.picker.querySelector('.now').click();
+            range.picker.querySelector('.zest-now').click();
             expect(range.value).toEqual('2024-07-01T13:07/2024-07-01T13:07');
             const multiple = makePicker({selection: 'multiple', 'time-zone': 'UTC', value: '2024-03-15', locale: 'en-GB'});
             multiple.input.click();
-            multiple.picker.querySelector('.now').click();
+            multiple.picker.querySelector('.zest-now').click();
             expect(multiple.value).toEqual('2024-03-15,2024-07-01');
             expect(multiple.picker.style.display).toEqual('flex');
         });
@@ -949,14 +949,14 @@ describe('DateTimePicker', () => {
         it('show-now="false" removes the now button', () => {
             const comp = makePicker({mode: 'datetime', 'show-now': 'false', locale: 'en-GB'});
             comp.input.click();
-            expect(comp.picker.querySelector('.now')).toBeNull();
+            expect(comp.picker.querySelector('.zest-now')).toBeNull();
         });
 
         it('has no clear button when clearable is false, or when required', () => {
             const off = makePicker({value: '2024-03-15', clearable: 'false'});
-            expect(off.picker.querySelector('.clear')).toBeNull();
+            expect(off.picker.querySelector('.zest-clear')).toBeNull();
             const required = makePicker({value: '2024-03-15', required: ''});
-            expect(required.picker.querySelector('.clear')).toBeNull();
+            expect(required.picker.querySelector('.zest-clear')).toBeNull();
         });
 
         it('applies a preset from data, including a function', () => {
@@ -966,7 +966,7 @@ describe('DateTimePicker', () => {
                 {label: 'From now', value: (now) => `${now.year}-01-01/${now.year}-01-02`},
             ]});
             comp.input.click();
-            const buttons = comp.picker.querySelectorAll('.preset');
+            const buttons = comp.picker.querySelectorAll('.zest-preset');
             buttons[0].click();
             expect(comp.value).toEqual('2024-01-01/2024-01-07');
             expect(comp.viewMonth).toEqual({year: 2024, month: 1});
@@ -1017,7 +1017,7 @@ describe('DateTimePicker', () => {
             dayButton(comp, 20).click();
             expect(comp.value).toEqual('2024-03-20');
             expect(comp.picker.style.display).toEqual('flex');
-            expect(comp.picker.querySelector('.done')).toBeNull();
+            expect(comp.picker.querySelector('.zest-done')).toBeNull();
             document.body.click();
             expect(comp.picker.style.display).toEqual('flex');
         });
@@ -1055,7 +1055,7 @@ describe('DateTimePicker', () => {
         it('uses labels from data', () => {
             const comp = makePicker({value: '2024-03-15'});
             comp.updateConfig({labels: {clear: 'Effacer'}});
-            expect(comp.picker.querySelector('.clear').textContent).toEqual('Effacer');
+            expect(comp.picker.querySelector('.zest-clear').textContent).toEqual('Effacer');
         });
     });
 
@@ -1079,7 +1079,7 @@ describe('DateTimePicker', () => {
         it('marks today in the time zone of the element', () => {
             vi.useFakeTimers({now: new Date('2024-07-01T02:00:00Z'), toFake: ['Date']});
             const comp = makePicker({'time-zone': 'America/New_York'});
-            expect(comp.picker.querySelector('.today').dataset.date).toEqual('2024-06-30');
+            expect(comp.picker.querySelector('.zest-today').dataset.date).toEqual('2024-06-30');
         });
 
         it('keeps the wall clock and moves the instant when the user selects a zone', () => {
@@ -1088,7 +1088,7 @@ describe('DateTimePicker', () => {
             const comp = makePicker({mode: 'datetime', 'time-zone-selectable': '', 'time-zone': 'UTC', value: '2024-03-15T09:00'});
             comp.addEventListener('date-time-zone-changed', zones);
             comp.addEventListener('date-changed', changed);
-            const select = comp.picker.querySelector('.time-zone-select');
+            const select = comp.picker.querySelector('.zest-time-zone-select');
             select.value = 'Asia/Tokyo';
             select.dispatchEvent(new Event('change'));
             expect(comp.value).toEqual('2024-03-15T09:00');

@@ -4,6 +4,7 @@
   "description": "Data views: tree views, list views, and table views that show large data with virtual scrolling.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/data-views#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

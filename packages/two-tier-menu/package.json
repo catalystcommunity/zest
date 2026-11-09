@@ -4,6 +4,7 @@
   "description": "TwoTierMenu: A semantic way of treating a menu as an isolated component usable anywhere.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/two-tier-menu#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

@@ -1,0 +1,15 @@
+{
+    // Checks the published declarations of each package as an application would use them:
+    // strict, with the DOM library, through the workspace links in node_modules.
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "lib": ["ES2023", "DOM", "DOM.Iterable"],
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": false,
+        "types": []
+    },
+    "include": ["*.ts"]
+}

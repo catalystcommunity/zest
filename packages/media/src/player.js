@@ -62,10 +62,10 @@ export const playerStyles = `
     overflow: hidden;
     container-type: inline-size;
 }
-.zest-media .sr {
+.zest-media .zest-sr {
     ${visuallyHidden}
 }
-.zest-media .player-controls {
+.zest-media .zest-player-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -112,14 +112,14 @@ export const playerStyles = `
     background: none;
     cursor: pointer;
 }
-.zest-media .seek {
+.zest-media .zest-seek {
     flex: 1 1 8em;
 }
-.zest-media .volume {
+.zest-media .zest-volume {
     flex: 0 1 6em;
     width: 6em;
 }
-.zest-media .time {
+.zest-media .zest-time {
     min-width: 0;
     padding-inline: 0.25em;
     font-variant-numeric: tabular-nums;
@@ -133,12 +133,12 @@ export const playerStyles = `
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.zest-media .media-message {
+.zest-media .zest-media-message {
     padding: 0.5em;
     color: var(--_invalid);
 }
 @container (max-width: 26em) {
-    .zest-media .volume, .zest-media .rate {
+    .zest-media .zest-volume, .zest-media .zest-rate {
         display: none;
     }
 }
@@ -204,7 +204,7 @@ export class MediaPlayer extends BaseComponent {
             if (child.localName === 'source' || child.localName === 'track') { media.append(child); }
         }
         const wrapper = document.createElement('div');
-        wrapper.className = `zest-media ${this.constructor.eventPrefix}`;
+        wrapper.className = `zest-media zest-${this.constructor.eventPrefix}`;
         wrapper.setAttribute('part', 'player');
         this.#parts.wrapper = wrapper;
         this.buildLayout(wrapper, media);
@@ -222,13 +222,13 @@ export class MediaPlayer extends BaseComponent {
         const t = this.text;
         const controls = document.createElement('div');
         // A page often has its own .controls class, so the name is longer
-        controls.className = 'player-controls';
+        controls.className = 'zest-player-controls';
         controls.setAttribute('role', 'group');
         controls.setAttribute('part', 'controls');
         const button = (name, label, iconName, pressed) => {
             const element = document.createElement('button');
             element.type = 'button';
-            element.className = name;
+            element.className = `zest-${name}`;
             element.setAttribute('aria-label', label);
             element.innerHTML = icon(iconName);
             if (pressed !== undefined) { element.setAttribute('aria-pressed', String(pressed)); }
@@ -241,7 +241,7 @@ export class MediaPlayer extends BaseComponent {
         if (playlist) { items.push(button('next', t.next, 'next')); }
         const seek = document.createElement('input');
         seek.type = 'range';
-        seek.className = 'seek';
+        seek.className = 'zest-seek';
         seek.min = '0';
         seek.max = '0';
         seek.step = 'any';
@@ -249,21 +249,21 @@ export class MediaPlayer extends BaseComponent {
         seek.setAttribute('aria-label', t.seek);
         this.#parts.seek = seek;
         const time = document.createElement('span');
-        time.className = 'time';
+        time.className = 'zest-time';
         time.setAttribute('part', 'time');
         time.textContent = '0:00 / 0:00';
         this.#parts.time = time;
         items.push(seek, time, button('mute', t.mute, 'volume', false));
         const volume = document.createElement('input');
         volume.type = 'range';
-        volume.className = 'volume';
+        volume.className = 'zest-volume';
         volume.min = '0';
         volume.max = '1';
         volume.step = '0.05';
         volume.setAttribute('aria-label', t.volume);
         this.#parts.volume = volume;
         const rate = document.createElement('select');
-        rate.className = 'rate';
+        rate.className = 'zest-rate';
         rate.setAttribute('aria-label', t.speed);
         for (const value of RATES) {
             rate.append(new Option(`${value}×`, String(value), value === 1, value === 1));
@@ -274,11 +274,11 @@ export class MediaPlayer extends BaseComponent {
         if (pictureInPicture) { items.push(button('pip', t.pictureInPicture, 'pip', false)); }
         if (fullscreen) { items.push(button('fullscreen', t.fullscreen, 'fullscreen', false)); }
         const live = document.createElement('div');
-        live.className = 'sr';
+        live.className = 'zest-sr';
         live.setAttribute('aria-live', 'polite');
         this.#parts.live = live;
         const message = document.createElement('div');
-        message.className = 'media-message';
+        message.className = 'zest-media-message';
         message.hidden = true;
         this.#parts.message = message;
         controls.append(...items);
@@ -378,7 +378,7 @@ export class MediaPlayer extends BaseComponent {
         const playing = !this.#media.paused;
         p.play.setAttribute('aria-label', playing ? this.text.pause : this.text.play);
         p.play.innerHTML = icon(playing ? 'pause' : 'play');
-        p.wrapper.classList.toggle('playing', playing);
+        p.wrapper.classList.toggle('zest-playing', playing);
     }
 
     showTime() {
@@ -513,16 +513,16 @@ video-player, :host {
     display: block;
     min-width: 0;
 }
-.zest-media.video-player {
+.zest-media.zest-video-player {
     position: relative;
 }
-.zest-media .stage {
+.zest-media .zest-stage {
     position: relative;
     display: grid;
     min-height: 6em;
     background: #000;
 }
-.zest-media .stage video {
+.zest-media .zest-stage video {
     grid-area: 1 / 1;
     display: block;
     width: 100%;
@@ -530,7 +530,7 @@ video-player, :host {
     max-height: var(--zest-video-player-max-height, 80vh);
     object-fit: contain;
 }
-.zest-media .caption {
+.zest-media .zest-caption {
     grid-area: 1 / 1;
     align-self: end;
     justify-self: center;
@@ -545,25 +545,25 @@ video-player, :host {
     white-space: pre-line;
     pointer-events: none;
 }
-.zest-media .caption:empty {
+.zest-media .zest-caption:empty {
     display: none;
 }
-.zest-media.video-player .player-controls {
+.zest-media.zest-video-player .zest-player-controls {
     background: var(--_face);
     transition: opacity var(--_motion);
 }
-.zest-media.video-player.playing.idle:not(:focus-within) .player-controls {
+.zest-media.zest-video-player.zest-playing.zest-idle:not(:focus-within) .zest-player-controls {
     opacity: 0;
 }
-.zest-media.video-player.playing.idle:not(:focus-within) .stage {
+.zest-media.zest-video-player.zest-playing.zest-idle:not(:focus-within) .zest-stage {
     cursor: none;
 }
-.zest-media.video-player:fullscreen {
+.zest-media.zest-video-player:fullscreen {
     justify-content: center;
     border: none;
     border-radius: 0;
 }
-.zest-media.video-player:fullscreen .stage video {
+.zest-media.zest-video-player:fullscreen .zest-stage video {
     max-height: calc(100vh - 4em);
 }
 `;
@@ -591,10 +591,10 @@ export class VideoPlayer extends MediaPlayer {
         media.playsInline = true;
         media.setAttribute('playsinline', '');
         const stage = document.createElement('div');
-        stage.className = 'stage';
+        stage.className = 'zest-stage';
         stage.setAttribute('part', 'stage');
         const caption = document.createElement('div');
-        caption.className = 'caption';
+        caption.className = 'zest-caption';
         caption.setAttribute('part', 'caption');
         this.#caption = caption;
         stage.append(media, caption);
@@ -612,7 +612,7 @@ export class VideoPlayer extends MediaPlayer {
             wrapper.addEventListener(name, () => this.#wake());
         }
         media.addEventListener('play', () => this.#wake());
-        media.addEventListener('pause', () => wrapper.classList.remove('idle'));
+        media.addEventListener('pause', () => wrapper.classList.remove('zest-idle'));
         media.addEventListener('enterpictureinpicture', () => p.pip.setAttribute('aria-pressed', 'true'));
         media.addEventListener('leavepictureinpicture', () => p.pip.setAttribute('aria-pressed', 'false'));
         // A <track default> turns the captions on at the start
@@ -713,11 +713,11 @@ export class VideoPlayer extends MediaPlayer {
     // During playback the controls hide when the pointer stays still. They never hide while the focus is in the player.
     #wake() {
         const wrapper = this.parts.wrapper;
-        wrapper.classList.remove('idle');
+        wrapper.classList.remove('zest-idle');
         clearTimeout(this.#idleTimer);
         if (this.media.paused) { return; }
         this.#idleTimer = setTimeout(() => {
-            if (!this.media.paused) { wrapper.classList.add('idle'); }
+            if (!this.media.paused) { wrapper.classList.add('zest-idle'); }
         }, this.hideDelay);
     }
 
@@ -737,20 +737,20 @@ audio-player, :host {
     display: block;
     min-width: 0;
 }
-.zest-media .heading {
+.zest-media .zest-heading {
     display: flex;
     gap: var(--_gap);
     align-items: baseline;
     padding: 0.375em 0.5em 0;
     min-width: 0;
 }
-.zest-media .track-title {
+.zest-media .zest-track-title {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: bold;
 }
-.zest-media .playlist {
+.zest-media .zest-playlist {
     margin: 0;
     padding: 0.25em;
     list-style: none;
@@ -758,7 +758,7 @@ audio-player, :host {
     background: var(--_window);
     color: var(--_window-text);
 }
-.zest-media .playlist button {
+.zest-media .zest-playlist button {
     justify-content: flex-start;
     width: 100%;
     gap: var(--_gap);
@@ -766,17 +766,17 @@ audio-player, :host {
     text-align: start;
     min-height: max(24px, 2em);
 }
-.zest-media .playlist button[aria-current="true"] {
+.zest-media .zest-playlist button[aria-current="true"] {
     background: var(--_selected-face);
     color: var(--_selected-text);
     font-weight: bold;
 }
-.zest-media .playlist .number {
+.zest-media .zest-playlist .zest-number {
     min-width: 1.5em;
     font-variant-numeric: tabular-nums;
 }
 @media (forced-colors: active) {
-    .zest-media .playlist button[aria-current="true"] {
+    .zest-media .zest-playlist button[aria-current="true"] {
         background: Highlight;
         color: HighlightText;
         forced-color-adjust: none;
@@ -802,14 +802,14 @@ export class AudioPlayer extends MediaPlayer {
 
     buildLayout(wrapper, media) {
         const heading = document.createElement('div');
-        heading.className = 'heading';
+        heading.className = 'zest-heading';
         const title = document.createElement('span');
-        title.className = 'track-title';
+        title.className = 'zest-track-title';
         title.setAttribute('part', 'title');
         this.#title = title;
         heading.append(title);
         const list = document.createElement('ol');
-        list.className = 'playlist';
+        list.className = 'zest-playlist';
         list.setAttribute('part', 'playlist');
         this.#list = list;
         wrapper.append(media, heading, this.buildControls({playlist: true}), list);
@@ -854,9 +854,9 @@ export class AudioPlayer extends MediaPlayer {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.dataset.index = String(index);
-                button.innerHTML = `<span class="number" aria-hidden="true"></span><span class="name"></span>`;
-                button.querySelector('.number').textContent = `${index + 1}.`;
-                button.querySelector('.name').textContent = track.title ?? track.src;
+                button.innerHTML = `<span class="zest-number" aria-hidden="true"></span><span class="zest-name"></span>`;
+                button.querySelector('.zest-number').textContent = `${index + 1}.`;
+                button.querySelector('.zest-name').textContent = track.title ?? track.src;
                 item.append(button);
                 return item;
             }));

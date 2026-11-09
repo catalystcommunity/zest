@@ -17,12 +17,12 @@ ${fieldStyles('.zest-spin-box')}
     text-align: end;
     font-variant-numeric: tabular-nums;
 }
-.zest-spin-box .steps {
+.zest-spin-box .zest-steps {
     display: flex;
     flex-direction: column;
     border-inline-start: var(--_border-width) solid var(--_line);
 }
-.zest-spin-box .box .steps button {
+.zest-spin-box .zest-box .zest-steps button {
     flex: 1;
     min-height: 24px;
     min-width: 24px;
@@ -32,13 +32,13 @@ ${fieldStyles('.zest-spin-box')}
     font-size: 0.75em;
     line-height: 1;
 }
-.zest-spin-box .box .steps button:first-child {
+.zest-spin-box .zest-box .zest-steps button:first-child {
     border-start-end-radius: calc(var(--_radius) - 1px);
 }
-.zest-spin-box .box .steps button:last-child {
+.zest-spin-box .zest-box .zest-steps button:last-child {
     border-end-end-radius: calc(var(--_radius) - 1px);
 }
-.zest-spin-box .box .steps button:disabled {
+.zest-spin-box .zest-box .zest-steps button:disabled {
     color: var(--_disabled-text);
     cursor: default;
     background: none;
@@ -93,15 +93,15 @@ export class SpinBox extends FormControl {
         this.input.setAttribute('role', 'spinbutton');
         this.input.setAttribute('inputmode', 'decimal');
         this.input.setAttribute('autocomplete', 'off');
-        this.#label = Object.assign(document.createElement('label'), {className: 'label', htmlFor: this.input.id});
-        const box = Object.assign(document.createElement('div'), {className: 'box'});
+        this.#label = Object.assign(document.createElement('label'), {className: 'zest-label', htmlFor: this.input.id});
+        const box = Object.assign(document.createElement('div'), {className: 'zest-box'});
         box.part = 'box';
-        const steps = Object.assign(document.createElement('div'), {className: 'steps'});
+        const steps = Object.assign(document.createElement('div'), {className: 'zest-steps'});
         this.#up = this.#stepButton('▲', 1);
         this.#down = this.#stepButton('▼', -1);
         steps.append(this.#up, this.#down);
         box.append(this.input, steps);
-        this.#help = Object.assign(document.createElement('div'), {className: 'help', id: uniqueId('spin-help')});
+        this.#help = Object.assign(document.createElement('div'), {className: 'zest-help', id: uniqueId('spin-help')});
         this.wrapper.append(this.#label, box, this.#help);
         this.stopInner(this.wrapper);
         this.input.addEventListener('input', () => {
@@ -245,12 +245,13 @@ export class SpinBox extends FormControl {
         const text = this.value === null || Number.isNaN(this.value) ? '' : this.format.format(this.value);
         if (!this.#typing && input.value !== text) { input.value = text; }
         this.#label.textContent = this.label;
-        if (!this.label && this.getAttribute('aria-label')) { input.setAttribute('aria-label', this.getAttribute('aria-label')); }
+        this.nameInner(input);
+        this.describe([this.#help.textContent && this.#help.id], input);
         input.placeholder = this.placeholder;
         input.disabled = this.isDisabled;
         input.readOnly = this.readonly;
         input.required = this.required;
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         const attributes = {'aria-valuemin': this.min, 'aria-valuemax': this.max, 'aria-valuenow': this.value};
         for (const [name, value] of Object.entries(attributes)) {
             if (value === null || Number.isNaN(value)) { input.removeAttribute(name); } else { input.setAttribute(name, value); }

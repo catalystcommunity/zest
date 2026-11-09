@@ -1,5 +1,5 @@
 import { tokenAliases } from "@catalystcommunity/base-components";
-import { FormControl } from "./form-control.js";
+import { FormControl, defaultButton, isSubmitKey, submitImplicitly } from "./form-control.js";
 
 const VARIANTS = ['default', 'primary', 'danger', 'flat'];
 
@@ -44,29 +44,29 @@ push-button, :host {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-push-button.primary {
+.zest-push-button.zest-primary {
     background: var(--_highlight);
     color: var(--_highlight-text);
     border-color: var(--_highlight);
     font-weight: 600;
 }
-.zest-push-button.primary:hover {
+.zest-push-button.zest-primary:hover {
     background: color-mix(in srgb, var(--_highlight) 85%, var(--_window-text));
 }
-.zest-push-button.danger {
+.zest-push-button.zest-danger {
     background: var(--_window);
     color: var(--_invalid);
     border-color: var(--_invalid);
     font-weight: 600;
 }
-.zest-push-button.danger:hover {
+.zest-push-button.zest-danger:hover {
     background: color-mix(in srgb, var(--_invalid) 10%, var(--_window));
 }
-.zest-push-button.flat {
+.zest-push-button.zest-flat {
     background: none;
     border-color: transparent;
 }
-.zest-push-button.flat:hover {
+.zest-push-button.zest-flat:hover {
     background: var(--_hover-face);
     border-color: var(--_border);
 }
@@ -85,15 +85,15 @@ push-button, :host {
     border-color: var(--_disabled-text);
     cursor: default;
 }
-.zest-push-button .icon {
+.zest-push-button .zest-icon {
     display: inline-flex;
     flex: none;
 }
-.zest-push-button .icon img {
+.zest-push-button .zest-icon img {
     width: 1.25em;
     height: 1.25em;
 }
-.zest-push-button .icon:empty, .zest-push-button .text:empty {
+.zest-push-button .zest-icon:empty, .zest-push-button .zest-text:empty {
     display: none;
 }
 @media (forced-colors: active) {
@@ -113,7 +113,8 @@ push-button, :host {
 `;
 
 // A button. With `toggle`, it stays pressed until the user selects it again.
-// type="submit" or type="reset" acts on its form, also from a shadow root.
+// type="submit" or type="reset" acts on its form, also from a shadow root. In the light DOM, the
+// inner button has the same type, so the browser knows it as the default button of the form.
 export class PushButton extends FormControl {
     static styles = styles;
     static properties = {
@@ -128,15 +129,19 @@ export class PushButton extends FormControl {
     #text;
 
     get focusTarget() { return this.button; }
+    get submitsForm() { return this.type === 'submit'; }
+    #nativeType() {
+        return this.root === this && (this.type === 'submit' || this.type === 'reset') ? this.type : 'button';
+    }
 
     build() {
         this.button = document.createElement('button');
         this.button.type = 'button';
         this.button.className = 'zest-push-button';
         this.button.part = 'button';
-        this.#icon = Object.assign(document.createElement('span'), {className: 'icon'});
+        this.#icon = Object.assign(document.createElement('span'), {className: 'zest-icon'});
         this.#icon.setAttribute('aria-hidden', 'true');
-        this.#text = Object.assign(document.createElement('span'), {className: 'text'});
+        this.#text = Object.assign(document.createElement('span'), {className: 'zest-text'});
         this.#hasContent = this.takeContent(this.#text);
         this.button.append(this.#icon, this.#text);
         this.button.addEventListener('click', (e) => this.#activate(e));
@@ -144,10 +149,31 @@ export class PushButton extends FormControl {
     }
     #hasContent = false;
 
+    connected() {
+        this.followContent(this.#text, this.button, (hasContent) => {
+            this.#hasContent = hasContent;
+            this.invalidate();
+        });
+        // A native field of the form does not find a button in a shadow root. The default button
+        // does the implicit submission for it.
+        if (this.root !== this) {
+            this.listen(this.ownerDocument, 'keydown', (e) => {
+                const field = e.composedPath()[0];
+                if (!isSubmitKey(e) || this.type !== 'submit' || !this.form) { return; }
+                if (field?.localName !== 'input' || field.form !== this.form || field.getRootNode() !== this.form.getRootNode()) { return; }
+                if (!['text', 'search', 'url', 'tel', 'email', 'password', 'number'].includes(field.type)) { return; }
+                if (defaultButton(this.form) !== this) { return; }
+                e.preventDefault();
+                submitImplicitly(this.form);
+            });
+        }
+    }
+
     update() {
         const variant = VARIANTS.includes(this.variant) ? this.variant : 'default';
-        this.button.className = `zest-push-button ${variant}`;
+        this.button.className = `zest-push-button zest-${variant}`;
         this.button.disabled = this.isDisabled;
+        this.button.type = this.#nativeType();
         if (this.toggle) {
             this.button.setAttribute('aria-pressed', String(this.pressed));
         } else {
@@ -163,12 +189,10 @@ export class PushButton extends FormControl {
                 this.#icon.textContent = this.icon;
             }
         }
-        // With no text, the label attribute names the button
-        if (this.#hasContent || !this.label) {
-            this.button.removeAttribute('aria-label');
-        } else if (!this.#text.textContent) {
-            this.button.setAttribute('aria-label', this.label);
-        }
+        // An aria-label on the host names the button, also when it has text. With no text and no
+        // aria-label, the label property names it.
+        this.nameInner(this.button, {fallback: this.#hasContent || this.#text.textContent ? '' : this.label});
+        this.describe([], this.button);
     }
 
     // Selects the button from code, as a click does
@@ -184,9 +208,13 @@ export class PushButton extends FormControl {
             this.fire('input');
             this.fire('change');
         }
+        if (this.type !== 'submit' && this.type !== 'reset') { return; }
+        // The browser acts for an inner button with the same type, if it is in the same form
+        if (this.button.type === this.type && this.button.form === this.form) { return; }
+        e.preventDefault();
         if (this.type === 'submit') {
             this.form?.requestSubmit();
-        } else if (this.type === 'reset') {
+        } else {
             this.form?.reset();
         }
     }

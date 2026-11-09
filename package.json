@@ -4,8 +4,10 @@
   "description": "Library of separated standard web-components, tools, and helper libs for everywhere to enjoy, even in frameworks if preferred.",
   "type": "module",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "files": [
-    "src/index.js"
+    "src/index.js",
+    "src/index.d.ts"
   ],
   "scripts": {
     "dev": "vite",
@@ -46,6 +48,7 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "happy-dom": "^21.0.4",
     "jsdom": "^30.1.3",
+    "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },

@@ -13,7 +13,7 @@ combo-box, :host {
     ${tokenAliases('combo-box')}
 }
 ${fieldStyles('.zest-combo-box')}
-.zest-combo-box .select {
+.zest-combo-box .zest-select {
     flex: 1;
     display: flex;
     align-items: center;
@@ -23,13 +23,13 @@ ${fieldStyles('.zest-combo-box')}
     outline: none !important;
     overflow-wrap: anywhere;
 }
-.zest-combo-box .select.placeholder {
+.zest-combo-box .zest-select.zest-placeholder {
     color: var(--_secondary-text);
 }
-.zest-combo-box .box .toggle {
+.zest-combo-box .zest-box .zest-toggle {
     padding-inline: 0.5em;
 }
-.zest-combo-box .popup {
+.zest-combo-box .zest-popup {
     box-sizing: border-box;
     min-width: 10em;
     max-height: min(20em, 60vh);
@@ -45,10 +45,10 @@ ${fieldStyles('.zest-combo-box')}
     line-height: var(--zest-line-height, inherit);
     overscroll-behavior: contain;
 }
-.zest-combo-box .popup:not(:popover-open) {
+.zest-combo-box .zest-popup:not(:popover-open) {
     display: none;
 }
-.zest-combo-box .popup[hidden] {
+.zest-combo-box .zest-popup[hidden] {
     display: none;
 }
 ${optionStyles('.zest-combo-box')}
@@ -90,17 +90,17 @@ export class ComboBox extends FormControl {
     build() {
         this.wrapper = Object.assign(document.createElement('div'), {className: 'zest-combo-box'});
         this.wrapper.part = 'control';
-        this.#label = Object.assign(document.createElement('label'), {className: 'label', id: uniqueId('combo-label')});
-        this.#box = Object.assign(document.createElement('div'), {className: 'box'});
+        this.#label = Object.assign(document.createElement('label'), {className: 'zest-label', id: uniqueId('combo-label')});
+        this.#box = Object.assign(document.createElement('div'), {className: 'zest-box'});
         this.#box.part = 'box';
-        this.#toggle = Object.assign(document.createElement('button'), {type: 'button', className: 'toggle', textContent: '▾', tabIndex: -1});
+        this.#toggle = Object.assign(document.createElement('button'), {type: 'button', className: 'zest-toggle', textContent: '▾', tabIndex: -1});
         this.#toggle.setAttribute('aria-hidden', 'true');
         this.#toggle.addEventListener('pointerdown', (e) => {
             if (e.button !== 0 || this.isDisabled) { return; }
             this.control.focus();
             this.#open ? this.close() : this.show();
         });
-        this.popup = Object.assign(document.createElement('div'), {className: 'popup', id: uniqueId('combo-list')});
+        this.popup = Object.assign(document.createElement('div'), {className: 'zest-popup', id: uniqueId('combo-list')});
         this.popup.setAttribute('role', 'listbox');
         this.popup.setAttribute('popover', 'manual');
         this.popup.setAttribute('aria-labelledby', this.#label.id);
@@ -137,6 +137,15 @@ export class ComboBox extends FormControl {
     #makeControl() {
         this.control?.remove();
         const id = uniqueId('combo');
+        // Only an editable box has a native field, so only it has a <label for>. The label of the
+        // other box is a plain element: a <label> with no field is a problem for form checks.
+        const tag = this.editable ? 'label' : 'span';
+        if (this.#label.localName !== tag) {
+            const label = Object.assign(document.createElement(tag), {className: this.#label.className, id: this.#label.id});
+            label.textContent = this.#label.textContent;
+            this.#label.replaceWith(label);
+            this.#label = label;
+        }
         if (this.editable) {
             this.control = Object.assign(document.createElement('input'), {type: 'text', id, autocomplete: 'off'});
             this.control.setAttribute('aria-autocomplete', 'list');
@@ -144,14 +153,13 @@ export class ComboBox extends FormControl {
             this.control.addEventListener('change', (e) => e.stopPropagation());
             this.#label.htmlFor = id;
         } else {
-            this.control = Object.assign(document.createElement('div'), {className: 'select', id, tabIndex: 0});
+            this.control = Object.assign(document.createElement('div'), {className: 'zest-select', id, tabIndex: 0});
             this.control.setAttribute('aria-labelledby', this.#label.id);
             this.control.addEventListener('click', () => {
                 if (this.isDisabled) { return; }
                 this.#open ? this.close() : this.show();
             });
-            this.#label.removeAttribute('for');
-            this.#label.onclick = () => this.control.focus();
+            this.#label.onclick = () => { if (!this.isDisabled) { this.control.focus(); } };
         }
         this.control.setAttribute('role', 'combobox');
         this.control.setAttribute('aria-controls', this.popup.id);
@@ -183,8 +191,10 @@ export class ComboBox extends FormControl {
         }
         this.#label.textContent = this.label;
         const control = this.control;
-        if (!this.label && this.getAttribute('aria-label')) { control.setAttribute('aria-label', this.getAttribute('aria-label')); }
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        // An editable box has a native label. The other box has its label by id.
+        this.nameInner(control, {labelledBy: this.editable || !this.label ? null : this.#label.id});
+        this.describe([], control);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         control.setAttribute('aria-expanded', String(this.#open));
         if (this.required) { control.setAttribute('aria-required', 'true'); } else { control.removeAttribute('aria-required'); }
         if (this.editable) {
@@ -194,14 +204,14 @@ export class ComboBox extends FormControl {
         } else {
             const option = this.selectedOption;
             control.textContent = option?.label ?? (this.placeholder || ' ');
-            control.classList.toggle('placeholder', !option);
+            control.classList.toggle('zest-placeholder', !option);
             control.tabIndex = this.isDisabled ? -1 : 0;
             if (this.isDisabled) { control.setAttribute('aria-disabled', 'true'); } else { control.removeAttribute('aria-disabled'); }
         }
         const activeItem = this.#shown[this.#active];
         for (const [value, element] of this.#elements) {
             element.setAttribute('aria-selected', String(value === this.value));
-            element.classList.toggle('active', value === activeItem?.value);
+            element.classList.toggle('zest-active', value === activeItem?.value);
         }
         const active = activeItem && this.#elements.get(activeItem.value);
         if (active && this.#open) {
@@ -227,7 +237,7 @@ export class ComboBox extends FormControl {
             return element;
         });
         if (!elements.length) {
-            elements.push(Object.assign(document.createElement('div'), {className: 'empty', textContent: this.text.noOptions}));
+            elements.push(Object.assign(document.createElement('div'), {className: 'zest-empty', textContent: this.text.noOptions}));
         }
         this.popup.replaceChildren(...elements);
     }

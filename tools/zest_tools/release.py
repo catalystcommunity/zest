@@ -286,6 +286,8 @@ def check_tarball(tarball: Path, name: str, version: str) -> None:
         problems.append(f"its version is {manifest['version']}, and this release is {version}")
     if manifest.get("main") not in members:
         problems.append(f"its main file {manifest.get('main')} is not in it")
+    if manifest.get("types") and manifest["types"] not in members:
+        problems.append(f"its types file {manifest['types']} is not in it")
     if LICENSE not in members:
         problems.append(f"its {LICENSE} file is not in it")
     for member in members:

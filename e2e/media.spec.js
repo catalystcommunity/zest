@@ -11,13 +11,13 @@ test.describe('video-player', () => {
     test('plays with the button, and the time and the events follow', async ({page}) => {
         await open(page);
         const player = page.getByTestId('media-video-player');
-        const play = player.locator('.play');
+        const play = player.locator('.zest-play');
         await expect(play).toHaveAttribute('aria-label', 'Play');
-        await expect(player.locator('.time')).toHaveText('0:00 / 0:12');
+        await expect(player.locator('.zest-time')).toHaveText('0:00 / 0:12');
         await play.click();
         await expect(play).toHaveAttribute('aria-label', 'Pause');
         await expect.poll(() => mediaProp(player, 'currentTime')).toBeGreaterThan(1);
-        await expect(player.locator('.time')).not.toHaveText(/^0:00 /);
+        await expect(player.locator('.zest-time')).not.toHaveText(/^0:00 /);
         await expect(page.getByTestId('media-video-log')).toContainText('play at');
         await play.click();
         await expect(play).toHaveAttribute('aria-label', 'Play');
@@ -27,7 +27,7 @@ test.describe('video-player', () => {
     test('seeks, mutes, and shows captions with the keyboard', async ({page}) => {
         await open(page);
         const player = page.getByTestId('media-video-player');
-        const seek = player.locator('.seek');
+        const seek = player.locator('.zest-seek');
         await expect.poll(() => prop(player, 'duration')).toBeGreaterThan(11);
         await seek.focus();
         await page.keyboard.press('5');
@@ -35,18 +35,18 @@ test.describe('video-player', () => {
         await expect(seek).toHaveAttribute('aria-valuetext', '6 seconds of 12 seconds');
         await page.keyboard.press('ArrowLeft');
         await expect.poll(() => mediaProp(player, 'currentTime')).toBeCloseTo(1, 0);
-        await expect(player.locator('.time')).toHaveText('0:01 / 0:12');
+        await expect(player.locator('.zest-time')).toHaveText('0:01 / 0:12');
         await page.keyboard.press('m');
-        await expect(player.locator('.mute')).toHaveAttribute('aria-pressed', 'true');
+        await expect(player.locator('.zest-mute')).toHaveAttribute('aria-pressed', 'true');
         expect(await mediaProp(player, 'muted')).toBe(true);
-        await expect(player.locator('.captions')).toBeVisible();
+        await expect(player.locator('.zest-captions')).toBeVisible();
         await page.keyboard.press('c');
-        await expect(player.locator('.captions')).toHaveAttribute('aria-pressed', 'true');
-        await expect(player.locator('.caption')).toHaveText('A test pattern with a 440 hertz tone');
+        await expect(player.locator('.zest-captions')).toHaveAttribute('aria-pressed', 'true');
+        await expect(player.locator('.zest-caption')).toHaveText('A test pattern with a 440 hertz tone');
         await page.keyboard.press('l');
-        await expect(player.locator('.caption')).toHaveText('This is the end of the sample');
+        await expect(player.locator('.zest-caption')).toHaveText('This is the end of the sample');
         await page.keyboard.press('c');
-        await expect(player.locator('.caption')).toBeEmpty();
+        await expect(player.locator('.zest-caption')).toBeEmpty();
         // The focus stayed on the slider the whole time
         await expect(seek).toBeFocused();
     });
@@ -55,9 +55,9 @@ test.describe('video-player', () => {
         await open(page);
         const player = page.getByTestId('media-video-player');
         await player.evaluate(element => { element.hideDelay = 50; });
-        await player.locator('.play').click();
+        await player.locator('.zest-play').click();
         await page.waitForTimeout(300);
-        const controls = player.locator('.player-controls');
+        const controls = player.locator('.zest-player-controls');
         expect(await controls.evaluate(element => getComputedStyle(element).opacity)).toBe('1');
         await page.locator('h1, h2').first().click();
         await player.evaluate(element => element.play());
@@ -71,15 +71,15 @@ test.describe('audio-player', () => {
     test('goes to the next track in the playlist, and plays it', async ({page}) => {
         await open(page);
         const player = page.getByTestId('media-audio-player');
-        await player.locator('.play').click();
+        await player.locator('.zest-play').click();
         await expect.poll(() => mediaProp(player, 'currentTime')).toBeGreaterThan(0.2);
-        await player.locator('.next').click();
-        await expect(player.locator('.playlist [aria-current="true"]')).toContainText('High tone');
-        await expect(player.locator('.track-title')).toHaveText('High tone, 660 hertz');
+        await player.locator('.zest-next').click();
+        await expect(player.locator('.zest-playlist [aria-current="true"]')).toContainText('High tone');
+        await expect(player.locator('.zest-track-title')).toHaveText('High tone, 660 hertz');
         await expect.poll(() => mediaProp(player, 'currentSrc')).toContain('tone-high.ogg');
         await expect.poll(() => mediaProp(player, 'paused')).toBe(false);
         await expect(page.getByTestId('media-audio-log')).toContainText('track 2 (next)');
-        await player.locator('.playlist button').first().click();
+        await player.locator('.zest-playlist button').first().click();
         await expect(page.getByTestId('media-audio-log')).toContainText('track 1 (select)');
         await player.evaluate(element => element.pause());
     });
@@ -178,9 +178,9 @@ test.describe('image-view', () => {
     test('zooms with the keys and moves with the arrows', async ({page}) => {
         await open(page);
         const view = page.getByTestId('media-image-view');
-        const viewport = view.locator('.viewport');
+        const viewport = view.locator('.zest-viewport');
         await expect.poll(() => view.evaluate(element => element.image.naturalWidth)).toBe(640);
-        const level = view.locator('.level');
+        const level = view.locator('.zest-level');
         const start = await level.textContent();
         await viewport.focus();
         await page.keyboard.press('+');
@@ -192,12 +192,12 @@ test.describe('image-view', () => {
         expect((await prop(view, 'offset')).x).toBeLessThan(before.x);
         await page.keyboard.press('0');
         await expect(level).toHaveText(start);
-        await expect(view.locator('.fit-contain')).toHaveAttribute('aria-pressed', 'true');
+        await expect(view.locator('.zest-fit-contain')).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('the height of the image does not change the size of the buttons', async ({page}) => {
         await open(page);
-        const tools = page.getByTestId('media-image-view').locator('.tools');
+        const tools = page.getByTestId('media-image-view').locator('.zest-tools');
         const button = await tools.getByRole('button', {name: 'Zoom in'}).boundingBox();
         expect(button.height).toBeLessThan(60);
         expect((await tools.boundingBox()).height).toBeLessThan(120);
@@ -209,7 +209,7 @@ test.describe('image-view', () => {
         await view.scrollIntoViewIfNeeded();
         await expect.poll(() => view.evaluate(element => element.image.naturalWidth)).toBe(640);
         // A real Ctrl and wheel zooms the browser in some environments, so the test sends the event itself
-        const result = await view.locator('.viewport').evaluate((viewport) => {
+        const result = await view.locator('.zest-viewport').evaluate((viewport) => {
             const rect = viewport.getBoundingClientRect();
             const event = new WheelEvent('wheel', {deltaY: -300, ctrlKey: true, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true});
             viewport.dispatchEvent(event);
@@ -218,7 +218,7 @@ test.describe('image-view', () => {
         expect(result).toBe(true);
         expect(await prop(view, 'zoom')).toBeGreaterThan(1.5);
         // A wheel with no Ctrl scrolls the page, and does not zoom
-        const plain = await view.locator('.viewport').evaluate((viewport) => {
+        const plain = await view.locator('.zest-viewport').evaluate((viewport) => {
             const event = new WheelEvent('wheel', {deltaY: -300, bubbles: true, cancelable: true});
             viewport.dispatchEvent(event);
             return event.defaultPrevented;

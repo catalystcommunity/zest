@@ -62,3 +62,6 @@ export {
     ComboBox, ShadowComboBox,
     ListBox, ShadowListBox,
 };
+
+// Implicit submission for a field that is not a native input of the form
+export { defaultButton, submitImplicitly } from "./form-control.js";

@@ -48,8 +48,18 @@ export function parseMnemonic(label = '') {
     return {text, mnemonic};
 }
 
-function labelContent(label) {
-    const {text, mnemonic} = parseMnemonic(label);
+// Doubles each '&' of a text, so that a label from user data, such as "R&D", shows each '&' and has no mnemonic
+export function escapeMnemonic(text = '') {
+    return String(text ?? '').replaceAll('&', '&&');
+}
+
+// The text and the mnemonic of a label. With mnemonic false, each '&' is a plain '&'.
+function readLabel(label, mnemonic = true) {
+    return mnemonic ? parseMnemonic(label) : {text: String(label ?? ''), mnemonic: null};
+}
+
+function labelContent(label, useMnemonic = true) {
+    const {text, mnemonic} = readLabel(label, useMnemonic);
     const fragment = document.createDocumentFragment();
     if (!mnemonic) {
         fragment.append(text);
@@ -87,7 +97,7 @@ const converted = new WeakMap();
 function toAction(definition) {
     if (definition instanceof Action) { return definition; }
     if (!converted.has(definition)) {
-        const id = definition.id ?? parseMnemonic(definition.label).text;
+        const id = definition.id ?? readLabel(definition.label, definition.mnemonic !== false).text;
         converted.set(definition, new Action({...definition, id}));
     }
     return converted.get(definition);
@@ -95,6 +105,7 @@ function toAction(definition) {
 
 // The data of a menu: an Action, {action}, {label, shortcut, run}, {separator: true}, or a
 // submenu {label, items} or {action, items}. Separators at the ends or next to each other go away.
+// mnemonic: false on an item shows each '&' of its label as text.
 export function menuEntries(items = []) {
     const entries = [];
     for (const item of items ?? []) {
@@ -111,6 +122,7 @@ export function menuEntries(items = []) {
             entry = {type: 'action', action: toAction(item.action ?? item)};
         }
         if (entry.type === 'separator' && (!entries.length || entries.at(-1).type === 'separator')) { continue; }
+        if (entry.type !== 'separator') { entry.mnemonic = item.mnemonic !== false && item.action?.mnemonic !== false; }
         entries.push(entry);
     }
     while (entries.at(-1)?.type === 'separator') { entries.pop(); }
@@ -128,6 +140,8 @@ export function menuActions(items = []) {
 }
 
 const labelOf = (entry) => (entry.type === 'submenu' ? entry.label || entry.action?.label : entry.action.label) ?? '';
+// The text and the mnemonic of an entry, in a menu that has mnemonics on or off
+const entryLabel = (entry, mnemonics = true) => readLabel(labelOf(entry), mnemonics && entry.mnemonic !== false);
 const isEntryDisabled = (entry) => entry.type === 'submenu' ? entry.disabled || entry.action?.enabled === false : !entry.action.enabled;
 
 // Keeps a set of actions, and calls a function when one of them changes
@@ -153,9 +167,10 @@ class ActionWatch {
 function updateMenuItem(item) {
     const entry = item._zestEntry;
     const action = entry.action;
-    item.querySelector('.label').replaceChildren(labelContent(labelOf(entry)));
-    setIcon(item.querySelector('.icon'), entry.icon ?? action?.icon);
-    const shortcut = item.querySelector('.shortcut');
+    const on = item._zestMnemonics !== false && entry.mnemonic !== false;
+    item.querySelector('.zest-label').replaceChildren(labelContent(labelOf(entry), on));
+    setIcon(item.querySelector('.zest-icon'), entry.icon ?? action?.icon);
+    const shortcut = item.querySelector('.zest-shortcut');
     if (entry.type === 'action') {
         item.setAttribute('role', action.checkable ? (action.group ? 'menuitemradio' : 'menuitemcheckbox') : 'menuitem');
         if (action.checkable) {
@@ -176,22 +191,24 @@ function updateMenuItem(item) {
     } else {
         item.removeAttribute('aria-disabled');
     }
-    item.dataset.mnemonic = parseMnemonic(labelOf(entry)).mnemonic?.key ?? '';
+    item.dataset.mnemonic = readLabel(labelOf(entry), on).mnemonic?.key ?? '';
 }
 
-function makeMenuItem(entry, className = 'item') {
+// mnemonics is false when the menu has mnemonics off
+function makeMenuItem(entry, className = 'zest-item', mnemonics = true) {
     const item = document.createElement('div');
     item.className = className;
     item.tabIndex = -1;
     item.id = nextId('item');
     item._zestEntry = entry;
+    item._zestMnemonics = mnemonics;
     // The shortcut is in aria-keyshortcuts, so the name of the item is only its label
-    const shortcut = span('shortcut');
+    const shortcut = span('zest-shortcut');
     shortcut.setAttribute('aria-hidden', 'true');
-    item.append(span('icon'), span('label'), shortcut);
+    item.append(span('zest-icon'), span('zest-label'), shortcut);
     item.setAttribute('role', 'menuitem');
     if (entry.type === 'submenu') {
-        item.classList.add('has-sub');
+        item.classList.add('zest-has-sub');
         item.setAttribute('aria-haspopup', 'menu');
         item.setAttribute('aria-expanded', 'false');
     }
@@ -204,6 +221,8 @@ class PopupMenu extends BaseComponent {
     static properties = {
         items: {type: Array, attribute: false, default: () => []},
         label: {type: String},
+        // Set mnemonics="false" to show each '&' of the labels as text. The submenus also get it.
+        mnemonics: {type: Boolean, default: true},
     };
     // The owner of the menu sets this: {owner, navigate(direction), closed(reason)}.
     // owner is an element where a pointer press does not close the menu, for example its button.
@@ -291,14 +310,15 @@ class PopupMenu extends BaseComponent {
                 separator.setAttribute('role', 'separator');
                 return separator;
             }
-            const item = makeMenuItem(entry);
+            const item = makeMenuItem(entry, 'zest-item', this.mnemonics);
             if (entry.type !== 'submenu') { return item; }
             const wrapper = document.createElement('div');
-            wrapper.className = 'entry';
+            wrapper.className = 'zest-entry';
             wrapper.setAttribute('role', 'none');
             const submenu = createElementOf(PopupMenu, 'popup-menu');
             submenu.items = entry.items;
-            submenu.label = parseMnemonic(labelOf(entry)).text;
+            submenu.label = entryLabel(entry, this.mnemonics).text;
+            submenu.mnemonics = this.mnemonics;
             submenu.parentMenu = this;
             item._zestSubmenu = submenu;
             item.setAttribute('aria-controls', submenu.menuElement.id);
@@ -361,15 +381,15 @@ class PopupMenu extends BaseComponent {
     #items() {
         const items = [];
         for (const child of this.#menu.children) {
-            if (child.classList.contains('item')) { items.push(child); }
-            if (child.classList.contains('entry')) { items.push(child.firstElementChild); }
+            if (child.classList.contains('zest-item')) { items.push(child); }
+            if (child.classList.contains('zest-entry')) { items.push(child.firstElementChild); }
         }
         return items;
     }
 
     // An item of this menu, not of a submenu
     #ownItem(target) {
-        const item = target?.closest?.('.item');
+        const item = target?.closest?.('.zest-item');
         return item && item.closest('.zest-popup-menu') === this.#menu ? item : null;
     }
 
@@ -529,6 +549,8 @@ class MenuBar extends BaseComponent {
         shortcutsFor: {type: String},
         // Alt alone moves the focus to the bar, as F10 does. Set alt-key="false" to turn it off.
         altKey: {type: Boolean, default: true},
+        // Set mnemonics="false" to show each '&' of the labels as text. Alt and a letter then open nothing.
+        mnemonics: {type: Boolean, default: true},
     };
     #bar;
     #roving;
@@ -588,6 +610,7 @@ class MenuBar extends BaseComponent {
     }
 
     propertyChanged(name) {
+        if (name === 'mnemonics') { this.#dirty = true; }
         if (name === 'items') {
             this.#dirty = true;
             this.#shortcuts = new ShortcutMap(menuActions(this.items));
@@ -662,7 +685,7 @@ class MenuBar extends BaseComponent {
     // Opens the menu at the index, or the one with the label
     openMenu(which = 0, focus = 'first') {
         const tops = this.#tops();
-        const index = typeof which === 'number' ? which : tops.findIndex(top => parseMnemonic(labelOf(top._zestEntry)).text === which);
+        const index = typeof which === 'number' ? which : tops.findIndex(top => entryLabel(top._zestEntry, this.mnemonics).text === which);
         this.#rememberFocus();
         this.#openAt(index, focus);
     }
@@ -679,17 +702,18 @@ class MenuBar extends BaseComponent {
         this.closeMenus();
         const entries = menuEntries(this.items).filter(entry => entry.type !== 'separator');
         const parts = entries.map((entry, index) => {
-            const top = makeMenuItem(entry, 'top');
-            top.classList.remove('has-sub');
-            top.querySelector('.shortcut').remove();
+            const top = makeMenuItem(entry, 'zest-top', this.mnemonics);
+            top.classList.remove('zest-has-sub');
+            top.querySelector('.zest-shortcut').remove();
             const wrapper = document.createElement('div');
             wrapper.setAttribute('role', 'none');
-            wrapper.className = 'entry';
+            wrapper.className = 'zest-entry';
             wrapper.append(top);
             if (entry.type === 'submenu') {
                 const menu = createElementOf(PopupMenu, 'popup-menu');
                 menu.items = entry.items;
-                menu.label = parseMnemonic(labelOf(entry)).text;
+                menu.label = entryLabel(entry, this.mnemonics).text;
+                menu.mnemonics = this.mnemonics;
                 menu.controller = {
                     owner: top,
                     navigate: (direction) => this.#step(index, direction),
@@ -724,7 +748,7 @@ class MenuBar extends BaseComponent {
     }
 
     #topOf(target) {
-        const top = target?.closest?.('.top');
+        const top = target?.closest?.('.zest-top');
         return top && top.parentElement?.parentElement === this.#bar ? top : null;
     }
 
@@ -867,6 +891,18 @@ function wireMenuButton(button, menu, placement) {
     return open;
 }
 
+// The text that a screen reader reads from the nodes. Text in an aria-hidden element does not count.
+function spokenText(nodes) {
+    let text = '';
+    for (const node of nodes) {
+        if (node.nodeType === Node.TEXT_NODE) { text += node.textContent; }
+        if (node.nodeType !== Node.ELEMENT_NODE || node.getAttribute('aria-hidden') === 'true') { continue; }
+        if (node.localName === 'img') { text += node.getAttribute('alt') ?? ''; }
+        text += spokenText(node.localName === 'slot' ? node.assignedNodes({flatten: true}) : node.childNodes);
+    }
+    return text.trim();
+}
+
 class MenuButton extends BaseComponent {
     static styles = css.menuButton;
     static properties = {
@@ -879,10 +915,14 @@ class MenuButton extends BaseComponent {
         moreLabel: {type: String, default: 'More options'},
         placement: {type: String, default: 'bottom-start'},
         disabled: {type: Boolean, reflect: true},
+        // Set mnemonics="false" to show each '&' of the labels as text, also in the menu
+        mnemonics: {type: Boolean, default: true},
     };
     #wrapper;
     #main;
     #toggle;
+    #content;
+    #slot = null;
     #menu;
     #watch;
     #open;
@@ -893,12 +933,15 @@ class MenuButton extends BaseComponent {
         this.#wrapper.className = 'zest-menu-button';
         this.#main = document.createElement('button');
         this.#main.type = 'button';
-        this.#main.className = 'main';
-        this.#main.append(span('icon'), span('label'));
+        this.#main.className = 'zest-main';
+        this.#main.append(span('zest-icon'), span('zest-label'));
         this.#toggle = document.createElement('button');
         this.#toggle.type = 'button';
-        this.#toggle.className = 'toggle';
-        this.#toggle.append(span('icon'), span('label'));
+        this.#toggle.className = 'zest-toggle';
+        this.#toggle.append(span('zest-icon'), span('zest-label'));
+        // The children of the application, as the face of the button in place of the icon and the label
+        this.#content = span('zest-content');
+        this.#content.hidden = true;
         this.#menu = createElementOf(PopupMenu, 'popup-menu');
         this.#open = wireMenuButton(this.#toggle, this.#menu, () => this.placement);
         this.#main.addEventListener('click', () => {
@@ -918,8 +961,32 @@ class MenuButton extends BaseComponent {
     connectedCallback() {
         super.connectedCallback();
         if (this.#wrapper.parentNode !== this.root) { this.root.append(this.#wrapper); }
+        if (this.root === this) {
+            // In the light DOM, children that the application adds later also go in the face
+            this.#takeContent();
+            const observer = new MutationObserver(() => {
+                if (this.#takeContent()) { this.#update(); }
+            });
+            observer.observe(this, {childList: true});
+            this.own(() => observer.disconnect());
+        } else if (!this.#slot) {
+            this.#slot = document.createElement('slot');
+            this.#slot.addEventListener('slotchange', () => this.#update());
+            this.#content.append(this.#slot);
+        }
         this.own(() => this.#watch.clear());
         this.render();
+    }
+
+    // Moves the children of the application into the face. Gives true if it moved one.
+    #takeContent() {
+        const nodes = [...this.childNodes].filter(node => node !== this.#wrapper && node.localName !== 'style');
+        this.#content.append(...nodes);
+        return nodes.length > 0;
+    }
+
+    #contentNodes() {
+        return this.#slot ? this.#slot.assignedNodes({flatten: true}) : [...this.#content.childNodes];
     }
 
     // Opens the menu, for example from a shortcut
@@ -941,28 +1008,42 @@ class MenuButton extends BaseComponent {
     render() {
         this.applyStyles();
         this.#menu.items = this.items;
-        this.#menu.label = parseMnemonic(this.label).text;
+        this.#menu.label = readLabel(this.label, this.mnemonics).text;
+        this.#menu.mnemonics = this.mnemonics;
         this.#watch.set(this.split ? [this.#defaultAction()] : []);
         this.#update();
     }
 
     #update() {
         const split = this.split;
-        this.#wrapper.classList.toggle('split', split);
+        const mnemonics = this.mnemonics;
+        this.#wrapper.classList.toggle('zest-split', split);
         this.#main.hidden = !split;
         const action = split ? this.#defaultAction() : null;
-        this.#main.querySelector('.label').replaceChildren(labelContent(action?.label ?? this.label));
-        setIcon(this.#main.querySelector('.icon'), action?.icon ?? this.icon);
+        // The face is the main part of a split button, or else the button that opens the menu
+        const face = split ? this.#main : this.#toggle;
+        const custom = this.#contentNodes().some(node => node.nodeType === Node.ELEMENT_NODE || node.textContent.trim());
+        if (this.#content.parentNode !== face) { face.append(this.#content); }
+        this.#content.hidden = !custom;
+        this.#wrapper.classList.toggle('zest-custom', custom);
+        const faceLabel = split ? (action?.label ?? this.label) : this.label;
+        this.#main.querySelector('.zest-label').replaceChildren(split && custom ? '' : labelContent(action?.label ?? this.label, mnemonics));
+        setIcon(this.#main.querySelector('.zest-icon'), split && !custom ? (action?.icon ?? this.icon) : null);
         this.#main.disabled = this.disabled || (action ? !action.enabled : false);
-        const toggleLabel = this.#toggle.querySelector('.label');
+        const toggleLabel = this.#toggle.querySelector('.zest-label');
         if (split) {
             toggleLabel.replaceChildren();
-            setIcon(this.#toggle.querySelector('.icon'), null);
+            setIcon(this.#toggle.querySelector('.zest-icon'), null);
             this.#toggle.setAttribute('aria-label', this.moreLabel);
         } else {
-            toggleLabel.replaceChildren(labelContent(this.label));
-            setIcon(this.#toggle.querySelector('.icon'), this.icon);
+            toggleLabel.replaceChildren(custom ? '' : labelContent(this.label, mnemonics));
+            setIcon(this.#toggle.querySelector('.zest-icon'), custom ? null : this.icon);
             this.#toggle.removeAttribute('aria-label');
+        }
+        // Content with no text, such as an image with no alt text, gets its name from the label
+        this.#main.removeAttribute('aria-label');
+        if (custom && !spokenText(this.#contentNodes())) {
+            face.setAttribute('aria-label', readLabel(faceLabel, mnemonics).text);
         }
         this.#toggle.disabled = this.disabled;
     }
@@ -977,8 +1058,8 @@ class ShadowMenuButton extends MenuButton {
     }
 }
 
-const toolTipText = (action) => {
-    const label = parseMnemonic(action.label).text;
+const toolTipText = (action, mnemonic = true) => {
+    const label = readLabel(action.label, mnemonic).text;
     const parts = [action.shortcut ? `${label} (${formatShortcut(action.shortcut)})` : label];
     if (action.description) { parts.push(action.description); }
     return parts.join(': ');
@@ -995,6 +1076,8 @@ class ToolBar extends BaseComponent {
         // The items go on more lines when they do not fit, in place of a "More" menu
         wrap: {type: Boolean},
         moreLabel: {type: String, default: 'More'},
+        // Set mnemonics="false" to show each '&' of the labels as text, also in the menus of the toolbar
+        mnemonics: {type: Boolean, default: true},
     };
     #bar;
     #roving;
@@ -1012,9 +1095,9 @@ class ToolBar extends BaseComponent {
         this.#bar.setAttribute('role', 'toolbar');
         this.#more = document.createElement('button');
         this.#more.type = 'button';
-        this.#more.className = 'more';
+        this.#more.className = 'zest-more';
         this.#more.hidden = true;
-        const moreIcon = span('icon');
+        const moreIcon = span('zest-icon');
         moreIcon.dataset.icon = '⋯';
         this.#more.append(moreIcon);
         this.#moreMenu = createElementOf(PopupMenu, 'popup-menu');
@@ -1031,7 +1114,7 @@ class ToolBar extends BaseComponent {
             if (changed.includes('label') || changed.includes('icon')) { this.#layout(); }
         });
         this.#bar.addEventListener('click', (e) => {
-            const tool = e.target.closest?.('button.tool');
+            const tool = e.target.closest?.('button.zest-tool');
             if (!tool || !this.#tools.includes(tool)) { return; }
             const entry = tool._zestEntry;
             if (entry.type !== 'action' || !entry.action.enabled) { return; }
@@ -1056,7 +1139,7 @@ class ToolBar extends BaseComponent {
     }
 
     propertyChanged(name) {
-        if (['items', 'iconsOnly'].includes(name)) { this.#dirty = true; }
+        if (['items', 'iconsOnly', 'mnemonics'].includes(name)) { this.#dirty = true; }
     }
 
     render() {
@@ -1064,10 +1147,11 @@ class ToolBar extends BaseComponent {
         const vertical = this.orientation === 'vertical';
         this.#bar.setAttribute('aria-label', this.label);
         this.#bar.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
-        this.#bar.classList.toggle('wrap', this.wrap);
-        this.#bar.classList.toggle('icons-only', this.iconsOnly);
+        this.#bar.classList.toggle('zest-wrap', this.wrap);
+        this.#bar.classList.toggle('zest-icons-only', this.iconsOnly);
         this.#more.setAttribute('aria-label', this.moreLabel);
         this.#moreMenu.label = this.moreLabel;
+        this.#moreMenu.mnemonics = this.mnemonics;
         if (this.#dirty) {
             this.#dirty = false;
             this.#removeTips();
@@ -1079,7 +1163,8 @@ class ToolBar extends BaseComponent {
             for (const tool of this.#tools) {
                 if (tool.localName === 'button' && tool._zestEntry.type === 'action' && (this.iconsOnly || tool._zestEntry.action.shortcut || tool._zestEntry.action.description)) {
                     const action = tool._zestEntry.action;
-                    this.#tips.push(attachToolTip(tool, () => toolTipText(action), {placement: vertical ? 'right' : 'bottom'}));
+                    const mnemonic = this.mnemonics && tool._zestEntry.mnemonic !== false;
+                    this.#tips.push(attachToolTip(tool, () => toolTipText(action, mnemonic), {placement: vertical ? 'right' : 'bottom'}));
                 }
             }
             this.#roving.update(this.#tools.find(tool => tool.localName === 'button') ?? this.#more);
@@ -1104,13 +1189,14 @@ class ToolBar extends BaseComponent {
         }
         const tool = document.createElement('button');
         tool.type = 'button';
-        tool.className = 'tool';
+        tool.className = 'zest-tool';
         tool._zestEntry = entry;
-        tool.append(span('icon'), span('label'));
+        tool.append(span('zest-icon'), span('zest-label'));
         if (entry.type === 'submenu') {
             const menu = createElementOf(PopupMenu, 'popup-menu');
             menu.items = entry.items;
-            menu.label = parseMnemonic(labelOf(entry)).text;
+            menu.label = entryLabel(entry, this.mnemonics).text;
+            menu.mnemonics = this.mnemonics;
             tool._zestMenu = menu;
             wireMenuButton(tool, menu, () => (vertical ? 'right-start' : 'bottom-start'));
         }
@@ -1121,10 +1207,10 @@ class ToolBar extends BaseComponent {
     #updateTool(tool) {
         const entry = tool._zestEntry;
         const action = entry.action;
-        const label = tool.querySelector('.label');
-        label.replaceChildren(labelContent(labelOf(entry)));
-        label.classList.toggle('sr', this.iconsOnly && Boolean(entry.icon ?? action?.icon));
-        setIcon(tool.querySelector('.icon'), entry.icon ?? action?.icon);
+        const label = tool.querySelector('.zest-label');
+        label.replaceChildren(labelContent(labelOf(entry), this.mnemonics && entry.mnemonic !== false));
+        label.classList.toggle('zest-sr', this.iconsOnly && Boolean(entry.icon ?? action?.icon));
+        setIcon(tool.querySelector('.zest-icon'), entry.icon ?? action?.icon);
         const disabled = isEntryDisabled(entry);
         if (disabled) {
             tool.setAttribute('aria-disabled', 'true');
@@ -1177,8 +1263,8 @@ class ToolBar extends BaseComponent {
         this.#moreMenu.items = hidden.map(tool => {
             const entry = tool._zestEntry;
             if (entry.type === 'separator') { return {separator: true}; }
-            if (entry.type === 'submenu') { return {label: entry.label, icon: entry.icon, items: entry.items, action: entry.action}; }
-            return entry.action;
+            if (entry.type === 'submenu') { return {label: entry.label, icon: entry.icon, items: entry.items, action: entry.action, mnemonic: entry.mnemonic}; }
+            return {action: entry.action, mnemonic: entry.mnemonic};
         });
         if (hidden.includes(activeElement())) { this.#roving.focus(this.#more); }
         this.#roving.update();
@@ -1298,7 +1384,7 @@ class ToolTip extends BaseComponent {
         if (!this.textContent.trim()) { return; }
         if (shownTip && shownTip !== this) { shownTip.hide(); }
         shownTip = this;
-        this.classList.add('shown');
+        this.classList.add('zest-shown');
         try { this.showPopover?.(); } catch { /* It is open already */ }
         placePopup(this, this.#target, {placement: this.placement, offset: 6});
         if (!this.#removeEscape) {
@@ -1319,7 +1405,7 @@ class ToolTip extends BaseComponent {
         this.#removeEscape?.();
         this.#removeEscape = null;
         if (shownTip === this) { shownTip = null; }
-        this.classList.remove('shown');
+        this.classList.remove('zest-shown');
         try { this.hidePopover?.(); } catch { /* It is closed already */ }
     }
 
@@ -1351,7 +1437,7 @@ function attachToolTip(element, text, {placement = 'top', delay = 500, container
 
 // A menu that opens with the context menu of the element: the right button, Shift+F10, or the
 // context menu key. items is the data, or a function that gets the event and gives the data.
-function attachContextMenu(element, items, {label = 'Context menu', container = containerOf(element)} = {}) {
+function attachContextMenu(element, items, {label = 'Context menu', container = containerOf(element), mnemonics = true} = {}) {
     let menu = null;
     let keyAt = -Infinity;
     const open = (e, position) => {
@@ -1362,6 +1448,7 @@ function attachContextMenu(element, items, {label = 'Context menu', container = 
             container.append(menu);
         }
         menu.label = label;
+        menu.mnemonics = mnemonics;
         menu.items = list;
         menu.controller = {owner: null};
         const opener = menu.isOpen ? null : (element.contains(activeElement()) || element === activeElement() ? activeElement() : element);
@@ -1436,15 +1523,15 @@ class NoticeArea extends BaseComponent {
         try { this.#box.showPopover?.(); } catch { /* It is open already */ }
     }
 
-    get notices() { return [...this.#box.querySelectorAll('.notice')]; }
+    get notices() { return [...this.#box.querySelectorAll('.zest-notice')]; }
 
     // Adds a notice. Returns {element, close(), closed}, where closed is a promise of the reason.
     add({text, kind = 'info', timeout = DEFAULT_TIMEOUT[kind] ?? 6000, action = null} = {}) {
         const notice = document.createElement('div');
-        notice.className = 'notice';
+        notice.className = 'zest-notice';
         notice.dataset.kind = kind;
-        const words = span('text');
-        const prefix = span('sr');
+        const words = span('zest-text');
+        const prefix = span('zest-sr');
         prefix.textContent = KIND_TEXT[kind] ?? '';
         words.append(prefix, String(text ?? ''));
         notice.append(words);
@@ -1477,8 +1564,8 @@ class NoticeArea extends BaseComponent {
             const run = action instanceof Action ? action : toAction(action);
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'action';
-            button.textContent = parseMnemonic(run.label).text;
+            button.className = 'zest-action';
+            button.textContent = readLabel(run.label, action.mnemonic !== false).text;
             button.addEventListener('click', () => {
                 run.trigger(button, {notice});
                 close('action');
@@ -1487,7 +1574,7 @@ class NoticeArea extends BaseComponent {
         }
         const dismiss = document.createElement('button');
         dismiss.type = 'button';
-        dismiss.className = 'dismiss';
+        dismiss.className = 'zest-dismiss';
         dismiss.setAttribute('aria-label', this.dismissLabel);
         dismiss.textContent = '✕';
         dismiss.addEventListener('click', () => close('dismiss'));
@@ -1502,7 +1589,7 @@ class NoticeArea extends BaseComponent {
             (kind === 'error' ? this.#assertive : this.#polite).append(notice);
             const extra = this.notices.length - this.max;
             for (const old of this.notices.filter(item => item.dataset.kind !== 'error').slice(0, Math.max(0, extra))) {
-                old.querySelector('.dismiss').click();
+                old.querySelector('.zest-dismiss').click();
             }
             start();
         };

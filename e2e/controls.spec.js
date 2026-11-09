@@ -35,7 +35,7 @@ test.describe('controls', () => {
         await wifi.locator('input').focus();
         await page.keyboard.press('Space');
         await expect(wifi.locator('input')).toBeChecked();
-        await expect(wifi.locator('.state')).toHaveText('On');
+        await expect(wifi.locator('.zest-state')).toHaveText('On');
         await page.getByTestId('check-shadow').getByText('In a shadow root').click();
         await expect(log(page)).toContainText('check-shadow change true');
     });
@@ -64,7 +64,7 @@ test.describe('controls', () => {
         await input.fill('not an email');
         await input.blur();
         await expect(input).toHaveAttribute('aria-invalid', 'true');
-        await expect(email.locator('.help')).toBeVisible();
+        await expect(email.locator('.zest-help')).toBeVisible();
         await input.fill('ada@example.com');
         await expect(input).not.toHaveAttribute('aria-invalid');
         const search = page.getByTestId('text-search').getByLabel('Search');
@@ -82,7 +82,7 @@ test.describe('controls', () => {
         await open(page);
         const area = page.getByTestId('area-count');
         await area.getByLabel('Comments').fill('Hello');
-        await expect(area.locator('.count')).toHaveText('5 of 120');
+        await expect(area.locator('.zest-count')).toHaveText('5 of 120');
     });
 
     test('a spin box steps with the keys in its locale, and a button repeats while it is held', async ({page}) => {
@@ -93,7 +93,7 @@ test.describe('controls', () => {
         await expect(weight).toHaveValue('1.234,75');
         await expect(log(page)).toContainText('spin-weight change 1234.75');
         const quantity = page.getByTestId('spin-quantity');
-        const up = quantity.locator('.steps button').first();
+        const up = quantity.locator('.zest-steps button').first();
         await up.scrollIntoViewIfNeeded();
         const box = await up.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -114,7 +114,7 @@ test.describe('controls', () => {
     test('a slider follows a drag and the keys', async ({page}) => {
         await open(page);
         const volume = page.getByTestId('slider-volume');
-        const area = volume.locator('.area');
+        const area = volume.locator('.zest-area');
         await area.scrollIntoViewIfNeeded();
         const box = await area.boundingBox();
         await page.mouse.move(box.x + 2, box.y + box.height / 2);
@@ -128,7 +128,7 @@ test.describe('controls', () => {
         expect(value).toBeLessThan(90);
         await page.keyboard.press('Home');
         await expect(thumb).toHaveAttribute('aria-valuenow', '0');
-        await expect(volume.locator('.value')).toHaveText('0 %');
+        await expect(volume.locator('.zest-value')).toHaveText('0 %');
         const rating = page.getByRole('slider', {name: 'Rating'});
         await rating.focus();
         await page.keyboard.press('ArrowRight');
@@ -210,6 +210,77 @@ test.describe('controls', () => {
         await expect(page.getByTestId('form-subscribe').locator('input')).not.toBeChecked();
         await expect(page.getByTestId('form-plan').getByRole('radio', {name: 'Team'})).toHaveAttribute('aria-checked', 'false');
         await expect(toppings.locator('[aria-selected="true"]')).toHaveCount(0);
+    });
+
+    // Makes a form from HTML at the end of the page, and counts its submit events
+    const formFrom = async (page, html) => {
+        await open(page);
+        await page.evaluate((markup) => {
+            const form = document.createElement('form');
+            form.dataset.testid = 'enter-form';
+            form.innerHTML = markup;
+            window.submits = 0;
+            form.addEventListener('submit', (e) => { e.preventDefault(); window.submits++; });
+            document.body.append(form);
+        }, html);
+        return page.getByTestId('enter-form');
+    };
+    const submits = (page) => page.evaluate(() => window.submits);
+
+    for (const prefix of ['', 'shadow-']) {
+        test(`Enter in a ${prefix}text-field clicks the first submit ${prefix}push-button`, async ({page}) => {
+            const form = await formFrom(page, `
+                <${prefix}text-field label="User" name="user"></${prefix}text-field>
+                <${prefix}text-field label="Password" type="password" name="password"></${prefix}text-field>
+                <${prefix}push-button type="submit">Sign in</${prefix}push-button>`);
+            await form.getByLabel('Password', {exact: true}).fill('secret');
+            await form.getByLabel('Password', {exact: true}).press('Enter');
+            await expect.poll(() => submits(page)).toBe(1);
+            // As in a native field, a modifier key does not change it
+            await form.getByLabel('User').press('Shift+Enter');
+            await expect.poll(() => submits(page)).toBe(2);
+        });
+    }
+
+    test('a disabled default button stops the implicit submission', async ({page}) => {
+        const form = await formFrom(page, `
+            <text-field label="User"></text-field>
+            <shadow-text-field label="Code"></shadow-text-field>
+            <push-button type="submit" disabled>Sign in</push-button>
+            <push-button type="submit">Other</push-button>`);
+        await form.getByLabel('User').press('Enter');
+        await form.getByLabel('Code').press('Enter');
+        await page.waitForTimeout(100);
+        expect(await submits(page)).toBe(0);
+    });
+
+    test('Enter in a native input finds a submit button in a shadow root', async ({page}) => {
+        const form = await formFrom(page, `
+            <label>User <input name="user"></label>
+            <label>Password <input name="password" type="password"></label>
+            <shadow-push-button type="submit">Sign in</shadow-push-button>`);
+        await form.getByLabel('Password', {exact: true}).press('Enter');
+        await expect.poll(() => submits(page)).toBe(1);
+    });
+
+    test('the host names and describes the inner control, also in a shadow root', async ({page, browserName}) => {
+        const form = await formFrom(page, `
+            <p id="rule">At least 12 characters</p>
+            <shadow-text-field label="Password" type="password" helper="Your new password" aria-describedby="rule"></shadow-text-field>
+            <text-field label="Light" aria-describedby="rule"></text-field>
+            <push-button aria-label="Remove row 3">Remove</push-button>
+            <shadow-push-button aria-label="Remove row 4">Remove</shadow-push-button>`);
+        await expect(form.getByRole('button', {name: 'Remove row 3'})).toHaveCount(1);
+        await expect(form.getByRole('button', {name: 'Remove row 4'})).toHaveCount(1);
+        await expect(form.getByLabel('Light')).toHaveAccessibleDescription('At least 12 characters');
+        // In a shadow root, the field refers to the page element through ariaDescribedByElements.
+        // Playwright computes descriptions without it, so read the accessibility tree of Chromium.
+        test.skip(browserName !== 'chromium', 'The accessibility tree comes from the Chromium protocol');
+        const cdp = await page.context().newCDPSession(page);
+        await expect.poll(async () => {
+            const {nodes} = await cdp.send('Accessibility.getFullAXTree');
+            return nodes.find(node => node.name?.value === 'Password' && node.role?.value === 'textbox')?.description?.value;
+        }).toBe('Your new password At least 12 characters');
     });
 
     test('the form restores its values when the user goes back to the page', async ({page}) => {

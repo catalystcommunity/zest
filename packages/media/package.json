@@ -4,6 +4,7 @@
   "description": "Media: video and audio players, a canvas view that draws one time per frame, and an image view with zoom.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/media#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

@@ -31,7 +31,7 @@ describe('PushButton', () => {
         expect(element.button.querySelector('img').getAttribute('alt')).toBe('');
         element.icon = '★';
         await settle();
-        expect(element.button.querySelector('.icon').textContent).toBe('★');
+        expect(element.button.querySelector('.zest-icon').textContent).toBe('★');
     });
 
     it('stays pressed in toggle mode, and sends input and change', async () => {
@@ -72,10 +72,10 @@ describe('PushButton', () => {
     it('accepts only a known variant', async () => {
         const element = make('push-button', {variant: 'primary'}, 'A');
         await settle();
-        expect(element.button.classList.contains('primary')).toBe(true);
+        expect(element.button.classList.contains('zest-primary')).toBe(true);
         element.variant = 'shiny';
         await settle();
-        expect(element.button.className).toBe('zest-push-button default');
+        expect(element.button.className).toBe('zest-push-button zest-default');
     });
 
     it('slots its children in a shadow root, and gives the focus to the inner button', async () => {
@@ -131,7 +131,7 @@ describe('CheckBox and ToggleSwitch', () => {
         element.formDisabledCallback(true);
         await settle();
         expect(element.input.disabled).toBe(true);
-        expect(element.wrapper.classList.contains('disabled')).toBe(true);
+        expect(element.wrapper.classList.contains('zest-disabled')).toBe(true);
     });
 
     it('a switch has the role switch, and shows its state as text when asked', async () => {
@@ -139,14 +139,14 @@ describe('CheckBox and ToggleSwitch', () => {
         await settle();
         expect(element).toBeInstanceOf(CheckBox);
         expect(element.input.getAttribute('role')).toBe('switch');
-        expect(element.wrapper.querySelector('.state').textContent).toBe('Off');
+        expect(element.wrapper.querySelector('.zest-state').textContent).toBe('Off');
         element.toggle();
         await settle();
-        expect(element.wrapper.classList.contains('on')).toBe(true);
-        expect(element.wrapper.querySelector('.state').textContent).toBe('On');
+        expect(element.wrapper.classList.contains('zest-on')).toBe(true);
+        expect(element.wrapper.querySelector('.zest-state').textContent).toBe('On');
         element.labels = {on: 'An', off: 'Aus'};
         await settle();
-        expect(element.wrapper.querySelector('.state').textContent).toBe('An');
+        expect(element.wrapper.querySelector('.zest-state').textContent).toBe('An');
     });
 });
 
@@ -169,7 +169,7 @@ describe('RadioGroup', () => {
         expect(element.radios.map(radio => radio.tabIndex)).toEqual([-1, -1, 0]);
         expect(element.radios.map(radio => radio.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
         expect(element.wrapper.getAttribute('role')).toBe('radiogroup');
-        expect(element.wrapper.querySelector('.legend').textContent).toBe('Delivery');
+        expect(element.wrapper.querySelector('.zest-legend').textContent).toBe('Delivery');
     });
 
     it('moves and selects with the arrows, and skips a disabled radio', async () => {
@@ -205,7 +205,7 @@ describe('RadioGroup', () => {
     it('makes its radios from options, and makes them again when the options change', async () => {
         const element = make('radio-group', {'.options': [{value: 's', label: 'Small'}, 'Medium']});
         await settle();
-        expect(element.radios.map(radio => radio.querySelector('.text').textContent)).toEqual(['Small', 'Medium']);
+        expect(element.radios.map(radio => radio.querySelector('.zest-text').textContent)).toEqual(['Small', 'Medium']);
         element.options = ['One'];
         await settle();
         expect(element.radios.map(radio => radio.value)).toEqual(['One']);
@@ -227,10 +227,10 @@ describe('RadioGroup', () => {
         const element = group({required: ''});
         await settle();
         expect(element.internals.flags).toEqual({valueMissing: true});
-        expect(element.wrapper.querySelector('.error').textContent).toBe('');
+        expect(element.wrapper.querySelector('.zest-error').textContent).toBe('');
         element.dispatchEvent(new Event('invalid'));
-        expect(element.wrapper.querySelector('.error').textContent).toBe('Select one.');
-        expect(element.wrapper.getAttribute('aria-describedby')).toBe(element.wrapper.querySelector('.error').id);
+        expect(element.wrapper.querySelector('.zest-error').textContent).toBe('Select one.');
+        expect(element.wrapper.getAttribute('aria-describedby')).toBe(element.wrapper.querySelector('.zest-error').id);
         element.radios[0].click();
         expect(element.internals.value).toBe('a');
         expect(element.internals.flags).toEqual({});

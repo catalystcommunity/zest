@@ -22,15 +22,15 @@ function make(attributes = {}, cells = {}) {
 }
 const grid = (sheet) => sheet.querySelector('[role="grid"]');
 const key = (sheet, init) => {
-    const target = sheet.editing ? sheet.querySelector('.editor') : grid(sheet);
+    const target = sheet.editing ? sheet.querySelector('.zest-editor') : grid(sheet);
     const event = new KeyboardEvent('keydown', {bubbles: true, cancelable: true, ...init});
     target.dispatchEvent(event);
     flushRenders();
     return event;
 };
-const type = (sheet, text) => { for (const char of text) { key(sheet, {key: char}); if (sheet.editing) { const editor = sheet.querySelector('.editor'); editor.value += ''; } } };
+const type = (sheet, text) => { for (const char of text) { key(sheet, {key: char}); if (sheet.editing) { const editor = sheet.querySelector('.zest-editor'); editor.value += ''; } } };
 const typeInEditor = (sheet, text) => {
-    const editor = sheet.querySelector('.editor');
+    const editor = sheet.querySelector('.zest-editor');
     editor.value += text;
     editor.dispatchEvent(new Event('input', {bubbles: true}));
 };
@@ -51,10 +51,10 @@ describe('the grid', () => {
         const sheet = make({}, {A1: '1,234.5', B1: {input: 'x', style: {bold: true}}, C1: '=1/0', D1: '=A1*2'});
         const cell = (col) => sheet.querySelector(`[aria-rowindex="2"] [aria-colindex="${col}"]`);
         expect(cell(2).textContent).toBe('1234.5');
-        expect(cell(2).classList.contains('number')).toBe(true);
-        expect(cell(3).classList.contains('bold')).toBe(true);
+        expect(cell(2).classList.contains('zest-number')).toBe(true);
+        expect(cell(3).classList.contains('zest-bold')).toBe(true);
         expect(cell(4)).toHaveProperty('textContent', '#DIV/0!');
-        expect(cell(4).classList.contains('error')).toBe(true);
+        expect(cell(4).classList.contains('zest-error')).toBe(true);
         expect(cell(5).textContent).toBe('2469');
     });
 
@@ -141,7 +141,7 @@ describe('the keyboard', () => {
         sheet.addEventListener('spreadsheet-change', changes);
         key(sheet, {key: '4'});
         expect(sheet.editing).toBe(true);
-        expect(sheet.querySelector('.editor').value).toBe('4');
+        expect(sheet.querySelector('.zest-editor').value).toBe('4');
         typeInEditor(sheet, '2');
         key(sheet, {key: 'Enter'});
         expect(sheet.editing).toBe(false);
@@ -158,7 +158,7 @@ describe('the keyboard', () => {
         expect(sheet.getValue('A1')).toBe('old');
         expect(document.activeElement).toBe(grid(sheet));
         key(sheet, {key: 'F2'});
-        expect(sheet.querySelector('.editor').value).toBe('old');
+        expect(sheet.querySelector('.zest-editor').value).toBe('old');
         typeInEditor(sheet, 'er');
         key(sheet, {key: 'Tab'});
         expect(sheet.getValue('A1')).toBe('older');
@@ -260,10 +260,10 @@ describe('the keyboard', () => {
         const sheet = make({}, {B1: '=1+1'});
         key(sheet, {key: 'ArrowRight'});
         vi.advanceTimersByTime(200);
-        expect(sheet.querySelector('.live').textContent).toBe('B1 2, formula =1+1');
+        expect(sheet.querySelector('.zest-live').textContent).toBe('B1 2, formula =1+1');
         key(sheet, {key: 'ArrowDown', shiftKey: true});
         vi.advanceTimersByTime(200);
-        expect(sheet.querySelector('.live').textContent).toBe('B1:B2 selected, 2 cells. B1 2');
+        expect(sheet.querySelector('.zest-live').textContent).toBe('B1:B2 selected, 2 cells. B1 2');
         vi.useRealTimers();
     });
 });
@@ -338,10 +338,10 @@ describe('the formula bar', () => {
         bar.setAttribute('for', 'budget');
         document.body.append(bar);
         sheet.selection = 'B2';
-        expect(bar.querySelector('.formula').value).toBe('hi');
+        expect(bar.querySelector('.zest-formula').value).toBe('hi');
         bar.remove();
         sheet.selection = 'A1';
-        expect(bar.querySelector('.formula').value).toBe('hi');
+        expect(bar.querySelector('.zest-formula').value).toBe('hi');
     });
 });
 

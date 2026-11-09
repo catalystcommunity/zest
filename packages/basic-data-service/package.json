@@ -4,6 +4,7 @@
   "description": "BasicDataService: As minimal a data API as we can make, evolving slowly.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/basic-data-service#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",
