@@ -113,6 +113,7 @@ function dialogsCard(log) {
     el('form-layout', {}, ...field('find-text', 'Find', el('input', {}))),
     el('button', {slot: 'buttons', value: 'close', type: 'button'}, 'Close'),
   );
+  const saving = savingDialog(log);
   const run = (name, start) => async () => log.add(`${name}: ${JSON.stringify(await start())}`);
   return card('containers-dialogs', 'Dialogs',
     el('div', {class: 'controls'},
@@ -121,10 +122,48 @@ function dialogsCard(log) {
       button('dialog-message', 'Message', run('message', () => showMessage({title: 'Done', text: 'The file is saved.'}))),
       button('dialog-error', 'Error', run('error', () => showMessage({title: 'Cannot open', text: 'The file is not there.', kind: 'error'}))),
       button('dialog-confirm', 'Confirm', run('confirm', () => askConfirm({title: 'Delete', text: 'Delete the file?', okLabel: 'Delete'}))),
+      button('dialog-confirm-danger', 'Confirm (danger)', run('danger', () => askConfirm({
+        title: 'Delete the project?', text: 'The project and its files go away. You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true,
+      }))),
+      button('dialog-open-saving', 'Save on a server', run('saving', () => saving.showModal())),
       button('dialog-ask', 'Ask for text', run('ask', () => askText({title: 'Rename', label: 'New name', value: 'notes.txt', required: true}))),
     ),
-    custom, modeless,
+    custom, modeless, saving,
   );
+}
+
+// A dialog that stays open while the application saves, and after an error. dialog-window-before-close
+// stops the close, and close() closes it after the save.
+function savingDialog(log) {
+  const fail = el('input', {type: 'checkbox', id: 'saving-fail', 'data-testid': 'dialog-saving-fail', checked: ''});
+  const status = el('p', {role: 'status', 'data-testid': 'dialog-saving-status', style: 'margin: 0; min-height: 1.5em'});
+  const dialog = el('dialog-window', {label: 'Rename the project', 'data-testid': 'dialog-saving'},
+    el('form-layout', {}, ...field('saving-name', 'Name', el('input', {value: 'Zest'}))),
+    el('p', {style: 'display: flex; align-items: center; gap: 0.5em'}, fail, el('label', {for: 'saving-fail'}, 'The server gives an error')),
+    status,
+    el('push-button', {slot: 'buttons', value: 'save', variant: 'primary', 'data-default': '', 'data-testid': 'dialog-saving-save'}, 'Save'),
+    el('push-button', {slot: 'buttons', value: 'cancel', 'data-testid': 'dialog-saving-cancel'}, 'Cancel'),
+  );
+  dialog.addEventListener('dialog-window-before-close', async (e) => {
+    log.add(`dialog-window-before-close ${JSON.stringify({value: e.detail.value, reason: e.detail.reason})}`);
+    if (e.detail.value !== 'save') {
+      status.textContent = '';
+      return;
+    }
+    e.preventDefault();
+    const save = e.detail.button;
+    save.disabled = true;
+    status.textContent = 'Saving…';
+    await new Promise(resolve => setTimeout(resolve, 300));
+    save.disabled = false;
+    if (fail.checked) {
+      status.textContent = 'Error: the server did not save the name. Try again.';
+      return;
+    }
+    status.textContent = '';
+    dialog.close('save');
+  });
+  return dialog;
 }
 
 function windowsCard(log) {

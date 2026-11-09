@@ -4,6 +4,7 @@
   "description": "DesignTokens: the colors, sizes, and spacing of the Zest design system, as CSS custom properties.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/design-tokens#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

@@ -4,6 +4,7 @@
   "description": "MenuLogo: A convenient way to add a top level item in a Zest menu where the logo goes.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/menu-logo#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

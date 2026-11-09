@@ -28,7 +28,7 @@ test.describe('each gallery page meets the standard', () => {
         test.setTimeout(60000);
         await page.goto('/bookings');
         await page.locator('date-time-picker input').click();
-        await expect(page.locator('.picker')).toBeVisible();
+        await expect(page.locator('.zest-picker')).toBeVisible();
         expect(await violations(page)).toEqual([]);
     });
 });
@@ -78,7 +78,7 @@ test.describe('the design tokens', () => {
     test('change for one part of the page when a parent sets a token', async ({page}) => {
         await tokensPage(page);
         const sample = page.getByTestId('tokens-override-sample').locator('date-time-picker');
-        const color = await sample.evaluate(element => getComputedStyle(element.querySelector('.dtp')).getPropertyValue('--_highlight'));
+        const color = await sample.evaluate(element => getComputedStyle(element.querySelector('.zest-date-time-picker')).getPropertyValue('--_highlight'));
         expect(color.trim()).toEqual('#7a2e8e');
     });
 });
@@ -89,7 +89,7 @@ test.describe('a user setting', () => {
         const input = page.locator('date-time-picker input');
         await input.focus();
         await page.keyboard.press('Tab');
-        const toggle = page.locator('date-time-picker .toggle');
+        const toggle = page.locator('date-time-picker .zest-toggle');
         await expect(toggle).toBeFocused();
         expect(await css(toggle, 'outlineStyle')).toEqual('solid');
         expect(await css(toggle, 'outlineWidth')).toEqual('2px');
@@ -98,7 +98,7 @@ test.describe('a user setting', () => {
     test('reduced motion removes each transition, and other users get a short one', async ({page}) => {
         await page.emulateMedia({reducedMotion: 'reduce'});
         await page.goto('/bookings');
-        const toggle = page.locator('date-time-picker .toggle');
+        const toggle = page.locator('date-time-picker .zest-toggle');
         expect(await css(toggle, 'transitionDuration')).toMatch(/^0s/);
         await page.emulateMedia({reducedMotion: 'no-preference'});
         expect(await css(toggle, 'transitionDuration')).toMatch(/^0\.12s/);
@@ -110,7 +110,7 @@ test.describe('a user setting', () => {
         const input = page.locator('date-time-picker input');
         await input.focus();
         await page.keyboard.press('Tab');
-        const toggle = page.locator('date-time-picker .toggle');
+        const toggle = page.locator('date-time-picker .zest-toggle');
         expect(await css(toggle, 'outlineWidth')).toEqual('3px');
         expect(await css(input, 'borderTopWidth')).toEqual('2px');
     });
@@ -120,9 +120,9 @@ test.describe('a user setting', () => {
         await page.goto('/gallery/design-tokens');
         const sample = page.getByTestId('tokens-light').locator('date-time-picker');
         await sample.locator('input').click();
-        const selected = sample.locator('.day.selected');
+        const selected = sample.locator('.zest-day.zest-selected');
         await expect(selected).toBeVisible();
-        const unselected = sample.locator('.day:not(.selected)').first();
+        const unselected = sample.locator('.zest-day:not(.zest-selected)').first();
         expect(await css(selected, 'backgroundColor')).not.toEqual(await css(unselected, 'backgroundColor'));
         expect(await css(selected, 'color')).not.toEqual(await css(selected, 'backgroundColor'));
     });
@@ -136,14 +136,14 @@ test.describe('shared styles', () => {
         expect(pickers).toBeGreaterThan(1);
         expect(before).toBeLessThan(pickers);
         expect(await page.locator('#page date-time-picker style').count()).toEqual(0);
-        await page.addStyleTag({content: 'date-time-picker .toggle { min-width: 77px; }'});
-        expect(await css(page.getByTestId('tokens-light').locator('.toggle'), 'minWidth')).toEqual('77px');
+        await page.addStyleTag({content: 'date-time-picker .zest-toggle { min-width: 77px; }'});
+        expect(await css(page.getByTestId('tokens-light').locator('.zest-toggle'), 'minWidth')).toEqual('77px');
     });
 
     test('addStyles reaches a picker that is already on the page', async ({page}) => {
         await page.goto('/gallery/design-tokens');
-        await page.evaluate(() => customElements.get('date-time-picker').addStyles('.dtp .toggle { min-width: 88px; }'));
-        expect(await css(page.getByTestId('tokens-light').locator('.toggle'), 'minWidth')).toEqual('88px');
+        await page.evaluate(() => customElements.get('date-time-picker').addStyles('.zest-date-time-picker .zest-toggle { min-width: 88px; }'));
+        expect(await css(page.getByTestId('tokens-light').locator('.zest-toggle'), 'minWidth')).toEqual('88px');
     });
 
     test('a shadow picker adopts the sheet in its own root, and has the open state', async ({page}) => {

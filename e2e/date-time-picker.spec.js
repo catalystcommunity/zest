@@ -11,7 +11,7 @@ test.describe('opening and closing', () => {
     for (const [name, testId] of [['light DOM', 'picker-initial'], ['shadow DOM', 'picker-shadow']]) {
         test(`${name}: opens on a click, closes on Escape and on a click outside`, async ({page}) => {
             const card = (await open(page)).getByTestId(testId);
-            const calendar = card.locator('.calendar');
+            const calendar = card.locator('.zest-date-time-picker-calendar');
             await expect(calendar).toBeHidden();
             await card.locator('input').click();
             await expect(calendar).toBeVisible();
@@ -19,44 +19,44 @@ test.describe('opening and closing', () => {
             await expect(calendar).toBeHidden();
             await expect(card.locator('input')).toBeFocused();
             await card.locator('input').click();
-            await calendar.locator('.month-name').click();
-            await expect(card.locator('.cells')).toBeVisible();
+            await calendar.locator('.zest-month-name').click();
+            await expect(card.locator('.zest-cells')).toBeVisible();
             await heading(page).click();
-            await expect(card.locator('.picker')).toBeHidden();
+            await expect(card.locator('.zest-picker')).toBeHidden();
         });
 
         test(`${name}: moves between months and selects a day`, async ({page}) => {
             const content = await open(page);
             const card = content.getByTestId(testId);
             await card.locator('input').click();
-            const before = await card.locator('.month-name').textContent();
-            await card.locator('.next-month').click();
-            await expect(card.locator('.month-name')).not.toHaveText(before);
-            await card.locator('.day:not(.other-month)[data-day="15"]').click();
-            await expect(card.locator('.calendar')).toBeHidden();
+            const before = await card.locator('.zest-month-name').textContent();
+            await card.locator('.zest-next-month').click();
+            await expect(card.locator('.zest-month-name')).not.toHaveText(before);
+            await card.locator('.zest-day:not(.zest-other-month)[data-day="15"]').click();
+            await expect(card.locator('.zest-date-time-picker-calendar')).toBeHidden();
             await expect(card.locator('input')).toHaveValue(/ 15, /);
             await expect(card.locator('input')).toBeFocused();
             await expect(content.getByTestId('picker-log')).toContainText('-15');
             await card.locator('input').click();
-            await expect(card.locator('.selected')).toHaveText('15');
+            await expect(card.locator('.zest-selected')).toHaveText('15');
         });
     }
 
     test('opens from the button, with focus on the grid, and the button closes it', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
-        await card.locator('.toggle').click();
-        await expect(card.locator('.day[tabindex="0"]')).toBeFocused();
-        await card.locator('.toggle').click();
-        await expect(card.locator('.calendar')).toBeHidden();
+        await card.locator('.zest-toggle').click();
+        await expect(card.locator('.zest-day[tabindex="0"]')).toBeFocused();
+        await card.locator('.zest-toggle').click();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeHidden();
     });
 
     test('closes when the focus goes to something outside', async ({page}) => {
         const content = await open(page);
         const card = content.getByTestId('picker-initial');
         await card.locator('input').click();
-        await expect(card.locator('.calendar')).toBeVisible();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
         await content.getByTestId('picker-data-element').locator('input').focus();
-        await expect(card.locator('.calendar')).toBeHidden();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeHidden();
     });
 });
 
@@ -64,7 +64,7 @@ test.describe('where the panel goes', () => {
     test('is not clipped by a box with overflow hidden', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-clipped');
         await card.locator('input').click();
-        const day = card.locator('.day[data-date="2024-03-30"]');
+        const day = card.locator('.zest-day[data-date="2024-03-30"]');
         await expect(day).toBeVisible();
         // A click at this point reaches the day only if the day is really on top there
         await day.click();
@@ -75,7 +75,7 @@ test.describe('where the panel goes', () => {
         const card = (await open(page)).getByTestId('picker-initial');
         const before = await card.boundingBox();
         await card.locator('input').click();
-        await expect(card.locator('.calendar')).toBeVisible();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
         expect((await card.boundingBox()).height).toEqual(before.height);
     });
 
@@ -88,7 +88,7 @@ test.describe('where the panel goes', () => {
             scroller.scrollTop += element.getBoundingClientRect().top - (window.innerHeight - 60);
         });
         await input.click();
-        const box = await card.locator('.picker').boundingBox();
+        const box = await card.locator('.zest-picker').boundingBox();
         const inputBox = await input.boundingBox();
         expect(box.y + box.height).toBeLessThanOrEqual(inputBox.y);
         expect(box.y).toBeGreaterThanOrEqual(0);
@@ -103,7 +103,7 @@ test.describe('where the panel goes', () => {
             scroller.scrollTop += element.getBoundingClientRect().top - 190;
         });
         await input.click();
-        const panel = card.locator('.picker');
+        const panel = card.locator('.zest-picker');
         const box = await panel.boundingBox();
         const inputBox = await input.boundingBox();
         expect(box.y >= inputBox.y + inputBox.height || box.y + box.height <= inputBox.y).toBe(true);
@@ -123,7 +123,7 @@ test.describe('where the panel goes', () => {
         await input.click();
         await page.evaluate(() => { document.getElementById('page').scrollTop += 30; });
         await expect.poll(async () => {
-            const panel = await card.locator('.picker').boundingBox();
+            const panel = await card.locator('.zest-picker').boundingBox();
             const field = await input.boundingBox();
             return Math.round(panel.y - (field.y + field.height));
         }).toEqual(4);
@@ -133,7 +133,7 @@ test.describe('where the panel goes', () => {
         await page.setViewportSize({width: 340, height: 600});
         const card = (await open(page)).getByTestId('picker-datetime');
         await card.locator('input').click();
-        const box = await card.locator('.picker').boundingBox();
+        const box = await card.locator('.zest-picker').boundingBox();
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(340);
         const overflow = await page.evaluate(() => document.getElementById('page').scrollWidth - document.getElementById('page').clientWidth);
@@ -145,12 +145,12 @@ test.describe('where the panel goes', () => {
         await content.getByTestId('picker-dialog-open').click();
         const dialog = content.getByTestId('picker-dialog');
         await dialog.locator('input').click();
-        await dialog.locator('.day[data-date="2024-03-20"]').click();
+        await dialog.locator('.zest-day[data-date="2024-03-20"]').click();
         await expect(dialog.locator('input')).toHaveValue('Mar 20, 2024');
         await dialog.locator('input').click();
-        await expect(dialog.locator('.calendar')).toBeVisible();
+        await expect(dialog.locator('.zest-date-time-picker-calendar')).toBeVisible();
         await page.keyboard.press('Escape');
-        await expect(dialog.locator('.calendar')).toBeHidden();
+        await expect(dialog.locator('.zest-date-time-picker-calendar')).toBeHidden();
         await expect(dialog).toBeVisible();
         await content.getByTestId('picker-dialog-close').click();
         await expect(dialog).toBeHidden();
@@ -158,13 +158,13 @@ test.describe('where the panel goes', () => {
 });
 
 test.describe('the keyboard', () => {
-    const focusedDate = (card) => card.locator('.day:focus').getAttribute('data-date');
+    const focusedDate = (card) => card.locator('.zest-day:focus').getAttribute('data-date');
 
     test('ArrowDown opens and goes to the grid, and the arrows, Home, End, and PageUp/Down move', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
         await card.locator('input').focus();
         await page.keyboard.press('ArrowDown');
-        await expect(card.locator('.calendar')).toBeVisible();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
         const steps = [
             ['ArrowRight', '2024-03-02'], ['ArrowDown', '2024-03-09'], ['ArrowLeft', '2024-03-08'], ['ArrowUp', '2024-03-01'],
             ['ArrowLeft', '2024-02-29'], ['Home', '2024-02-25'], ['End', '2024-03-02'], ['PageDown', '2024-04-02'],
@@ -174,7 +174,7 @@ test.describe('the keyboard', () => {
             await page.keyboard.press(key);
             await expect.poll(() => focusedDate(card), key).toEqual(expected);
         }
-        await expect(card.locator('.month-name')).toHaveText('March 2024');
+        await expect(card.locator('.zest-month-name')).toHaveText('March 2024');
     });
 
     test('Enter selects the focused day, and the focus goes back to the input', async ({page}) => {
@@ -191,11 +191,11 @@ test.describe('the keyboard', () => {
         const card = (await open(page)).getByTestId('picker-month');
         await card.locator('input').focus();
         await page.keyboard.press('ArrowDown');
-        await expect(card.locator('.cell:focus')).toHaveAttribute('data-date', '2024-03');
+        await expect(card.locator('.zest-cell:focus')).toHaveAttribute('data-date', '2024-03');
         await page.keyboard.press('ArrowRight');
-        await expect(card.locator('.cell:focus')).toHaveAttribute('data-date', '2024-04');
+        await expect(card.locator('.zest-cell:focus')).toHaveAttribute('data-date', '2024-04');
         await page.keyboard.press('ArrowDown');
-        await expect(card.locator('.cell:focus')).toHaveAttribute('data-date', '2024-07');
+        await expect(card.locator('.zest-cell:focus')).toHaveAttribute('data-date', '2024-07');
         await page.keyboard.press('Space');
         await expect(card.locator('input')).toHaveValue('July 2024');
     });
@@ -218,7 +218,7 @@ test.describe('the keyboard', () => {
         await page.keyboard.press('Enter');
         await page.keyboard.press('ArrowRight');
         await page.keyboard.press('ArrowRight');
-        await expect(card.locator('.in-range-preview')).toHaveCount(3);
+        await expect(card.locator('.zest-in-range-preview')).toHaveCount(3);
         await page.keyboard.press('Enter');
         await expect(card.locator('input')).toHaveValue('Mar 1, 2024 – Mar 3, 2024');
     });
@@ -227,10 +227,10 @@ test.describe('the keyboard', () => {
         const card = (await open(page)).getByTestId('picker-time-seconds');
         await card.locator('input').focus();
         await page.keyboard.press('ArrowDown');
-        const hour = card.locator('select.hour');
+        const hour = card.locator('select.zest-hour');
         await expect(hour).toBeFocused();
         await hour.selectOption('15');
-        await expect(card.locator('select.hour')).toBeFocused();
+        await expect(card.locator('select.zest-hour')).toBeFocused();
         await expect(card.locator('input')).toHaveValue(/15:45:10/);
     });
 });
@@ -258,7 +258,7 @@ test.describe('typing', () => {
         await input.fill('tomorrow');
         await input.press('Enter');
         const tomorrow = new Date(Date.now() + 86400000);
-        await expect(card.locator('.month-name')).toHaveText(new Intl.DateTimeFormat('en-US', {month: 'long', year: 'numeric'}).format(tomorrow));
+        await expect(card.locator('.zest-month-name')).toHaveText(new Intl.DateTimeFormat('en-US', {month: 'long', year: 'numeric'}).format(tomorrow));
     });
 
     test('accepts a time in each form', async ({page}) => {
@@ -286,7 +286,7 @@ test.describe('typing', () => {
         const card = (await open(page)).getByTestId('picker-no-typing');
         await expect(card.locator('input')).not.toBeEditable();
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
         await expect(card.locator('input')).toHaveValue('Mar 20, 2024');
     });
 });
@@ -297,13 +297,13 @@ test.describe('modes', () => {
             const content = await open(page);
             const card = content.getByTestId(testId);
             await card.locator('input').click();
-            await card.locator('.day[data-date="2024-03-20"]').click();
-            await expect(card.locator('.calendar')).toBeVisible();
-            await card.locator('select.hour').selectOption({label: '3'});
-            await card.locator('select.period').selectOption('pm');
+            await card.locator('.zest-day[data-date="2024-03-20"]').click();
+            await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
+            await card.locator('select.zest-hour').selectOption({label: '3'});
+            await card.locator('select.zest-period').selectOption('pm');
             await expect(content.getByTestId('picker-log')).toContainText('2024-03-20T15:00');
-            await card.locator('.done').click();
-            await expect(card.locator('.calendar')).toBeHidden();
+            await card.locator('.zest-done').click();
+            await expect(card.locator('.zest-date-time-picker-calendar')).toBeHidden();
             await expect(card.locator('input')).toHaveValue(/Mar 20, 2024.*3:00/);
         });
     }
@@ -311,11 +311,11 @@ test.describe('modes', () => {
     test('time: the steps and the limits show in the select elements', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-time-limits');
         await card.locator('input').click();
-        const hour = card.locator('select.hour');
+        const hour = card.locator('select.zest-hour');
         await expect(hour.locator('option[value="8"]')).toBeDisabled();
         await expect(hour.locator('option[value="9"]')).toBeEnabled();
         await expect(hour.locator('option[value="18"]')).toBeDisabled();
-        expect(await card.locator('select.minute option').allTextContents()).toEqual(['--', '00', '30']);
+        expect(await card.locator('select.zest-minute option').allTextContents()).toEqual(['--', '00', '30']);
     });
 
     test('time: a list and slots select and close', async ({page}) => {
@@ -324,10 +324,10 @@ test.describe('modes', () => {
         await list.locator('input').click();
         await list.locator('[data-time="14:30"]').click();
         await expect(list.locator('input')).toHaveValue('14:30');
-        await expect(list.locator('.picker')).toBeHidden();
+        await expect(list.locator('.zest-picker')).toBeHidden();
         const slots = content.getByTestId('picker-time-slots');
         await slots.locator('input').click();
-        await expect(slots.locator('.slot')).toHaveCount(4);
+        await expect(slots.locator('.zest-slot')).toHaveCount(4);
         await slots.locator('[data-time="10:30"]').click();
         await expect(slots.locator('input')).toHaveValue('10:30');
     });
@@ -340,10 +340,10 @@ test.describe('modes', () => {
         await expect(month.locator('input')).toHaveValue('July 2024');
         const week = content.getByTestId('picker-week');
         await week.locator('input').click();
-        await week.locator('.day[data-date="2024-03-13"]').click();
+        await week.locator('.zest-day[data-date="2024-03-13"]').click();
         await expect(week.locator('input')).toHaveValue('2024-W11');
         await week.locator('input').click();
-        await expect(week.locator('.day.selected')).toHaveCount(7);
+        await expect(week.locator('.zest-day.zest-selected')).toHaveCount(7);
         const year = content.getByTestId('picker-year');
         await year.locator('input').click();
         await year.locator('[data-date="2025"]').click();
@@ -353,12 +353,12 @@ test.describe('modes', () => {
     test('goes from the days to a year and a month, and comes back', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
         await card.locator('input').click();
-        await card.locator('.month-name').click();
-        await card.locator('.month-name').click();
+        await card.locator('.zest-month-name').click();
+        await card.locator('.zest-month-name').click();
         await card.locator('[data-date="2026"]').click();
         await card.locator('[data-date="2026-11"]').click();
-        await expect(card.locator('.month-name')).toHaveText('November 2026');
-        await expect(card.locator('.day[tabindex="0"]')).toBeFocused();
+        await expect(card.locator('.zest-month-name')).toHaveText('November 2026');
+        await expect(card.locator('.zest-day[tabindex="0"]')).toBeFocused();
     });
 });
 
@@ -367,37 +367,37 @@ test.describe('selection', () => {
         const content = await open(page);
         const card = content.getByTestId('picker-range');
         await card.locator('input').click();
-        await expect(card.locator('.calendar')).toHaveCount(2);
-        await card.locator('.day[data-date="2024-03-28"]').click();
-        await card.locator('.day[data-date="2024-04-03"]').hover();
-        await expect(card.locator('.in-range-preview')).toHaveCount(7);
-        await card.locator('.day[data-date="2024-04-03"]').click();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toHaveCount(2);
+        await card.locator('.zest-day[data-date="2024-03-28"]').click();
+        await card.locator('.zest-day[data-date="2024-04-03"]').hover();
+        await expect(card.locator('.zest-in-range-preview')).toHaveCount(7);
+        await card.locator('.zest-day[data-date="2024-04-03"]').click();
         await expect(card.locator('input')).toHaveValue('Mar 28, 2024 – Apr 3, 2024');
         await expect(content.getByTestId('picker-log')).toContainText('2024-03-28/2024-04-03');
         await card.locator('input').click();
-        await expect(card.locator('.in-range')).toHaveCount(5);
+        await expect(card.locator('.zest-in-range')).toHaveCount(5);
     });
 
     test('a range refuses what its limits do not allow', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-range-limits');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-18"]').click();
-        await card.locator('.day[data-date="2024-03-18"]').click();
-        await expect(card.locator('.calendar')).toBeVisible();
-        await card.locator('.day[data-date="2024-03-21"]').click();
-        await expect(card.locator('.calendar')).toBeVisible();
-        await card.locator('.day[data-date="2024-03-19"]').click();
+        await card.locator('.zest-day[data-date="2024-03-18"]').click();
+        await card.locator('.zest-day[data-date="2024-03-18"]').click();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
+        await card.locator('.zest-day[data-date="2024-03-21"]').click();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
+        await card.locator('.zest-day[data-date="2024-03-19"]').click();
         await expect(card.locator('input')).toHaveValue('Mar 18, 2024 – Mar 19, 2024');
     });
 
     test('multiple dates toggle', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-multiple');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-05"]').click();
-        await card.locator('.day[data-date="2024-03-06"]').click();
-        await card.locator('.day[data-date="2024-03-05"]').click();
-        await expect(card.locator('.day.selected')).toHaveCount(1);
-        await card.locator('.done').click();
+        await card.locator('.zest-day[data-date="2024-03-05"]').click();
+        await card.locator('.zest-day[data-date="2024-03-06"]').click();
+        await card.locator('.zest-day[data-date="2024-03-05"]').click();
+        await expect(card.locator('.zest-day.zest-selected')).toHaveCount(1);
+        await card.locator('.zest-done').click();
         await expect(card.locator('input')).toHaveValue('Mar 6, 2024');
     });
 
@@ -405,9 +405,9 @@ test.describe('selection', () => {
         const content = await open(page);
         const card = content.getByTestId('picker-range-datetime');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-05"]').click();
-        await card.locator('.day[data-date="2024-03-06"]').click();
-        await card.locator('.time-row[data-row="1"] select.hour').selectOption('17');
+        await card.locator('.zest-day[data-date="2024-03-05"]').click();
+        await card.locator('.zest-day[data-date="2024-03-06"]').click();
+        await card.locator('.zest-time-row[data-row="1"] select.zest-hour').selectOption('17');
         await expect(content.getByTestId('picker-log')).toContainText('2024-03-05T00:00/2024-03-06T17:00');
     });
 
@@ -415,11 +415,11 @@ test.describe('selection', () => {
         const card = (await open(page)).getByTestId('picker-limits');
         await card.locator('input').click();
         // force, because Playwright waits for an aria-disabled element to become enabled
-        await card.locator('.day[data-date="2024-03-16"]').click({force: true});
-        await card.locator('.day[data-date="2024-03-09"]').click({force: true});
+        await card.locator('.zest-day[data-date="2024-03-16"]').click({force: true});
+        await card.locator('.zest-day[data-date="2024-03-09"]').click({force: true});
         await expect(card.locator('input')).toHaveValue('');
-        await expect(card.locator('.prev-month')).toBeHidden();
-        await card.locator('.day[data-date="2024-03-15"]').click();
+        await expect(card.locator('.zest-prev-month')).toBeHidden();
+        await card.locator('.zest-day[data-date="2024-03-15"]').click();
         await expect(card.locator('input')).toHaveValue('Mar 15, 2024');
     });
 
@@ -433,9 +433,9 @@ test.describe('selection', () => {
     test('a daily window limits the time', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-window');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
         await expect(card.locator('input')).toHaveValue(/9:00|09:00/);
-        await expect(card.locator('select.hour option[value="8"]')).toBeDisabled();
+        await expect(card.locator('select.zest-hour option[value="8"]')).toBeDisabled();
     });
 });
 
@@ -443,21 +443,21 @@ test.describe('states', () => {
     test('disabled does not open, and read only shows its value', async ({page}) => {
         const content = await open(page);
         await expect(content.getByTestId('picker-disabled').locator('input')).toBeDisabled();
-        await expect(content.getByTestId('picker-disabled').locator('.toggle')).toBeDisabled();
+        await expect(content.getByTestId('picker-disabled').locator('.zest-toggle')).toBeDisabled();
         const readOnly = content.getByTestId('picker-readonly');
         await expect(readOnly.locator('input')).toHaveValue('Mar 15, 2024');
         await readOnly.locator('input').click();
-        await expect(readOnly.locator('.picker')).toBeHidden();
+        await expect(readOnly.locator('.zest-picker')).toBeHidden();
     });
 
     test('inline stays, with week numbers, and no input', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-inline');
-        await expect(card.locator('.calendar')).toBeVisible();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
         await expect(card.locator('input')).toBeHidden();
-        await expect(card.locator('.week-number[role="rowheader"]').first()).toBeVisible();
-        await card.locator('.day[data-date="2024-03-20"]').click();
-        await expect(card.locator('.calendar')).toBeVisible();
-        await expect(card.locator('.day[data-date="2024-03-20"]')).toHaveClass(/selected/);
+        await expect(card.locator('.zest-week-number[role="rowheader"]').first()).toBeVisible();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
+        await expect(card.locator('.zest-date-time-picker-calendar')).toBeVisible();
+        await expect(card.locator('.zest-day[data-date="2024-03-20"]')).toHaveClass(/\bzest-selected\b/);
     });
 });
 
@@ -465,16 +465,16 @@ test.describe('locale', () => {
     test('German: names, 24 hours, Monday first', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-german');
         await card.locator('input').click();
-        await expect(card.locator('.month-name')).toHaveText('März 2024');
-        await expect(card.locator('.weekday').first()).toHaveText('Mo');
-        await expect(card.locator('select.period')).toHaveCount(0);
-        await expect(card.locator('.now')).toHaveText('Jetzt');
+        await expect(card.locator('.zest-month-name')).toHaveText('März 2024');
+        await expect(card.locator('.zest-weekday').first()).toHaveText('Mo');
+        await expect(card.locator('select.zest-period')).toHaveCount(0);
+        await expect(card.locator('.zest-now')).toHaveText('Jetzt');
     });
 
     test('Japanese: reads back the long format that it writes', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-japanese');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
         const input = card.locator('input');
         await expect(input).toHaveValue('2024年3月20日');
         await input.fill('2024年4月2日');
@@ -485,17 +485,17 @@ test.describe('locale', () => {
     test('Arabic: its own digits, and the panel lines up on the right', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-arabic');
         await card.locator('input').click();
-        await expect(card.locator('.day[data-date="2024-03-15"]')).toHaveText('١٥');
+        await expect(card.locator('.zest-day[data-date="2024-03-15"]')).toHaveText('١٥');
         // In right to left the input comes first, on the right
         const input = await card.locator('input').boundingBox();
-        const panel = await card.locator('.picker').boundingBox();
+        const panel = await card.locator('.zest-picker').boundingBox();
         expect(Math.abs((panel.x + panel.width) - (input.x + input.width))).toBeLessThan(3);
     });
 
     test('ISO format', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-iso');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
         await expect(card.locator('input')).toHaveValue('2024-03-20');
     });
 });
@@ -510,8 +510,8 @@ for (const timezoneId of ['America/Los_Angeles', 'Pacific/Auckland', 'UTC']) {
             const card = content.getByTestId('picker-initial');
             await expect(card.locator('input')).toHaveAttribute('placeholder', 'Mar 15, 2024');
             await card.locator('input').click();
-            await expect(card.locator('.month-name')).toHaveText('March 2024');
-            await card.locator('.day[data-date="2024-03-31"]').click();
+            await expect(card.locator('.zest-month-name')).toHaveText('March 2024');
+            await card.locator('.zest-day[data-date="2024-03-31"]').click();
             await expect(content.getByTestId('picker-log')).toContainText('picker-initial: 2024-03-31');
             await expect(card.locator('input')).toHaveValue('Mar 31, 2024');
         });
@@ -532,7 +532,7 @@ test.describe('in America/New_York, when the clocks change', () => {
         const content = await open(page);
         const card = content.getByTestId('picker-datetime-shadow');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-10"]').click();
+        await card.locator('.zest-day[data-date="2024-03-10"]').click();
         await expect(content.getByTestId('picker-log')).toContainText('2024-03-10T00:00');
     });
 });
@@ -543,8 +543,8 @@ test.describe('the time zone select', () => {
         const card = content.getByTestId('picker-zone-select');
         const element = content.getByTestId('picker-zone-select-element');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
-        await card.locator('.time-zone-select').selectOption('Asia/Tokyo');
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-time-zone-select').selectOption('Asia/Tokyo');
         expect(await element.evaluate(picker => picker.value)).toEqual('2024-03-20T00:00');
         expect(await element.evaluate(picker => picker.valueAsDate.toISOString())).toEqual('2024-03-19T15:00:00.000Z');
     });
@@ -556,15 +556,15 @@ test.describe('data', () => {
         const card = content.getByTestId('picker-data');
         await expect(content.getByTestId('picker-data-log')).toContainText('register availability');
         await card.locator('input').click();
-        const full = card.locator('.day[data-date="2024-03-10"]');
+        const full = card.locator('.zest-day[data-date="2024-03-10"]');
         await expect(full).toHaveClass(/booked/);
         await expect(full).toHaveAttribute('aria-disabled', 'true');
         await expect(full).toHaveAttribute('title', 'Full');
-        await expect(card.locator('.day[data-date="2024-03-12"] .badge')).toHaveText('2');
-        await expect(card.locator('.day[data-date="2024-04-10"]')).toHaveCount(0);
-        await card.locator('.next-month').click();
+        await expect(card.locator('.zest-day[data-date="2024-03-12"] .zest-badge')).toHaveText('2');
+        await expect(card.locator('.zest-day[data-date="2024-04-10"]')).toHaveCount(0);
+        await card.locator('.zest-next-month').click();
         await expect(content.getByTestId('picker-data-log')).toContainText('load 2024-4');
-        await expect(card.locator('.day[data-date="2024-04-10"]')).toHaveClass(/booked/);
+        await expect(card.locator('.zest-day[data-date="2024-04-10"]')).toHaveClass(/booked/);
     });
 
     test('an EventBroker hears the picker, from anywhere on the page', async ({page}) => {
@@ -627,7 +627,7 @@ test.describe('forms', () => {
         const element = content.getByTestId('picker-form-element');
         await element.locator('input').focus();
         await page.keyboard.press('Tab');
-        await expect(element.locator('.toggle')).toBeFocused();
+        await expect(element.locator('.zest-toggle')).toBeFocused();
         await page.keyboard.press('Shift+Tab');
         await expect(element.locator('input')).toBeFocused();
         await page.keyboard.press('Shift+Tab');
@@ -660,15 +660,15 @@ test.describe('accessibility', () => {
     test('announces the month when it moves', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
         await card.locator('input').click();
-        await card.locator('.next-month').click();
-        await expect(card.locator('.live')).toHaveText('April 2024');
+        await card.locator('.zest-next-month').click();
+        await expect(card.locator('.zest-live')).toHaveText('April 2024');
     });
 
     test('marks the selected day', async ({page}) => {
         const card = (await open(page)).getByTestId('picker-initial');
         await card.locator('input').click();
-        await card.locator('.day[data-date="2024-03-20"]').click();
+        await card.locator('.zest-day[data-date="2024-03-20"]').click();
         await card.locator('input').click();
-        await expect(card.locator('.day[data-date="2024-03-20"]')).toHaveAttribute('aria-selected', 'true');
+        await expect(card.locator('.zest-day[data-date="2024-03-20"]')).toHaveAttribute('aria-selected', 'true');
     });
 });

@@ -20,19 +20,19 @@ slider-control, :host {
     min-width: 0;
     color: var(--_window-text);
 }
-.zest-slider .label {
+.zest-slider .zest-label {
     grid-area: label;
     font-weight: 600;
 }
-.zest-slider .value {
+.zest-slider .zest-value {
     grid-area: value;
     font-variant-numeric: tabular-nums;
     color: var(--_secondary-text);
 }
-.zest-slider .value:empty, .zest-slider .label:empty {
+.zest-slider .zest-value:empty, .zest-slider .zest-label:empty {
     display: none;
 }
-.zest-slider .area {
+.zest-slider .zest-area {
     grid-area: area;
     position: relative;
     min-height: var(--_thumb);
@@ -40,7 +40,7 @@ slider-control, :host {
     touch-action: none;
     cursor: pointer;
 }
-.zest-slider .track {
+.zest-slider .zest-track {
     position: absolute;
     inset-inline: 0;
     inset-block-start: calc(50% - var(--_track) / 2);
@@ -50,7 +50,7 @@ slider-control, :host {
     border-radius: var(--_track);
     box-sizing: border-box;
 }
-.zest-slider .fill {
+.zest-slider .zest-fill {
     position: absolute;
     inset-inline-start: 0;
     inset-block: calc(var(--_border-width) * -1);
@@ -58,7 +58,7 @@ slider-control, :host {
     background: var(--_highlight);
     border-radius: inherit;
 }
-.zest-slider .thumb {
+.zest-slider .zest-thumb {
     position: absolute;
     inset-block-start: calc(50% - var(--_thumb) / 2);
     inset-inline-start: calc(var(--_pos) * 100% - var(--_thumb) / 2);
@@ -70,25 +70,25 @@ slider-control, :host {
     border-radius: 50%;
     cursor: grab;
 }
-.zest-slider .thumb:focus-visible {
+.zest-slider .zest-thumb:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.zest-slider .ticks {
+.zest-slider .zest-ticks {
     position: absolute;
     inset-inline: 0;
     inset-block-start: calc(50% + var(--_track));
     height: 0.5em;
     pointer-events: none;
 }
-.zest-slider .tick {
+.zest-slider .zest-tick {
     position: absolute;
     inset-inline-start: calc(var(--_at) * 100%);
     width: 1px;
     height: 0.375em;
     background: var(--_border);
 }
-.zest-slider .marks {
+.zest-slider .zest-marks {
     grid-area: auto / 1 / auto / -1;
     position: relative;
     min-height: 1.5em;
@@ -96,88 +96,88 @@ slider-control, :host {
     font-size: 0.875em;
     color: var(--_secondary-text);
 }
-.zest-slider .marks:empty {
+.zest-slider .zest-marks:empty {
     display: none;
 }
-.zest-slider .mark {
+.zest-slider .zest-mark {
     position: absolute;
     inset-inline-start: calc(var(--_at) * 100%);
     translate: -50%;
     white-space: nowrap;
 }
-.zest-slider .mark:first-child {
+.zest-slider .zest-mark:first-child {
     translate: 0;
     inset-inline-start: calc(var(--_thumb) / -2);
 }
-.zest-slider .mark:last-child {
+.zest-slider .zest-mark:last-child {
     translate: 0;
     inset-inline-start: auto;
     inset-inline-end: calc(var(--_thumb) / -2);
 }
-.zest-slider.vertical {
+.zest-slider.zest-vertical {
     grid-template-columns: auto auto;
     grid-template-areas: "label label" "area marks" "value value";
     justify-content: start;
 }
-.zest-slider.vertical .area {
+.zest-slider.zest-vertical .zest-area {
     width: var(--_thumb);
     min-height: var(--_length, 10em);
     margin-inline: 0;
     margin-block: calc(var(--_thumb) / 2);
 }
-.zest-slider.vertical .track {
+.zest-slider.zest-vertical .zest-track {
     inset-inline: auto;
     inset-inline-start: calc(50% - var(--_track) / 2);
     inset-block: 0;
     width: var(--_track);
     height: auto;
 }
-.zest-slider.vertical .fill {
+.zest-slider.zest-vertical .zest-fill {
     inset-inline: calc(var(--_border-width) * -1);
     inset-block: auto calc(var(--_border-width) * -1);
     width: auto;
     height: calc(var(--_pos) * 100%);
 }
-.zest-slider.vertical .thumb {
+.zest-slider.zest-vertical .zest-thumb {
     inset-inline-start: calc(50% - var(--_thumb) / 2);
     inset-block-start: calc((1 - var(--_pos)) * 100% - var(--_thumb) / 2);
 }
-.zest-slider.vertical .ticks, .zest-slider.vertical .tick {
+.zest-slider.zest-vertical .zest-ticks, .zest-slider.zest-vertical .zest-tick {
     display: none;
 }
-.zest-slider.vertical .marks {
+.zest-slider.zest-vertical .zest-marks {
     grid-area: marks;
     min-height: auto;
     min-width: 2em;
     margin-inline: 0;
     margin-block: calc(var(--_thumb) / 2);
 }
-.zest-slider.vertical .mark, .zest-slider.vertical .mark:first-child, .zest-slider.vertical .mark:last-child {
+.zest-slider.zest-vertical .zest-mark, .zest-slider.zest-vertical .zest-mark:first-child, .zest-slider.zest-vertical .zest-mark:last-child {
     inset-inline-start: 0;
     inset-inline-end: auto;
     inset-block-start: calc((1 - var(--_at)) * 100%);
     translate: 0 -50%;
 }
-.zest-slider.disabled {
+.zest-slider.zest-disabled {
     color: var(--_disabled-text);
 }
-.zest-slider.disabled .area {
+.zest-slider.zest-disabled .zest-area {
     cursor: default;
 }
-.zest-slider.disabled .fill {
+.zest-slider.zest-disabled .zest-fill {
     background: var(--_disabled-text);
 }
-.zest-slider.disabled .thumb {
+.zest-slider.zest-disabled .zest-thumb {
     border-color: var(--_disabled-text);
     border-style: dashed;
     cursor: default;
 }
 @media (forced-colors: active) {
-    .zest-slider .fill {
+    .zest-slider .zest-fill {
         background: Highlight;
         forced-color-adjust: none;
     }
-    .zest-slider .thumb {
+    .zest-slider .zest-thumb {
         border-color: ButtonText;
     }
 }
@@ -216,18 +216,17 @@ export class SliderControl extends FormControl {
     build() {
         this.wrapper = Object.assign(document.createElement('div'), {className: 'zest-slider'});
         this.wrapper.part = 'control';
-        this.#label = Object.assign(document.createElement('span'), {className: 'label', id: uniqueId('slider-label')});
-        this.#value = Object.assign(document.createElement('span'), {className: 'value'});
+        this.#label = Object.assign(document.createElement('span'), {className: 'zest-label', id: uniqueId('slider-label')});
+        this.#value = Object.assign(document.createElement('span'), {className: 'zest-value'});
         this.#value.setAttribute('aria-hidden', 'true');
-        this.#area = Object.assign(document.createElement('div'), {className: 'area'});
-        const track = Object.assign(document.createElement('div'), {className: 'track'});
-        track.append(Object.assign(document.createElement('div'), {className: 'fill'}));
-        this.#ticks = Object.assign(document.createElement('div'), {className: 'ticks'});
-        this.thumb = Object.assign(document.createElement('div'), {className: 'thumb', tabIndex: 0});
+        this.#area = Object.assign(document.createElement('div'), {className: 'zest-area'});
+        const track = Object.assign(document.createElement('div'), {className: 'zest-track'});
+        track.append(Object.assign(document.createElement('div'), {className: 'zest-fill'}));
+        this.#ticks = Object.assign(document.createElement('div'), {className: 'zest-ticks'});
+        this.thumb = Object.assign(document.createElement('div'), {className: 'zest-thumb', tabIndex: 0});
         this.thumb.setAttribute('role', 'slider');
-        this.thumb.setAttribute('aria-labelledby', this.#label.id);
         this.thumb.part = 'thumb';
-        this.#marks = Object.assign(document.createElement('div'), {className: 'marks'});
+        this.#marks = Object.assign(document.createElement('div'), {className: 'zest-marks'});
         this.#marks.setAttribute('aria-hidden', 'true');
         this.#area.append(track, this.#ticks, this.thumb);
         this.wrapper.append(this.#label, this.#value, this.#area, this.#marks);
@@ -326,11 +325,12 @@ export class SliderControl extends FormControl {
         const span = this.max - this.min || 1;
         const position = (value - this.min) / span;
         this.wrapper.style.setProperty('--_pos', String(Math.max(0, Math.min(1, position))));
-        this.wrapper.classList.toggle('vertical', this.vertical);
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        this.wrapper.classList.toggle('zest-vertical', this.vertical);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         this.#label.textContent = this.label;
         const thumb = this.thumb;
-        if (!this.label && this.getAttribute('aria-label')) { thumb.setAttribute('aria-label', this.getAttribute('aria-label')); }
+        this.nameInner(thumb, {labelledBy: this.label ? this.#label.id : null});
+        this.describe([], thumb);
         thumb.setAttribute('aria-valuemin', this.min);
         thumb.setAttribute('aria-valuemax', this.max);
         thumb.setAttribute('aria-valuenow', value);
@@ -358,7 +358,7 @@ export class SliderControl extends FormControl {
             this.#ticks.replaceChildren();
             if (this.ticks) {
                 for (let i = 0; i <= count; i += every) {
-                    const tick = Object.assign(document.createElement('span'), {className: 'tick'});
+                    const tick = Object.assign(document.createElement('span'), {className: 'zest-tick'});
                     tick.style.setProperty('--_at', String(i / count));
                     this.#ticks.append(tick);
                 }
@@ -369,7 +369,7 @@ export class SliderControl extends FormControl {
         if (markKey !== this.#drawn.marks) {
             this.#drawn.marks = markKey;
             this.#marks.replaceChildren(...marks.map(mark => {
-                const element = Object.assign(document.createElement('span'), {className: 'mark', textContent: mark.label ?? String(mark.value)});
+                const element = Object.assign(document.createElement('span'), {className: 'zest-mark', textContent: mark.label ?? String(mark.value)});
                 element.style.setProperty('--_at', String((mark.value - this.min) / span));
                 return element;
             }));
@@ -395,23 +395,23 @@ progress-bar, :host {
     gap: 0.25em;
     color: var(--_window-text);
 }
-.zest-progress .head {
+.zest-progress .zest-head {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     gap: var(--_gap);
 }
-.zest-progress .label {
+.zest-progress .zest-label {
     font-weight: 600;
 }
-.zest-progress .text {
+.zest-progress .zest-text {
     font-variant-numeric: tabular-nums;
     color: var(--_secondary-text);
 }
-.zest-progress .label:empty, .zest-progress .text:empty, .zest-progress .head:has(.label:empty + .text:empty) {
+.zest-progress .zest-label:empty, .zest-progress .zest-text:empty, .zest-progress .zest-head:has(.zest-label:empty + .zest-text:empty) {
     display: none;
 }
-.zest-progress .bar {
+.zest-progress .zest-bar {
     position: relative;
     overflow: hidden;
     box-sizing: border-box;
@@ -420,7 +420,7 @@ progress-bar, :host {
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.zest-progress .fill {
+.zest-progress .zest-fill {
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
@@ -428,7 +428,7 @@ progress-bar, :host {
     background: var(--_highlight);
     transition: width var(--_motion);
 }
-.zest-progress.indeterminate .fill {
+.zest-progress.zest-indeterminate .zest-fill {
     width: 35%;
     background: repeating-linear-gradient(-45deg, var(--_highlight) 0 0.5em, color-mix(in srgb, var(--_highlight) 60%, var(--_window)) 0.5em 1em);
     animation: zest-progress-move 1.4s ease-in-out infinite;
@@ -439,13 +439,13 @@ progress-bar, :host {
 }
 /* With reduced motion, the bar does not move. Stripes on all of it show that work continues. */
 @media (prefers-reduced-motion: reduce) {
-    .zest-progress.indeterminate .fill {
+    .zest-progress.zest-indeterminate .zest-fill {
         width: 100%;
         animation: none;
     }
 }
 @media (forced-colors: active) {
-    .zest-progress .fill {
+    .zest-progress .zest-fill {
         background: Highlight;
         forced-color-adjust: none;
     }
@@ -474,15 +474,15 @@ export class ProgressBar extends ZestElement {
     build() {
         this.wrapper = Object.assign(document.createElement('div'), {className: 'zest-progress'});
         this.wrapper.part = 'control';
-        const head = Object.assign(document.createElement('div'), {className: 'head'});
-        this.#label = Object.assign(document.createElement('span'), {className: 'label', id: uniqueId('progress-label')});
-        this.#text = Object.assign(document.createElement('span'), {className: 'text'});
+        const head = Object.assign(document.createElement('div'), {className: 'zest-head'});
+        this.#label = Object.assign(document.createElement('span'), {className: 'zest-label', id: uniqueId('progress-label')});
+        this.#text = Object.assign(document.createElement('span'), {className: 'zest-text'});
         this.#text.setAttribute('aria-hidden', 'true');
         head.append(this.#label, this.#text);
-        this.bar = Object.assign(document.createElement('div'), {className: 'bar'});
+        this.bar = Object.assign(document.createElement('div'), {className: 'zest-bar'});
         this.bar.setAttribute('role', 'progressbar');
         this.bar.part = 'bar';
-        this.#fill = Object.assign(document.createElement('div'), {className: 'fill'});
+        this.#fill = Object.assign(document.createElement('div'), {className: 'zest-fill'});
         this.bar.append(this.#fill);
         this.wrapper.append(head, this.bar);
         this.root.append(this.wrapper);
@@ -492,15 +492,11 @@ export class ProgressBar extends ZestElement {
         const max = this.max > 0 ? this.max : 100;
         const indeterminate = this.indeterminate;
         const fraction = indeterminate ? 0 : Math.max(0, Math.min(1, this.value / max));
-        this.wrapper.classList.toggle('indeterminate', indeterminate);
+        this.wrapper.classList.toggle('zest-indeterminate', indeterminate);
         this.wrapper.style.setProperty('--_pos', String(fraction));
         this.#label.textContent = this.label;
-        if (this.label) {
-            this.bar.setAttribute('aria-labelledby', this.#label.id);
-        } else {
-            this.bar.removeAttribute('aria-labelledby');
-            if (this.getAttribute('aria-label')) { this.bar.setAttribute('aria-label', this.getAttribute('aria-label')); }
-        }
+        this.nameInner(this.bar, {labelledBy: this.label ? this.#label.id : null});
+        this.describe([], this.bar);
         const text = indeterminate ? this.text.working : (this.valueText || numberFormat(this.locale || undefined, {style: 'percent'}).format(fraction));
         this.bar.setAttribute('aria-valuemin', '0');
         this.bar.setAttribute('aria-valuemax', String(max));

@@ -27,6 +27,15 @@ describe('the package', () => {
         expect(Object.keys(containerTags)).toHaveLength(14);
         expect(() => defineContainers()).not.toThrow();
     });
+
+    it('keeps the native part property of each container', () => {
+        // jsdom has no part property, so check that no container class hides it
+        for (const [tag, componentClass] of Object.entries(containerTags)) {
+            for (let at = componentClass.prototype; at && at !== HTMLElement.prototype; at = Object.getPrototypeOf(at)) {
+                expect(Object.hasOwn(at, 'part'), tag).toBe(false);
+            }
+        }
+    });
 });
 
 describe('group-box', () => {
@@ -34,7 +43,7 @@ describe('group-box', () => {
         const box = add('<group-box label="Proxy" checkable><input aria-label="Host"></group-box>');
         await tick();
         expect(box).toBeInstanceOf(GroupBox);
-        const content = box.shadowRoot.querySelector('.content');
+        const content = box.shadowRoot.querySelector('.zest-content');
         expect(content.inert).toBe(true);
         const changes = vi.fn();
         box.addEventListener('group-box-check', changes);
@@ -45,19 +54,19 @@ describe('group-box', () => {
         expect(box.hasAttribute('checked')).toBe(true);
         expect(content.inert).toBe(false);
         expect(changes).toHaveBeenCalledTimes(1);
-        expect(box.shadowRoot.querySelector('.check-text').textContent).toBe('Proxy');
+        expect(box.shadowRoot.querySelector('.zest-check-text').textContent).toBe('Proxy');
     });
 
     it('shows and hides the content with its button', async () => {
         const box = add('<group-box label="More" collapsible><p>Text</p></group-box>');
         await tick();
-        const toggle = box.shadowRoot.querySelector('.toggle');
+        const toggle = box.shadowRoot.querySelector('.zest-toggle');
         const heard = vi.fn();
         box.addEventListener('group-box-toggle', heard);
         toggle.click();
         await tick();
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
-        expect(box.shadowRoot.querySelector('.content').hidden).toBe(true);
+        expect(box.shadowRoot.querySelector('.zest-content').hidden).toBe(true);
         expect(heard.mock.calls[0][0].detail).toEqual({collapsed: true});
     });
 });
@@ -162,7 +171,7 @@ describe('split-view', () => {
         expect(divider.getAttribute('aria-valuenow')).toBe('50');
         expect(divider.getAttribute('aria-label')).toBe('Resize Left');
         expect(divider.getAttribute('aria-orientation')).toBe('vertical');
-        expect(view.shadowRoot.querySelector('.split').style.gridTemplateColumns).toContain('100fr');
+        expect(view.shadowRoot.querySelector('.zest-split').style.gridTemplateColumns).toContain('100fr');
     });
 
     it('changes the sizes with the arrow keys, keeps the minimum, and sends an event', async () => {
@@ -195,7 +204,7 @@ describe('split-view', () => {
 
     it('uses rows for a vertical split', async () => {
         const {view, divider} = await split('[1,1]', 'orientation="vertical"');
-        expect(view.shadowRoot.querySelector('.split').style.gridTemplateRows).toContain('fr');
+        expect(view.shadowRoot.querySelector('.zest-split').style.gridTemplateRows).toContain('fr');
         expect(divider.getAttribute('aria-orientation')).toBe('horizontal');
         key(divider, 'ArrowDown');
         expect(view.sizes[0]).toBeGreaterThan(1);
@@ -250,17 +259,17 @@ describe('dialog-window', () => {
         const dialog = add('<dialog-window label="Q"><p>Text</p><button slot="buttons" value="yes" data-default>Yes</button></dialog-window>');
         await tick();
         let result = dialog.show();
-        key(dialog.shadowRoot.querySelector('.content'), 'Enter');
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter');
         await expect(result).resolves.toBe('yes');
         result = dialog.show();
-        dialog.shadowRoot.querySelector('.close').click();
+        dialog.shadowRoot.querySelector('.zest-close').click();
         await expect(result).resolves.toBe('cancel');
     });
 
     it('tells the kind in words, and uses alertdialog for a warning', async () => {
         const dialog = add('<dialog-window label="Disk" kind="warning"></dialog-window>');
         await tick();
-        expect(dialog.shadowRoot.querySelector('.kind').textContent).toBe('Warning: ');
+        expect(dialog.shadowRoot.querySelector('.zest-kind').textContent).toBe('Warning: ');
         expect(dialog.shadowRoot.querySelector('dialog').getAttribute('role')).toBe('alertdialog');
     });
 
@@ -297,6 +306,172 @@ describe('dialog-window', () => {
     });
 });
 
+// A component host with an inner button, as push-button is: in the light DOM, or in a shadow root
+class FakeButton extends HTMLElement {
+    connectedCallback() {
+        if (this.inner) { return; }
+        this.inner = document.createElement('button');
+        this.inner.type = 'button';
+        this.inner.textContent = this.getAttribute('label') ?? '';
+        if (this.hasAttribute('shadow')) { this.attachShadow({mode: 'open'}).append(this.inner); } else { this.append(this.inner); }
+    }
+    get focusTarget() { return this.inner; }
+    get disabled() { return this.hasAttribute('disabled'); }
+}
+customElements.define('fake-button', FakeButton);
+
+describe('dialog-window close requests', () => {
+    const make = async (buttons) => {
+        const dialog = add(`<dialog-window label="Edit"><input aria-label="Name">${buttons}</dialog-window>`);
+        await tick();
+        return dialog;
+    };
+
+    it('sends a cancelable event before a button closes it, and close() later gives the result', async () => {
+        const dialog = await make('<button slot="buttons" value="save" data-default>Save</button><button slot="buttons" value="cancel">Cancel</button>');
+        const requests = [];
+        dialog.addEventListener('dialog-window-before-close', (e) => {
+            requests.push(e.detail);
+            if (e.detail.value === 'save') { e.preventDefault(); }
+        });
+        const closed = vi.fn();
+        dialog.addEventListener('dialog-window-close', closed);
+        const result = dialog.showModal();
+        const save = dialog.querySelector('[value="save"]');
+        save.click();
+        expect(dialog.open).toBe(true);
+        expect(closed).not.toHaveBeenCalled();
+        expect(requests).toEqual([{value: 'save', reason: 'button', button: save}]);
+        // The application saves, then closes the dialog. close() sends no request.
+        dialog.close('save');
+        await expect(result).resolves.toBe('save');
+        expect(requests).toHaveLength(1);
+        expect(closed.mock.calls[0][0].detail).toEqual({value: 'save'});
+    });
+
+    it('gives the reason of the close button and of Escape, and either can be stopped', async () => {
+        const dialog = await make('<button slot="buttons" value="ok">OK</button>');
+        const reasons = [];
+        let keep = true;
+        dialog.addEventListener('dialog-window-before-close', (e) => {
+            reasons.push(e.detail.reason);
+            expect(e.detail.value).toBe('cancel');
+            expect(e.detail.button).toBeNull();
+            if (keep) { e.preventDefault(); }
+        });
+        const result = dialog.showModal();
+        dialog.shadowRoot.querySelector('.zest-close').click();
+        const escape = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, composed: true, cancelable: true});
+        dialog.querySelector('input').dispatchEvent(escape);
+        expect(escape.defaultPrevented).toBe(true);
+        expect(dialog.open).toBe(true);
+        expect(reasons).toEqual(['close-button', 'escape']);
+        keep = false;
+        key(dialog.querySelector('input'), 'Escape');
+        await expect(result).resolves.toBe('cancel');
+    });
+
+    it('does not close on Escape when a child used the key, or when the dialog is not modal', async () => {
+        const dialog = await make('');
+        const requests = vi.fn();
+        dialog.addEventListener('dialog-window-before-close', requests);
+        dialog.showModal();
+        const input = dialog.querySelector('input');
+        input.addEventListener('keydown', (e) => e.preventDefault(), {once: true});
+        key(input, 'Escape');
+        expect(dialog.open).toBe(true);
+        dialog.close();
+        dialog.show();
+        key(input, 'Escape');
+        expect(dialog.open).toBe(true);
+        expect(requests).not.toHaveBeenCalled();
+    });
+
+    it('requestClose() asks first, as the user does', async () => {
+        const dialog = await make('');
+        dialog.addEventListener('dialog-window-before-close', (e) => e.preventDefault(), {once: true});
+        const result = dialog.showModal();
+        expect(dialog.requestClose('later')).toBe(false);
+        expect(dialog.open).toBe(true);
+        expect(dialog.requestClose('done')).toBe(true);
+        await expect(result).resolves.toBe('done');
+        expect(dialog.requestClose('again')).toBe(false);
+    });
+
+    it('a button with data-keep-open stays open and sends no request', async () => {
+        const dialog = await make('<button slot="buttons" value="test" data-keep-open>Test</button><button slot="buttons" value="ok">OK</button>');
+        const requests = vi.fn();
+        dialog.addEventListener('dialog-window-before-close', requests);
+        const result = dialog.showModal();
+        dialog.querySelector('[value="test"]').click();
+        expect(dialog.open).toBe(true);
+        expect(requests).not.toHaveBeenCalled();
+        dialog.querySelector('[value="ok"]').click();
+        await expect(result).resolves.toBe('ok');
+    });
+
+    it('a component button in the slot closes as a native button does, in the light DOM and in a shadow root', async () => {
+        for (const shadow of [false, true]) {
+            const dialog = await make(`<fake-button slot="buttons" value="save" label="Save" data-default ${shadow ? 'shadow' : ''}></fake-button><fake-button slot="buttons" value="off" label="Off" disabled></fake-button>`);
+            const host = dialog.querySelector('[value="save"]');
+            const requests = [];
+            dialog.addEventListener('dialog-window-before-close', (e) => {
+                requests.push(e.detail);
+                e.preventDefault();
+            });
+            const result = dialog.showModal();
+            dialog.querySelector('[value="off"]').inner.click();
+            expect(requests).toEqual([]);
+            host.inner.click();
+            expect(requests).toEqual([{value: 'save', reason: 'button', button: host}]);
+            expect(dialog.open).toBe(true);
+            dialog.close('save');
+            await expect(result).resolves.toBe('save');
+            dialog.remove();
+        }
+    });
+
+    it('a button that is not a slot button, and not data-close, does not close', async () => {
+        const dialog = await make('<div slot="buttons"><button value="help">Help</button></div><p><button data-close="done">Done</button></p>');
+        const result = dialog.showModal();
+        dialog.querySelector('[value="help"]').click();
+        expect(dialog.open).toBe(true);
+        dialog.querySelector('[data-close]').click();
+        await expect(result).resolves.toBe('done');
+    });
+});
+
+describe('danger buttons', () => {
+    it('askConfirm({danger}) marks the OK button, with a sign that is not color', async () => {
+        const confirm = askConfirm({title: 'Delete the file?', text: 'You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true});
+        await tick();
+        const ok = document.querySelector('dialog-window [value="ok"]');
+        expect(ok.hasAttribute('data-danger')).toBe(true);
+        expect(ok.hasAttribute('data-default')).toBe(true);
+        // The button row shows before the focus moves, so the default button gets it
+        expect(document.activeElement).toBe(ok);
+        expect(ok.querySelector('[aria-hidden="true"]').textContent).toBe('⚠ ');
+        expect(ok.textContent).toBe('⚠ Delete');
+        expect(document.querySelector('dialog-window [value="cancel"]').hasAttribute('data-danger')).toBe(false);
+        document.querySelector('dialog-window [value="cancel"]').click();
+        await expect(confirm).resolves.toBe(false);
+
+        const plain = askConfirm({title: 'Continue?'});
+        await tick();
+        expect(document.querySelector('dialog-window [data-danger]')).toBeNull();
+        document.querySelector('dialog-window [value="ok"]').click();
+        await expect(plain).resolves.toBe(true);
+    });
+
+    it('showMessage takes danger on each button', async () => {
+        const message = showMessage({title: 'Remove', buttons: [{label: 'Keep', value: 'keep', default: true}, {label: 'Remove', value: 'remove', danger: true}]});
+        await tick();
+        expect([...document.querySelectorAll('dialog-window [data-danger]')].map(button => button.value)).toEqual(['remove']);
+        document.querySelector('dialog-window [value="remove"]').click();
+        await expect(message).resolves.toBe('remove');
+    });
+});
+
 describe('window-area', () => {
     async function area() {
         const element = add(`<window-area>
@@ -313,7 +488,7 @@ describe('window-area', () => {
         expect(element).toBeInstanceOf(WindowArea);
         expect(two.active).toBe(true);
         expect(Number(two.style.zIndex)).toBeGreaterThan(Number(one.style.zIndex));
-        one.shadowRoot.querySelector('.content').dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, composed: true}));
+        one.shadowRoot.querySelector('.zest-content').dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, composed: true}));
         expect(one.active).toBe(true);
         expect(two.active).toBe(false);
         expect(Number(one.style.zIndex)).toBeGreaterThan(Number(two.style.zIndex));
@@ -324,7 +499,7 @@ describe('window-area', () => {
         expect(one).toBeInstanceOf(FloatingWindow);
         const moved = vi.fn();
         one.addEventListener('floating-window-move', moved);
-        const handle = one.shadowRoot.querySelector('.handle');
+        const handle = one.shadowRoot.querySelector('.zest-handle');
         key(handle, 'F7', {altKey: true});
         expect(one.mode).toBe('move');
         key(handle, 'ArrowRight');
@@ -342,11 +517,11 @@ describe('window-area', () => {
 
     it('cycles the handle from move to size to off', async () => {
         const {windows: [one]} = await area();
-        const handle = one.shadowRoot.querySelector('.handle');
+        const handle = one.shadowRoot.querySelector('.zest-handle');
         handle.click();
         flushRenders();
         expect(handle.getAttribute('aria-pressed')).toBe('true');
-        expect(one.shadowRoot.querySelector('.hint').textContent).toContain('Move');
+        expect(one.shadowRoot.querySelector('.zest-hint').textContent).toContain('Move');
         handle.click();
         expect(one.mode).toBe('size');
         handle.click();
@@ -357,20 +532,20 @@ describe('window-area', () => {
         const {area: element, windows: [one, two]} = await area();
         const states = [];
         one.addEventListener('floating-window-state', e => states.push(e.detail.state));
-        one.shadowRoot.querySelector('.maximize').click();
+        one.shadowRoot.querySelector('.zest-maximize').click();
         flushRenders();
         expect(one.style.width).toBe('100%');
-        one.shadowRoot.querySelector('.minimize').click();
+        one.shadowRoot.querySelector('.zest-minimize').click();
         flushRenders();
         expect(one.getAttribute('state')).toBe('minimized');
         expect(one.style.bottom).toBe('0px');
         expect(states).toEqual(['maximized', 'minimized']);
         const stop = (e) => e.preventDefault();
         two.addEventListener('floating-window-close', stop);
-        two.shadowRoot.querySelector('.close').click();
+        two.shadowRoot.querySelector('.zest-close').click();
         expect(element.windows).toHaveLength(2);
         two.removeEventListener('floating-window-close', stop);
-        two.shadowRoot.querySelector('.close').click();
+        two.shadowRoot.querySelector('.zest-close').click();
         expect(element.windows).toEqual([one]);
     });
 });
@@ -401,7 +576,7 @@ describe('small containers', () => {
     it('gives a scroll area a name and a place in the tab order', async () => {
         const area = add('<scroll-area label="Log"><p>Text</p></scroll-area>');
         await tick();
-        const viewport = area.shadowRoot.querySelector('.viewport');
+        const viewport = area.shadowRoot.querySelector('.zest-viewport');
         expect(viewport.getAttribute('aria-label')).toBe('Log');
         expect(viewport.tabIndex).toBe(0);
     });

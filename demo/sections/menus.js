@@ -2,7 +2,7 @@
 import {
   Action, ActionGroup,
   MenuBar, ShadowMenuBar, PopupMenu, ShadowPopupMenu, MenuButton, ShadowMenuButton, ToolBar, ShadowToolBar,
-  ToolTip, NoticeArea, attachContextMenu, attachToolTip, showNotice,
+  ToolTip, NoticeArea, attachContextMenu, attachToolTip, showNotice, escapeMnemonic,
 } from '../../src/index.js';
 import {button, card, el, makeLog} from '../kit.js';
 
@@ -107,6 +107,47 @@ function buttonsCard(log, actions) {
   return card('menus-buttons', 'Menu buttons', el('div', {class: 'controls'}, plain, split));
 }
 
+// An avatar image with initials. The initials are in the image, so they are not text of the button.
+function avatar(initials, color, shape = 'circle') {
+  const back = shape === 'circle' ? '<circle cx="16" cy="16" r="16"' : '<rect width="32" height="32" rx="6"';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${back} fill="${color}"/>`
+    + `<text x="16" y="21" font-family="sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">${initials}</text></svg>`;
+  return el('img', {class: 'menus-avatar', alt: '', src: `data:image/svg+xml,${encodeURIComponent(svg)}`});
+}
+
+// The children of a menu button are its face. With no text in the face, the label is the name.
+function faceCard(log) {
+  const account = el('menu-button', {label: 'Account', 'data-testid': 'menus-avatar'}, avatar('TH', '#1d5fae'));
+  account.items = [
+    {label: '&Profile', run: () => log.add('profile from the account menu')},
+    {label: 'Sign &out', run: () => log.add('sign out from the account menu')},
+  ];
+  const shadow = el('shadow-menu-button', {label: 'Team account', 'data-testid': 'menus-avatar-shadow'}, avatar('CC', '#7a3e9d', 'square'));
+  shadow.items = [{label: 'Switch team', run: () => log.add('switch team from the shadow account menu')}];
+  const withText = el('menu-button', {label: 'Status', 'data-testid': 'menus-status'},
+    el('span', {class: 'menus-dot', 'aria-hidden': 'true'}), 'Status: away');
+  withText.items = [{label: 'Away', run: () => log.add('status away')}, {label: 'Busy', run: () => log.add('status busy')}];
+  return card('menus-faces', 'Menu buttons with custom content',
+    el('p', {}, 'The children of a menu button show in place of its icon and label.'),
+    el('div', {class: 'controls'}, account, shadow, withText));
+}
+
+// Labels from user data: each '&' shows, and is not a mnemonic
+function userLabelsCard(log) {
+  const teams = ['R&D', 'Sales & Marketing', 'Q&A'];
+  const off = el('menu-button', {label: 'Teams', mnemonics: 'false', 'data-testid': 'menus-teams'});
+  off.items = teams.map(name => ({label: name, run: () => log.add(`team ${name}`)}));
+  const escaped = el('menu-button', {label: '&Recent team', 'data-testid': 'menus-recent-teams'});
+  escaped.items = [
+    ...teams.map(name => ({label: escapeMnemonic(name), run: () => log.add(`recent ${name}`)})),
+    {separator: true},
+    {label: '&Clear the list', run: () => log.add('clear the list')},
+  ];
+  return card('menus-user-labels', 'Labels from user data',
+    el('p', {}, 'Teams has mnemonics="false". Recent team doubles each & of the names with escapeMnemonic(), and keeps its own mnemonics.'),
+    el('div', {class: 'controls'}, off, escaped));
+}
+
 function contextCard(log) {
   const box = el('div', {tabindex: '0', class: 'menus-context', 'data-testid': 'menus-context-box', role: 'group', 'aria-label': 'Context menu sample'},
     'Right-click here, or focus this box and press Shift+F10.');
@@ -168,12 +209,16 @@ export const section = {
         .menus-context { padding: 1.5em 1em; border: 1px dashed var(--zest-color-border); border-radius: var(--zest-control-radius); }
         .menus-narrow { max-width: 14em; }
         .menus-icon-button { min-width: var(--zest-control-height); }
+        .menus-avatar { display: block; width: 1.75em; height: 1.75em; }
+        .menus-dot { width: 0.75em; height: 0.75em; border-radius: 50%; border: 2px solid currentColor; box-sizing: border-box; }
       }
     `);
     return [
       style,
       editor.card,
       buttonsCard(log, editor.actions),
+      faceCard(log),
+      userLabelsCard(log),
       contextCard(log),
       tipsCard(),
       noticesCard(log),

@@ -4,6 +4,7 @@
   "description": "CalendarView: month, week, day, and agenda views of the items that an application gives, with moving and resizing.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/calendar-view#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

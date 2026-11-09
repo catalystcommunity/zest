@@ -2,7 +2,7 @@ import { isRtl } from "@catalystcommunity/base-components";
 import { VirtualView, viewStyles } from "./virtual.js";
 
 const tableStyles = `
-.zest-table-view .head {
+.zest-table-view .zest-head {
     position: sticky;
     inset-block-start: 0;
     z-index: 2;
@@ -18,10 +18,10 @@ const tableStyles = `
     /* The same start as a row, which has a border that shows the selection */
     border-inline-start: 0.25em solid transparent;
 }
-.zest-table-view .spacer {
+.zest-table-view .zest-spacer {
     width: calc(var(--_total-width) + 0.25em);
 }
-.zest-table-view .row {
+.zest-table-view .zest-row {
     display: grid;
     grid-template-columns: var(--_columns);
     width: calc(var(--_total-width) + 0.25em);
@@ -32,7 +32,7 @@ const tableStyles = `
     inset-inline-end: auto;
     border-block-end: var(--_border-width) solid var(--_line);
 }
-.zest-table-view .cell, .zest-table-view .column-head {
+.zest-table-view .zest-table-view-cell, .zest-table-view .zest-column-head {
     box-sizing: border-box;
     min-width: 0;
     overflow: hidden;
@@ -42,14 +42,14 @@ const tableStyles = `
     line-height: calc(var(--_row-height) - var(--_border-width));
     border-inline-end: var(--_border-width) solid var(--_line);
 }
-.zest-table-view .end {
+.zest-table-view .zest-end {
     text-align: end;
     font-variant-numeric: tabular-nums;
 }
-.zest-table-view .center {
+.zest-table-view .zest-center {
     text-align: center;
 }
-.zest-table-view .column-head {
+.zest-table-view .zest-column-head {
     position: relative;
     min-height: var(--_row-height);
     padding-inline-end: 1.5em;
@@ -57,14 +57,14 @@ const tableStyles = `
     cursor: pointer;
     user-select: none;
 }
-.zest-table-view .column-head:hover {
+.zest-table-view .zest-column-head:hover {
     background: var(--_hover-face);
 }
-.zest-table-view .column-head .sort {
+.zest-table-view .zest-column-head .zest-sort {
     position: absolute;
     inset-inline-end: 0.5em;
 }
-.zest-table-view .resize {
+.zest-table-view .zest-resize {
     position: absolute;
     inset-block: 0;
     inset-inline-end: 0;
@@ -72,20 +72,20 @@ const tableStyles = `
     cursor: col-resize;
     touch-action: none;
 }
-.zest-table-view .resize:hover, .zest-table-view .resizing .resize {
+.zest-table-view .zest-resize:hover, .zest-table-view .zest-resizing .zest-resize {
     background: color-mix(in srgb, var(--_highlight) 35%, transparent);
 }
-.zest-table-view .scroller:focus-visible .head .active,
-.zest-table-view .scroller.keyboard:focus .head .active {
+.zest-table-view .zest-scroller:focus-visible .zest-head .zest-active,
+.zest-table-view .zest-scroller.zest-keyboard:focus .zest-head .zest-active {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
-.zest-table-view .scroller:focus-visible .row.active,
-.zest-table-view .scroller.keyboard:focus .row.active {
+.zest-table-view .zest-scroller:focus-visible .zest-row.zest-active,
+.zest-table-view .zest-scroller.zest-keyboard:focus .zest-row.zest-active {
     outline: none;
 }
-.zest-table-view .scroller:focus-visible .cell.active,
-.zest-table-view .scroller.keyboard:focus .cell.active {
+.zest-table-view .zest-scroller:focus-visible .zest-table-view-cell.zest-active,
+.zest-table-view .zest-scroller.zest-keyboard:focus .zest-table-view-cell.zest-active {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
@@ -145,7 +145,7 @@ export function sortOrder(items, column, direction, locale) {
     return order;
 }
 
-const ALIGN = {end: 'end', right: 'end', center: 'center'};
+const ALIGN = {end: 'zest-end', right: 'zest-end', center: 'zest-center'};
 const MIN_WIDTH = 48;
 
 // A table of items. A column is {key, label, width, type, sortable, resizable, align, format, render}.
@@ -206,13 +206,13 @@ export class TableView extends VirtualView {
 
     buildHeader() {
         const group = document.createElement('div');
-        group.className = 'head';
+        group.className = 'zest-head';
         group.setAttribute('role', 'row');
         group.setAttribute('aria-rowindex', '1');
         group.setAttribute('part', 'header');
         group.addEventListener('click', (e) => {
-            const cell = e.target.closest('.column-head');
-            if (!cell || e.target.closest('.resize')) { return; }
+            const cell = e.target.closest('.zest-column-head');
+            if (!cell || e.target.closest('.zest-resize')) { return; }
             this.#onHeader = true;
             this.activeColumn = Number(cell.dataset.column);
             this.toggleSort(this.columns[this.activeColumn], e);
@@ -225,7 +225,7 @@ export class TableView extends VirtualView {
         if (!this.header) { return; }
         this.#headCells = this.columns.map((column, i) => {
             const cell = document.createElement('div');
-            cell.className = `column-head ${ALIGN[column.align] ?? (column.type === 'number' ? 'end' : '')}`;
+            cell.className = `zest-column-head ${ALIGN[column.align] ?? (column.type === 'number' ? 'zest-end' : '')}`;
             cell.setAttribute('role', 'columnheader');
             cell.setAttribute('aria-colindex', String(i + 1));
             cell.dataset.column = String(i);
@@ -233,12 +233,12 @@ export class TableView extends VirtualView {
             const label = document.createElement('span');
             label.textContent = column.label ?? column.key;
             const sort = document.createElement('span');
-            sort.className = 'sort';
+            sort.className = 'zest-sort';
             sort.setAttribute('aria-hidden', 'true');
             cell.append(label, sort);
             if (column.resizable !== false) {
                 const resize = document.createElement('span');
-                resize.className = 'resize';
+                resize.className = 'zest-resize';
                 resize.setAttribute('aria-hidden', 'true');
                 cell.append(resize);
             }
@@ -254,8 +254,8 @@ export class TableView extends VirtualView {
             const column = this.columns[i];
             const sorted = this.sortKey === column.key ? this.sortDirection : null;
             if (sorted) { cell.setAttribute('aria-sort', sorted); } else { cell.removeAttribute('aria-sort'); }
-            cell.querySelector('.sort').textContent = sorted === 'ascending' ? '▲' : sorted === 'descending' ? '▼' : '';
-            cell.classList.toggle('active', this.#onHeader && i === this.activeColumn);
+            cell.querySelector('.zest-sort').textContent = sorted === 'ascending' ? '▲' : sorted === 'descending' ? '▼' : '';
+            cell.classList.toggle('zest-active', this.#onHeader && i === this.activeColumn);
         });
     }
 
@@ -278,19 +278,19 @@ export class TableView extends VirtualView {
     }
 
     #startResize(e) {
-        const handle = e.target.closest('.resize');
+        const handle = e.target.closest('.zest-resize');
         if (!handle || e.button !== 0) { return; }
         e.preventDefault();
-        const cell = handle.closest('.column-head');
+        const cell = handle.closest('.zest-column-head');
         const index = Number(cell.dataset.column);
         const startX = e.clientX;
         const startWidth = this.#widths[index];
         const sign = isRtl(this.scroller) ? -1 : 1;
         handle.setPointerCapture?.(e.pointerId);
-        cell.classList.add('resizing');
+        cell.classList.add('zest-resizing');
         const move = (moveEvent) => this.setColumnWidth(index, startWidth + (moveEvent.clientX - startX) * sign, moveEvent);
         const end = () => {
-            cell.classList.remove('resizing');
+            cell.classList.remove('zest-resizing');
             handle.removeEventListener('pointermove', move);
             handle.removeEventListener('pointerup', end);
             handle.removeEventListener('pointercancel', end);
@@ -350,7 +350,7 @@ export class TableView extends VirtualView {
         row.setAttribute('part', 'row');
         this.columns.forEach((column, i) => {
             const cell = document.createElement('div');
-            cell.className = `cell ${ALIGN[column.align] ?? (column.type === 'number' ? 'end' : '')}`;
+            cell.className = `zest-table-view-cell ${ALIGN[column.align] ?? (column.type === 'number' ? 'zest-end' : '')}`;
             cell.setAttribute('role', 'gridcell');
             cell.setAttribute('aria-colindex', String(i + 1));
             cell.dataset.column = String(i);
@@ -380,9 +380,9 @@ export class TableView extends VirtualView {
         const selected = String(this.selection.has(this.keyAt(index)));
         if (row.getAttribute('aria-selected') !== selected) { row.setAttribute('aria-selected', selected); }
         const activeRow = !this.#onHeader && index === this.active;
-        row.classList.toggle('active', activeRow);
+        row.classList.toggle('zest-active', activeRow);
         for (const cell of row.children) {
-            cell.classList.toggle('active', activeRow && Number(cell.dataset.column) === this.activeColumn);
+            cell.classList.toggle('zest-active', activeRow && Number(cell.dataset.column) === this.activeColumn);
         }
     }
 
@@ -398,7 +398,7 @@ export class TableView extends VirtualView {
     }
 
     onRowClick(index, e) {
-        const cell = e.target.closest('.cell');
+        const cell = e.target.closest('.zest-table-view-cell');
         this.#onHeader = false;
         if (cell) { this.activeColumn = Number(cell.dataset.column); }
         this.selectFromPointer(index, e);

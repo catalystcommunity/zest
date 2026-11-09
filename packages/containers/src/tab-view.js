@@ -50,9 +50,9 @@ export class TabView extends ShadowContainer {
     };
     static labels = {closeHint: 'Press Delete to close'};
     static shadowHtml = `
-<div class="view" part="view">
-  <div class="strip" part="strip"><div role="tablist" part="tablist"></div></div>
-  <div class="pages" part="pages"><slot></slot></div>
+<div class="zest-view" part="view">
+  <div class="zest-strip" part="strip"><div role="tablist" part="tablist"></div></div>
+  <div class="zest-pages" part="pages"><slot></slot></div>
 </div>`;
     static styles = `
 :host {
@@ -62,23 +62,23 @@ export class TabView extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.view {
+.zest-view {
     ${tokenAliases('tab-view')}
     display: flex;
     flex-direction: column;
     min-width: 0;
     height: 100%;
 }
-.view[data-placement="bottom"] {
+.zest-view[data-placement="bottom"] {
     flex-direction: column-reverse;
 }
-.view[data-placement="start"] {
+.zest-view[data-placement="start"] {
     flex-direction: row;
 }
-.view[data-placement="end"] {
+.zest-view[data-placement="end"] {
     flex-direction: row-reverse;
 }
-.strip {
+.zest-strip {
     position: relative;
     flex: none;
     min-width: 0;
@@ -86,7 +86,7 @@ export class TabView extends ShadowContainer {
     overflow-y: hidden;
     scrollbar-width: thin;
 }
-.view[data-placement="start"] .strip, .view[data-placement="end"] .strip {
+.zest-view[data-placement="start"] .zest-strip, .zest-view[data-placement="end"] .zest-strip {
     overflow-x: hidden;
     overflow-y: auto;
     max-width: 40%;
@@ -132,20 +132,20 @@ export class TabView extends ShadowContainer {
     background: var(--_window);
     box-shadow: inset 0 -3px 0 var(--_highlight);
 }
-.view[data-placement="bottom"] [role="tab"] {
+.zest-view[data-placement="bottom"] [role="tab"] {
     border-radius: 0 0 var(--_radius) var(--_radius);
 }
-.view[data-placement="bottom"] [role="tab"][aria-selected="true"] {
+.zest-view[data-placement="bottom"] [role="tab"][aria-selected="true"] {
     box-shadow: inset 0 3px 0 var(--_highlight);
 }
-.view[data-placement="start"] [role="tab"], .view[data-placement="end"] [role="tab"] {
+.zest-view[data-placement="start"] [role="tab"], .zest-view[data-placement="end"] [role="tab"] {
     justify-content: space-between;
     border-radius: var(--_radius);
 }
-.view[data-placement="start"] [role="tab"][aria-selected="true"] {
+.zest-view[data-placement="start"] [role="tab"][aria-selected="true"] {
     box-shadow: inset -3px 0 0 var(--_highlight);
 }
-.view[data-placement="end"] [role="tab"][aria-selected="true"] {
+.zest-view[data-placement="end"] [role="tab"][aria-selected="true"] {
     box-shadow: inset 3px 0 0 var(--_highlight);
 }
 [role="tab"][aria-disabled="true"] {
@@ -153,7 +153,7 @@ export class TabView extends ShadowContainer {
     cursor: default;
     text-decoration: line-through;
 }
-.close {
+.zest-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -163,14 +163,14 @@ export class TabView extends ShadowContainer {
     border-radius: var(--_radius);
     font-weight: normal;
 }
-.close:hover {
+.zest-close:hover {
     background: var(--_hover-face);
     outline: var(--_border-width) solid var(--_border);
 }
-.close[hidden] {
+.zest-close[hidden] {
     display: none;
 }
-.pages {
+.zest-pages {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -217,13 +217,13 @@ ${focusRing}
     }
 
     built() {
-        this.#tablist = this.part('[role="tablist"]');
-        this.part('slot').addEventListener('slotchange', () => this.invalidate());
+        this.#tablist = this.shadowPart('[role="tablist"]');
+        this.shadowPart('slot').addEventListener('slotchange', () => this.invalidate());
         this.#tablist.addEventListener('click', (e) => {
             const tab = e.target.closest('[role="tab"]');
             if (!tab) { return; }
             const index = [...this.#tablist.children].indexOf(tab);
-            if (e.target.closest('.close')) {
+            if (e.target.closest('.zest-close')) {
                 this.#userClose(index);
             } else {
                 this.#userSelect(index);
@@ -286,7 +286,7 @@ ${focusRing}
             tab.setAttribute('role', 'tab');
             tab.id = uid('tab');
             tab.setAttribute('part', 'tab');
-            tab.innerHTML = '<span class="label"></span><span class="close" aria-hidden="true" hidden>×</span>';
+            tab.innerHTML = '<span class="zest-label"></span><span class="zest-close" aria-hidden="true" hidden>×</span>';
             this.#tabs.set(page, tab);
         }
         return tab;
@@ -312,7 +312,7 @@ ${focusRing}
         const selected = Math.max(0, Math.min(this.selected, pages.length - 1));
         const placement = ORIENTATION[this.placement] ? this.placement : 'top';
         const orientation = ORIENTATION[placement];
-        this.part('.view').dataset.placement = placement;
+        this.shadowPart('.zest-view').dataset.placement = placement;
         this.#tablist.setAttribute('aria-orientation', orientation);
         if (this.label) { this.#tablist.setAttribute('aria-label', this.label); } else { this.#tablist.removeAttribute('aria-label'); }
 
@@ -326,11 +326,11 @@ ${focusRing}
         }
         pages.forEach((page, i) => {
             const tab = tabs[i];
-            tab.querySelector('.label').textContent = page.label || `${i + 1}`;
+            tab.querySelector('.zest-label').textContent = page.label || `${i + 1}`;
             tab.setAttribute('aria-selected', String(i === selected));
             if (page.disabled) { tab.setAttribute('aria-disabled', 'true'); } else { tab.removeAttribute('aria-disabled'); }
             const closable = this.#isClosable(page);
-            tab.querySelector('.close').hidden = !closable;
+            tab.querySelector('.zest-close').hidden = !closable;
             if (closable) {
                 tab.setAttribute('aria-keyshortcuts', 'Delete');
                 tab.setAttribute('aria-description', this.text('closeHint'));
@@ -355,7 +355,7 @@ ${focusRing}
 
     // Scrolls the tab strip, and not the page, so that the selected tab shows
     #reveal(tab, orientation) {
-        const strip = this.part('.strip');
+        const strip = this.shadowPart('.zest-strip');
         if (orientation === 'horizontal') {
             if (tab.offsetLeft < strip.scrollLeft) { strip.scrollLeft = tab.offsetLeft; }
             else if (tab.offsetLeft + tab.offsetWidth > strip.scrollLeft + strip.clientWidth) { strip.scrollLeft = tab.offsetLeft + tab.offsetWidth - strip.clientWidth; }

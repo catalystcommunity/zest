@@ -343,6 +343,13 @@ class TarballTests(unittest.TestCase):
         with self.assertRaisesRegex(ToolFailed, "main file"):
             release.check_tarball(self.tarball(self.temporary.name, self.good, {}), "@s/a", "1.2.3")
 
+    def test_refuses_a_missing_types_file(self):
+        manifest = {**self.good, "types": "src/index.d.ts"}
+        with self.assertRaisesRegex(ToolFailed, "types file"):
+            release.check_tarball(self.tarball(self.temporary.name, manifest, {"src/index.js": "", "LICENSE": ""}), "@s/a", "1.2.3")
+        files = {"src/index.js": "", "src/index.d.ts": "", "LICENSE": ""}
+        release.check_tarball(self.tarball(self.temporary.name, manifest, files), "@s/a", "1.2.3")
+
     def test_refuses_the_wrong_version(self):
         with self.assertRaisesRegex(ToolFailed, "version"):
             release.check_tarball(self.tarball(self.temporary.name, self.good, {"src/index.js": ""}), "@s/a", "9.9.9")

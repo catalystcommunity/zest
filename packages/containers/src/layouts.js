@@ -9,9 +9,9 @@ export class ScrollArea extends ShadowContainer {
     };
     static labels = {region: 'Scrolling content'};
     static shadowHtml = `
-<div class="area" part="area">
+<div class="zest-area" part="area">
   <slot name="header"></slot>
-  <div class="viewport" part="viewport" role="region" tabindex="0"><slot></slot></div>
+  <div class="zest-viewport" part="viewport" role="region" tabindex="0"><slot></slot></div>
   <slot name="footer"></slot>
 </div>`;
     static styles = `
@@ -23,7 +23,7 @@ export class ScrollArea extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.area {
+.zest-area {
     ${tokenAliases('scroll-area')}
     display: flex;
     flex-direction: column;
@@ -35,14 +35,14 @@ export class ScrollArea extends ShadowContainer {
     background: var(--_window);
     color: var(--_window-text);
 }
-.viewport {
+.zest-viewport {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding: var(--_gap);
     overscroll-behavior: contain;
 }
-.viewport:focus-visible {
+.zest-viewport:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
@@ -60,10 +60,10 @@ export class ScrollArea extends ShadowContainer {
 }
 `;
     get viewport() {
-        return this.part('.viewport');
+        return this.shadowPart('.zest-viewport');
     }
     render() {
-        this.part('.viewport').setAttribute('aria-label', this.label || this.text('region'));
+        this.shadowPart('.zest-viewport').setAttribute('aria-label', this.label || this.text('region'));
     }
 }
 
@@ -73,7 +73,7 @@ export class StatusBar extends ShadowContainer {
         label: {type: String, default: ''},
     };
     static labels = {bar: 'Status'};
-    static shadowHtml = `<div class="bar" part="bar" role="group"><slot></slot></div>`;
+    static shadowHtml = `<div class="zest-bar" part="bar" role="group"><slot></slot></div>`;
     static styles = `
 :host {
     display: block;
@@ -82,7 +82,7 @@ export class StatusBar extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.bar {
+.zest-bar {
     ${tokenAliases('status-bar')}
     display: flex;
     flex-wrap: wrap;
@@ -95,7 +95,7 @@ export class StatusBar extends ShadowContainer {
 }
 `;
     render() {
-        this.part('.bar').setAttribute('aria-label', this.label || this.text('bar'));
+        this.shadowPart('.zest-bar').setAttribute('aria-label', this.label || this.text('bar'));
     }
 }
 
@@ -142,7 +142,7 @@ export class FormLayout extends ShadowContainer {
     static properties = {
         narrow: {type: String, default: ''},
     };
-    static shadowHtml = `<div class="outer"><div class="grid" part="grid"><slot></slot></div></div>`;
+    static shadowHtml = `<div class="zest-outer"><div class="zest-grid" part="grid"><slot></slot></div></div>`;
     static styles = `
 :host {
     display: block;
@@ -151,11 +151,11 @@ export class FormLayout extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.outer {
+.zest-outer {
     ${tokenAliases('form-layout')}
     container-type: inline-size;
 }
-.grid {
+.zest-grid {
     display: grid;
     grid-template-columns: minmax(max-content, 12em) minmax(0, 1fr);
     gap: var(--_gap) var(--_gap-unrelated);
@@ -169,7 +169,7 @@ export class FormLayout extends ShadowContainer {
     grid-column: 1 / -1;
 }
 @container (max-width: 30em) {
-    .grid {
+    .zest-grid {
         grid-template-columns: minmax(0, 1fr);
         gap: 0.25em;
     }

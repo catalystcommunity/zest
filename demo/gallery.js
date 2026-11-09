@@ -150,6 +150,11 @@ const calendarItems = () => [
   {id: 'conference', title: 'Conference', start: '2026-03-10', end: '2026-03-13', allDay: true, editable: true, color: '#7a2e8e'},
   {id: 'busy', busyOnly: true, start: '2026-03-12T14:00:00Z', end: '2026-03-12T16:00:00Z'},
   {id: 'late', title: 'Night deploy', start: '2026-03-11T22:00:00Z', end: '2026-03-12T01:00:00Z', editable: true},
+  // Tags give the state of an item. The calendar has default styles and hidden text for these four.
+  {id: 'vendor', title: 'Vendor call', start: '2026-03-09T14:00:00Z', end: '2026-03-09T14:30:00Z', tags: ['invited']},
+  {id: 'retro', title: 'Retro', start: '2026-03-10T15:00:00Z', end: '2026-03-10T16:00:00Z', tags: ['declined'], color: '#b3261e'},
+  {id: 'planning', title: 'Planning', start: '2026-03-16T15:00:00Z', end: '2026-03-16T16:00:00Z', editable: true, tags: ['tentative']},
+  {id: 'party', title: 'Team party', start: '2026-03-14', allDay: true, tags: ['cancelled']},
   ...['08:00', '10:00', '11:00', '13:00', '15:00'].map((time, i) => (
     {id: `full-${i}`, title: `Booking ${i + 1}`, start: `2026-03-18T${time}:00Z`, end: `2026-03-18T${time.slice(0, 2)}:45:00Z`})),
 ];
@@ -183,7 +188,7 @@ function calendarViewSection() {
   // A calendar needs the full width of the page
   const wide = (element) => { element.classList.add('wide'); return element; };
   return [
-    wide(card('calendar-month', 'Month, with spans and "+N more"', calendar('calendar-month-element'))),
+    wide(card('calendar-month', 'Month, with spans, tags, and "+N more"', calendar('calendar-month-element'))),
     wide(card('calendar-week', 'Week, from 07:00 to 20:00', calendar('calendar-week-element', {view: 'week', 'day-start': '07:00', 'day-end': '20:00', 'scroll-time': '08:00'}))),
     wide(card('calendar-days', 'Three days, in a shadow root', calendar('calendar-days-element', {view: 'day', days: '3', views: 'day,agenda'}, 'shadow-calendar-view'))),
     card('calendar-agenda', 'Agenda, read only', calendar('calendar-agenda-element', {view: 'agenda', readonly: '', views: ''})),

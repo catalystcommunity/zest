@@ -10,9 +10,9 @@ export class AccordionSection extends ShadowContainer {
         disabled: {type: Boolean, reflect: true},
     };
     static shadowHtml = `
-<div class="section" part="section">
-  <div role="heading" class="heading"><button type="button" part="header" aria-expanded="false"><span class="chevron" aria-hidden="true"></span><span class="label"></span></button></div>
-  <div role="region" class="content" part="content" hidden><slot></slot></div>
+<div class="zest-section" part="section">
+  <div role="heading" class="zest-heading"><button type="button" part="header" aria-expanded="false"><span class="zest-chevron" aria-hidden="true"></span><span class="zest-label"></span></button></div>
+  <div role="region" class="zest-content" part="content" hidden><slot></slot></div>
 </div>`;
     static styles = `
 :host {
@@ -22,14 +22,14 @@ export class AccordionSection extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.section {
+.zest-section {
     ${tokenAliases('accordion-view')}
     border: var(--_border-width) solid var(--_line);
     border-radius: var(--_radius);
     background: var(--_window);
     color: var(--_window-text);
 }
-.heading {
+.zest-heading {
     margin: 0;
 }
 button {
@@ -59,30 +59,30 @@ button[aria-disabled="true"] {
     color: var(--_disabled-text);
     cursor: default;
 }
-.chevron::before {
+.zest-chevron::before {
     content: "▸";
 }
-:host([open]) .chevron::before {
+:host([open]) .zest-chevron::before {
     content: "▾";
 }
-:host(:dir(rtl)) .chevron::before {
+:host(:dir(rtl)) .zest-chevron::before {
     content: "◂";
 }
-:host([open]:dir(rtl)) .chevron::before {
+:host([open]:dir(rtl)) .zest-chevron::before {
     content: "▾";
 }
-.content {
+.zest-content {
     padding: var(--_gap) var(--_padding-inline);
 }
-.content[hidden] {
+.zest-content[hidden] {
     display: none;
 }
 ${focusRing}
 `;
 
     built() {
-        const button = this.part('button');
-        const region = this.part('.content');
+        const button = this.shadowPart('button');
+        const region = this.shadowPart('.zest-content');
         button.id = uid('accordion-header');
         region.id = uid('accordion-region');
         button.setAttribute('aria-controls', region.id);
@@ -94,15 +94,15 @@ ${focusRing}
         });
     }
     focusHeader() {
-        this.part('button')?.focus();
+        this.shadowPart('button')?.focus();
     }
     render() {
-        const button = this.part('button');
-        this.part('.heading').setAttribute('aria-level', String(this.level || 3));
-        this.part('.label').textContent = this.label;
+        const button = this.shadowPart('button');
+        this.shadowPart('.zest-heading').setAttribute('aria-level', String(this.level || 3));
+        this.shadowPart('.zest-label').textContent = this.label;
         button.setAttribute('aria-expanded', String(this.open));
         if (this.disabled) { button.setAttribute('aria-disabled', 'true'); } else { button.removeAttribute('aria-disabled'); }
-        this.part('.content').hidden = !this.open;
+        this.shadowPart('.zest-content').hidden = !this.open;
     }
 }
 

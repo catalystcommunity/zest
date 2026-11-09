@@ -61,7 +61,7 @@ ${tag}, :host {
     overflow: hidden;
     overflow-wrap: normal;
 }
-.zest-${tag} .scroller {
+.zest-${tag} .zest-scroller {
     position: relative;
     flex: 1;
     min-height: 0;
@@ -70,15 +70,15 @@ ${tag}, :host {
     overflow-anchor: none;
     outline: none;
 }
-.zest-${tag} .scroller:focus-visible {
+.zest-${tag} .zest-scroller:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
-.zest-${tag} .spacer {
+.zest-${tag} .zest-spacer {
     position: relative;
     min-width: 100%;
 }
-.zest-${tag} .row {
+.zest-${tag} .zest-row {
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
@@ -95,57 +95,57 @@ ${tag}, :host {
     user-select: none;
     contain: layout paint style;
 }
-.zest-${tag} .row[hidden] {
+.zest-${tag} .zest-row[hidden] {
     display: none;
 }
-.zest-${tag} .row:hover {
+.zest-${tag} .zest-row:hover {
     background: var(--_hover-face);
 }
-.zest-${tag} .row[aria-selected="true"] {
+.zest-${tag} .zest-row[aria-selected="true"] {
     background: var(--_selected-face);
     color: var(--_selected-text);
     border-inline-start-color: currentColor;
 }
-.zest-${tag} .row[aria-disabled="true"] {
+.zest-${tag} .zest-row[aria-disabled="true"] {
     color: var(--_disabled-text);
 }
-.zest-${tag} .label {
+.zest-${tag} .zest-label {
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.zest-${tag} .scroller:focus-visible .active,
-.zest-${tag} .scroller.keyboard:focus .active {
+.zest-${tag} .zest-scroller:focus-visible .zest-active,
+.zest-${tag} .zest-scroller.zest-keyboard:focus .zest-active {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
-.zest-${tag} .scroller:focus-visible [aria-selected="true"].active,
-.zest-${tag} .scroller.keyboard:focus [aria-selected="true"].active,
-.zest-${tag} .scroller:focus-visible [aria-selected="true"] .active,
-.zest-${tag} .scroller.keyboard:focus [aria-selected="true"] .active {
+.zest-${tag} .zest-scroller:focus-visible [aria-selected="true"].zest-active,
+.zest-${tag} .zest-scroller.zest-keyboard:focus [aria-selected="true"].zest-active,
+.zest-${tag} .zest-scroller:focus-visible [aria-selected="true"] .zest-active,
+.zest-${tag} .zest-scroller.zest-keyboard:focus [aria-selected="true"] .zest-active {
     outline-color: var(--_selected-text);
     outline-offset: calc(var(--_focus-width) * -2);
 }
-.zest-${tag} .offscreen {
+.zest-${tag} .zest-offscreen {
     clip-path: inset(50%);
     pointer-events: none;
 }
-.zest-${tag} .empty {
+.zest-${tag} .zest-empty {
     padding: var(--_gap);
     color: var(--_secondary-text);
 }
-.zest-${tag} .empty[hidden] {
+.zest-${tag} .zest-empty[hidden] {
     display: none;
 }
 @media (forced-colors: active) {
-    .zest-${tag} .row[aria-selected="true"] {
+    .zest-${tag} .zest-row[aria-selected="true"] {
         forced-color-adjust: none;
         background: Highlight;
         color: HighlightText;
     }
-    .zest-${tag} .scroller:focus-visible .active,
-    .zest-${tag} .scroller.keyboard:focus .active {
+    .zest-${tag} .zest-scroller:focus-visible .zest-active,
+    .zest-${tag} .zest-scroller.zest-keyboard:focus .zest-active {
         outline-color: CanvasText;
     }
 }
@@ -209,7 +209,7 @@ export class VirtualView extends BaseComponent {
         }
         this.listen(this.scroller, 'scroll', () => this.invalidate(), {passive: true});
         this.listen(this.scroller, 'keydown', (e) => this.#onKeydown(e));
-        this.listen(this.scroller, 'pointerdown', () => this.scroller.classList.remove('keyboard'));
+        this.listen(this.scroller, 'pointerdown', () => this.scroller.classList.remove('zest-keyboard'));
         this.listen(this.scroller, 'click', (e) => {
             const row = this.#rowOf(e);
             if (row) { this.onRowClick(Number(row.dataset.index), e); }
@@ -237,16 +237,16 @@ export class VirtualView extends BaseComponent {
         this.frame.className = `zest-data-view ${root.viewClass}`;
         this.frame.setAttribute('part', 'view');
         this.scroller = document.createElement('div');
-        this.scroller.className = 'scroller';
+        this.scroller.className = 'zest-scroller';
         this.scroller.setAttribute('role', root.scrollerRole);
         this.scroller.setAttribute('part', 'scroller');
         this.scroller.tabIndex = 0;
         this.header = this.buildHeader();
         this.spacer = document.createElement('div');
-        this.spacer.className = 'spacer';
+        this.spacer.className = 'zest-spacer';
         this.spacer.setAttribute('role', 'presentation');
         this.#emptyText = document.createElement('div');
-        this.#emptyText.className = 'empty';
+        this.#emptyText.className = 'zest-empty';
         this.#emptyText.setAttribute('role', 'presentation');
         this.scroller.append(...[this.header, this.spacer].filter(Boolean));
         this.frame.append(this.scroller);
@@ -324,7 +324,7 @@ export class VirtualView extends BaseComponent {
             const top = view.top(index);
             const transform = `translateY(${top}px)`;
             if (row.style.transform !== transform) { row.style.transform = transform; }
-            row.classList.toggle('offscreen', index < view.first || index >= view.last);
+            row.classList.toggle('zest-offscreen', index < view.first || index >= view.last);
         }
         this.#allDirty = false;
         this.#dirty.clear();
@@ -357,7 +357,7 @@ export class VirtualView extends BaseComponent {
 
     #newRow() {
         const row = this.createRow();
-        row.classList.add('row');
+        row.classList.add('zest-row');
         return row;
     }
 
@@ -416,7 +416,7 @@ export class VirtualView extends BaseComponent {
 
     #onKeydown(e) {
         if (e.defaultPrevented) { return; }
-        this.scroller.classList.add('keyboard');
+        this.scroller.classList.add('zest-keyboard');
         if (this.onKey(e)) { e.preventDefault(); return; }
         const count = this.rowCount;
         if (!count) { return; }

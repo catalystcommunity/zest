@@ -51,8 +51,8 @@ test.describe('spreadsheet', () => {
         const sheet = await open(page);
         await cell(sheet, 'A2').click();
         await page.keyboard.press('F2');
-        await expect(sheet.locator('.editor')).toBeFocused();
-        await expect(sheet.locator('.editor')).toHaveValue('Laptops');
+        await expect(sheet.locator('.zest-editor')).toBeFocused();
+        await expect(sheet.locator('.zest-editor')).toHaveValue('Laptops');
         await page.keyboard.type(' Pro');
         await page.keyboard.press('Escape');
         await expect(cell(sheet, 'A2')).toHaveText('Laptops');
@@ -67,9 +67,9 @@ test.describe('spreadsheet', () => {
     test('shows the active cell and the formula in the formula bar', async ({page}) => {
         const sheet = await open(page);
         await cell(sheet, 'E2').click();
-        const formula = sheet.locator('.zest-formula-bar .formula');
+        const formula = sheet.locator('.zest-formula-bar .zest-formula');
         await expect(formula).toHaveValue('=C2*D2');
-        await expect(sheet.locator('.zest-formula-bar .name')).toHaveValue('E2');
+        await expect(sheet.locator('.zest-formula-bar .zest-name')).toHaveValue('E2');
         await formula.fill('=C2*D2*2');
         await formula.press('Enter');
         await expect(cell(sheet, 'E2')).toHaveText('$10,392.00');
@@ -135,22 +135,22 @@ test.describe('spreadsheet', () => {
         await page.mouse.move(to.x + 10, to.y + 10, {steps: 6});
         await page.mouse.up();
         expect((await state(sheet)).selection).toEqual({top: 1, left: 1, bottom: 3, right: 3});
-        await expect(sheet.locator('.selection')).toBeVisible();
+        await expect(sheet.locator('.zest-selection')).toBeVisible();
         await cell(sheet, 'F5').click({modifiers: ['Shift']});
         expect((await state(sheet)).selection).toEqual({top: 1, left: 1, bottom: 4, right: 5});
         // The middle of the header, away from the resize edges
-        await sheet.locator('.head', {hasText: /^C$/}).click();
+        await sheet.locator('.zest-head', {hasText: /^C$/}).click();
         expect((await state(sheet)).selection).toEqual({top: 0, left: 2, bottom: 13, right: 2});
-        await sheet.locator('.row-head', {hasText: /^3$/}).click();
+        await sheet.locator('.zest-row-head', {hasText: /^3$/}).click();
         expect((await state(sheet)).selection).toEqual({top: 2, left: 0, bottom: 2, right: 7});
         await cell(sheet, 'A3').dblclick();
-        await expect(sheet.locator('.editor')).toHaveValue('Monitors');
+        await expect(sheet.locator('.zest-editor')).toHaveValue('Monitors');
     });
 
     test('changes the width of a column with a drag of its edge', async ({page}) => {
         const sheet = await open(page);
         const before = await cell(sheet, 'B2').boundingBox();
-        const handle = sheet.locator('.head', {hasText: /^B$/}).locator('.resize');
+        const handle = sheet.locator('.zest-head', {hasText: /^B$/}).locator('.zest-resize');
         const box = await handle.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await page.mouse.down();
@@ -227,7 +227,7 @@ test.describe('spreadsheet', () => {
         await expect(cell(readonly, 'B2')).toHaveText('81');
         await cell(readonly, 'A2').click();
         await page.keyboard.type('1');
-        await expect(readonly.locator('.editor')).toHaveCount(0);
+        await expect(readonly.locator('.zest-editor')).toHaveCount(0);
         await expect(cell(readonly, 'A2')).toHaveText('9');
     });
 });

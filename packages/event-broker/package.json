@@ -4,6 +4,7 @@
   "description": "EventBroker: Meant to be an in-browser basic pub-sub using custom events.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/event-broker#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

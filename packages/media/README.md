@@ -111,7 +111,7 @@ view.addEventListener('pointermove', (e) => {
 | `label` | | The name of the picture. With a label, or with no fallback content, the canvas has the role `img`. |
 | `description` | | Longer text about the picture, for a screen reader. |
 | `context` | `2d` | `2d`, `webgl`, or `webgl2`. Set it before the first draw. |
-| `animate` | | Draws again in each frame. The animation stops while the canvas is off the screen or the page is hidden. |
+| `animate` | | Draws again in each frame. The animation stops while the canvas is off the screen or the page is hidden. The property is `animated`, because `animate()` is a method of each element. |
 | `essential-motion` | | The animation continues with reduced motion. Use it only when the motion is necessary to understand the content. |
 | `focusable` | | Puts the canvas in the tab order, for an application that uses keys on it. |
 | `auto-clear` | true | Clears a 2D canvas before each draw. Set `auto-clear="false"` to draw on top of the last frame. |
@@ -187,5 +187,7 @@ The components read the tokens in this order: the widget token, then `--zest-con
 | `--zest-image-view-control-height` | The height of the buttons of the image view. |
 
 The parts are `player`, `media`, `stage`, `caption`, `controls`, `time`, `title`, `playlist`, `view`, `canvas`, `tools`, `level`, `viewport`, and `image`.
+
+Each class that a component puts on its own elements starts with `zest-`, so that a page rule for a class such as `.play` or `.time` does not change the component. Use the parts to style the components.
 
 In a narrow player, the volume slider and the speed select are hidden. The player decides from its own width. The volume keys and the menu of the browser still work.

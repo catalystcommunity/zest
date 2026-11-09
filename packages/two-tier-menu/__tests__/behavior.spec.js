@@ -29,7 +29,7 @@ describe('TwoTierMenu', () => {
     it('renders an empty menu when the registration returns nothing', () => {
         const comp = makeMenu(undefined);
         expect(() => comp.connectedCallback()).not.toThrow();
-        expect(comp.querySelector('.items').children.length).toEqual(0);
+        expect(comp.querySelector('.zest-items').children.length).toEqual(0);
     });
 
     it('does not change the configuration that the registry owns', () => {
@@ -59,8 +59,8 @@ describe('TwoTierMenu', () => {
     it('renders into the shadow root for the shadow class', () => {
         const comp = makeMenu({menuConfig: {sections: [{display: 'One'}]}}, 'shadow-two-tier-menu');
         document.body.appendChild(comp);
-        expect(comp.querySelector('.items')).toBeNull();
-        expect(comp.shadowRoot.querySelector('.items').children.length).toEqual(1);
+        expect(comp.querySelector('.zest-items')).toBeNull();
+        expect(comp.shadowRoot.querySelector('.zest-items').children.length).toEqual(1);
     });
 
     it('does not lose the item data when menu-item is defined after the menu renders', () => {

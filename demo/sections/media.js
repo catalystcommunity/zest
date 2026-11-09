@@ -68,8 +68,8 @@ function animationCard() {
     output.textContent = `Frames: ${view.framesDrawn}${view.running ? '' : ' (stopped)'}`;
   }, 250);
   const toggle = button('media-animation-toggle', 'Stop', () => {
-    view.animate = !view.animate;
-    toggle.textContent = view.animate ? 'Stop' : 'Start';
+    view.animated = !view.animated;
+    toggle.textContent = view.animated ? 'Stop' : 'Start';
   });
   return card('media-animation', 'Canvas view: an animation',
     el('p', {}, 'It draws one time in each frame, and stops when it is off the screen. With reduced motion, it does not move.'),

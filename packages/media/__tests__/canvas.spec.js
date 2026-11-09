@@ -158,7 +158,7 @@ describe('canvas-view', () => {
         const element = document.createElement('late-canvas-view');
         const draw = vi.fn();
         element.draw = draw;
-        element.animate = true;
+        element.animated = true;
         customElements.define('late-canvas-view', class extends CanvasView {});
         document.body.append(element);
         observers.size(10, 10);
@@ -175,7 +175,7 @@ describe('image-view', () => {
         const img = element.image;
         Object.defineProperty(img, 'naturalWidth', {value: 400, configurable: true});
         Object.defineProperty(img, 'naturalHeight', {value: 200, configurable: true});
-        const viewport = element.querySelector('.viewport');
+        const viewport = element.querySelector('.zest-viewport');
         Object.defineProperty(viewport, 'clientWidth', {value: 200, configurable: true});
         Object.defineProperty(viewport, 'clientHeight', {value: 200, configurable: true});
         element.reset();
@@ -188,7 +188,7 @@ describe('image-view', () => {
         expect(element.scale).toBe(0.5);
         expect(element.offset).toEqual({x: 0, y: 50});
         expect(element.image.style.transform).toBe('translate(0px, 50px) scale(0.5)');
-        expect(element.querySelector('.level').textContent).toBe('50%');
+        expect(element.querySelector('.zest-level').textContent).toBe('50%');
     });
 
     it('zooms with the keys and the buttons, in the limits', () => {
@@ -197,11 +197,11 @@ describe('image-view', () => {
         element.addEventListener('image-view-zoom', heard);
         press(viewport, '+');
         expect(element.zoom).toBe(1.25);
-        q('.out').click();
+        q('.zest-out').click();
         expect(element.zoom).toBe(1);
         for (let i = 0; i < 20; i++) { press(viewport, '-'); }
         expect(element.zoom).toBe(0.25);
-        expect(q('.out').disabled).toBe(true);
+        expect(q('.zest-out').disabled).toBe(true);
         press(viewport, '0');
         expect(element.zoom).toBe(1);
         expect(heard).toHaveBeenCalled();
@@ -222,12 +222,12 @@ describe('image-view', () => {
 
     it('changes the fit mode, and marks the button that is in use', () => {
         const {element, q} = image();
-        q('.fit-cover').click();
+        q('.zest-fit-cover').click();
         expect(element.fit).toBe('cover');
         expect(element.scale).toBe(1);
-        expect(q('.fit-cover').getAttribute('aria-pressed')).toBe('true');
-        expect(q('.fit-contain').getAttribute('aria-pressed')).toBe('false');
-        q('.fit-actual').click();
+        expect(q('.zest-fit-cover').getAttribute('aria-pressed')).toBe('true');
+        expect(q('.zest-fit-contain').getAttribute('aria-pressed')).toBe('false');
+        q('.zest-fit-actual').click();
         expect(element.scale).toBe(1);
     });
 

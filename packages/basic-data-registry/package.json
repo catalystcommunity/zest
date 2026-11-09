@@ -4,6 +4,7 @@
   "description": "BasicDataRegistry: A simple holder of a registration functions.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/basic-data-registry#readme",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "directories": {
     "src": "src",

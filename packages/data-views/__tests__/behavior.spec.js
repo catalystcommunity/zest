@@ -18,7 +18,7 @@ const press = (view, key, init = {}) => {
     flushRenders();
     return event;
 };
-const rows = (view) => [...view.spacer.querySelectorAll('.row:not([hidden])')];
+const rows = (view) => [...view.spacer.querySelectorAll('.zest-row:not([hidden])')];
 const make = (tag, props) => {
     const view = document.createElement(tag);
     Object.assign(view, props);
@@ -76,7 +76,7 @@ describe('list view', () => {
         const view = make('list-view', {items: numbers(20), multiple: true});
         const activated = vi.fn();
         view.addEventListener('list-view-activate', e => activated(e.detail));
-        view.rowElement(2).querySelector('.label').click();
+        view.rowElement(2).querySelector('.zest-label').click();
         view.rowElement(5).dispatchEvent(new MouseEvent('click', {bubbles: true, shiftKey: true}));
         view.rowElement(8).dispatchEvent(new MouseEvent('click', {bubbles: true, ctrlKey: true}));
         expect(view.selectedKeys).toEqual([2, 3, 4, 5, 8]);
@@ -114,8 +114,8 @@ describe('list view', () => {
         expect(view.selectedItems.map(item => item.id)).toEqual([4, 3]);
         view.items = [];
         flushRenders();
-        expect(view.querySelector('.empty').hidden).toBe(false);
-        expect(view.querySelector('.empty').textContent).toBe('No items');
+        expect(view.querySelector('.zest-empty').hidden).toBe(false);
+        expect(view.querySelector('.zest-empty').textContent).toBe('No items');
     });
 
     it('works in a shadow root', () => {
@@ -139,7 +139,7 @@ function files() {
 describe('tree view', () => {
     it('shows the top nodes, with level, position, and the expanded state', () => {
         const view = make('tree-view', {items: files()});
-        expect(rows(view).map(row => row.querySelector('.label').textContent)).toEqual(['Documents', 'Pictures', 'Music']);
+        expect(rows(view).map(row => row.querySelector('.zest-label').textContent)).toEqual(['Documents', 'Pictures', 'Music']);
         const [docs, pics, music] = rows(view);
         expect(docs.getAttribute('aria-expanded')).toBe('false');
         expect(pics.getAttribute('aria-expanded')).toBe('false');
@@ -172,7 +172,7 @@ describe('tree view', () => {
         view.setExpanded(view.items[1], true);
         flushRenders();
         expect(loadChildren).toHaveBeenCalledTimes(1);
-        const loading = rows(view).find(row => row.classList.contains('loading'));
+        const loading = rows(view).find(row => row.classList.contains('zest-loading'));
         expect(loading.textContent).toBe('Loading…');
         expect(view.rowElement(1).getAttribute('aria-busy')).toBe('true');
         finish([{id: 'p1', label: 'photo.png'}]);
@@ -213,7 +213,7 @@ describe('tree view', () => {
         expect(view.rowElement(1).getAttribute('aria-checked')).toBe('true');
         expect(view.rowElement(0).getAttribute('aria-checked')).toBe('mixed');
         expect(view.checkedKeys).toEqual(['a']);
-        view.rowElement(0).querySelector('.check').click();
+        view.rowElement(0).querySelector('.zest-check').click();
         flushRenders();
         expect(view.checkedKeys).toEqual(['docs']);
         expect(view.rowElement(2).getAttribute('aria-checked')).toBe('true');
@@ -232,7 +232,7 @@ describe('tree view', () => {
         const view = make('tree-view', {items: files()});
         view.rowElement(2).click();
         expect(view.keyAt(view.active)).toBe('music');
-        view.rowElement(0).querySelector('.twisty').click();
+        view.rowElement(0).querySelector('.zest-twisty').click();
         flushRenders();
         expect(view.keyAt(view.active)).toBe('docs');
         press(view, 'End');
@@ -276,7 +276,7 @@ describe('table view', () => {
         expect(view.scroller.getAttribute('aria-colcount')).toBe('3');
         expect(view.rowElement(0).getAttribute('aria-rowindex')).toBe('2');
         expect(view.rowElement(0).children[1].textContent).toBe('30');
-        expect(view.rowElement(0).children[1].classList.contains('end')).toBe(true);
+        expect(view.rowElement(0).children[1].classList.contains('zest-end')).toBe(true);
     });
 
     it('sorts with a click on a header: ascending, descending, then the first order', () => {

@@ -67,18 +67,18 @@ calendar-view, :host {
     outline-offset: calc(var(--_focus-width) * -1);
     z-index: 3;
 }
-.zest-calendar .toolbar {
+.zest-calendar .zest-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--_gap);
 }
-.zest-calendar .toolbar .group {
+.zest-calendar .zest-toolbar .zest-group {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
 }
-.zest-calendar .toolbar button, .zest-calendar .status button {
+.zest-calendar .zest-toolbar button, .zest-calendar .zest-status button {
     min-height: var(--_height);
     min-width: var(--_height);
     padding: var(--_padding-block) calc(var(--_padding-inline) / 2);
@@ -88,23 +88,23 @@ calendar-view, :host {
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.zest-calendar .toolbar button:hover, .zest-calendar .status button:hover {
+.zest-calendar .zest-toolbar button:hover, .zest-calendar .zest-status button:hover {
     background-image: none;
     border-color: var(--_highlight);
 }
-.zest-calendar .toolbar button[aria-pressed="true"] {
+.zest-calendar .zest-toolbar button[aria-pressed="true"] {
     background: var(--_highlight);
     color: var(--_highlight-text);
     font-weight: bold;
     text-decoration: underline;
 }
-.zest-calendar .title {
+.zest-calendar .zest-title {
     flex: 1;
     min-width: 8em;
     font-weight: bold;
     font-size: 1.125em;
 }
-.zest-calendar .status {
+.zest-calendar .zest-status {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -113,14 +113,14 @@ calendar-view, :host {
     border: var(--_border-width) dashed var(--_focus);
     border-radius: var(--_radius);
 }
-.zest-calendar .status[hidden] {
+.zest-calendar .zest-status[hidden] {
     display: none;
 }
-.zest-calendar .status span {
+.zest-calendar .zest-status span {
     flex: 1;
     min-width: 0;
 }
-.zest-calendar .sr, .zest-calendar .live {
+.zest-calendar .zest-sr, .zest-calendar .zest-live {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -133,11 +133,11 @@ calendar-view, :host {
     border: var(--_border-width) solid var(--_line);
     border-radius: var(--_radius);
 }
-.zest-calendar .weekdays, .zest-calendar .week {
+.zest-calendar .zest-weekdays, .zest-calendar .zest-week {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
 }
-.zest-calendar .weekday {
+.zest-calendar .zest-weekday {
     padding: 0.25em;
     overflow: hidden;
     text-align: center;
@@ -146,7 +146,7 @@ calendar-view, :host {
     font-size: 0.875em;
     color: var(--_secondary-text);
 }
-.zest-calendar .day, .zest-calendar .all-day-cell {
+.zest-calendar .zest-day, .zest-calendar .zest-all-day-cell {
     position: relative;
     box-sizing: border-box;
     min-width: 0;
@@ -155,14 +155,14 @@ calendar-view, :host {
     border-block-start: var(--_border-width) solid var(--_line);
     border-inline-end: var(--_border-width) solid var(--_line);
 }
-.zest-calendar .all-day-cell {
+.zest-calendar .zest-all-day-cell {
     min-height: calc(var(--_lanes, 0) * (var(--_item-height) + 2px) + 0.5em);
     padding-block-start: calc(var(--_lanes, 0) * (var(--_item-height) + 2px));
 }
-.zest-calendar .week > :last-child, .zest-calendar .row > :last-child {
+.zest-calendar .zest-week > :last-child, .zest-calendar .zest-row > :last-child {
     border-inline-end: none;
 }
-.zest-calendar .day-number {
+.zest-calendar .zest-day-number {
     position: absolute;
     inset-block-start: 0.125em;
     inset-inline-start: 0.25em;
@@ -171,23 +171,23 @@ calendar-view, :host {
     text-align: center;
     border-radius: 0.75em;
 }
-.zest-calendar .other-month .day-number {
+.zest-calendar .zest-other-month .zest-day-number {
     color: var(--_secondary-text);
 }
-.zest-calendar .today .day-number, .zest-calendar .column-head.today .head-day {
+.zest-calendar .zest-today .zest-day-number, .zest-calendar .zest-column-head.zest-today .zest-head-day {
     background: var(--_highlight);
     color: var(--_highlight-text);
     font-weight: bold;
     text-decoration: underline;
 }
-.zest-calendar .day:hover, .zest-calendar .slot:hover, .zest-calendar .all-day-cell:hover {
+.zest-calendar .zest-day:hover, .zest-calendar .zest-slot:hover, .zest-calendar .zest-all-day-cell:hover {
     background: var(--_hover-face);
 }
 .zest-calendar [aria-selected="true"], .zest-calendar [aria-selected="true"]:hover {
     background: var(--_selection-face);
     box-shadow: inset 0 0 0 1px var(--_highlight);
 }
-.zest-calendar .more {
+.zest-calendar .zest-more {
     display: block;
     min-height: 24px;
     min-width: 24px;
@@ -201,10 +201,10 @@ calendar-view, :host {
     text-align: start;
     text-decoration: underline;
 }
-.zest-calendar .more:hover {
+.zest-calendar .zest-more:hover {
     border-color: var(--_highlight);
 }
-.zest-calendar .item {
+.zest-calendar .zest-item {
     position: absolute;
     z-index: 1;
     box-sizing: border-box;
@@ -218,24 +218,24 @@ calendar-view, :host {
     border-inline-start: 4px solid var(--_stripe, var(--_stripe-default));
     border-radius: var(--_radius);
 }
-.zest-calendar .lane-item {
+.zest-calendar .zest-lane-item {
     inset-block-start: calc(var(--_number-height) + var(--_lane) * (var(--_item-height) + 2px));
     inset-inline-start: 2px;
     width: calc(var(--_span) * (100% + var(--_border-width)) - 4px);
     height: var(--_item-height);
 }
-.zest-calendar .all-day-cell .lane-item {
+.zest-calendar .zest-all-day-cell .zest-lane-item {
     inset-block-start: calc(var(--_lane) * (var(--_item-height) + 2px));
 }
-.zest-calendar .continues-before {
+.zest-calendar .zest-continues-before {
     border-start-start-radius: 0;
     border-end-start-radius: 0;
 }
-.zest-calendar .continues-after {
+.zest-calendar .zest-continues-after {
     border-start-end-radius: 0;
     border-end-end-radius: 0;
 }
-.zest-calendar .item-main {
+.zest-calendar .zest-item-main {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -248,24 +248,39 @@ calendar-view, :host {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.zest-calendar .grid-item .item-main {
+.zest-calendar .zest-grid-item .zest-item-main {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
     white-space: normal;
 }
-.zest-calendar .item-time {
+.zest-calendar .zest-item-time {
     font-size: 0.875em;
     white-space: nowrap;
 }
-.zest-calendar .lane-item .item-time {
+.zest-calendar .zest-lane-item .zest-item-time {
     margin-inline-end: 0.25em;
 }
-.zest-calendar .busy {
+.zest-calendar .zest-busy {
     background: repeating-linear-gradient(135deg, var(--_item-face) 0 6px, var(--_window) 6px 12px);
 }
-.zest-calendar .grip {
+/* The well-known tags. Each has a sign that is not a color: a dashed edge, or a line through the title. */
+.zest-calendar .zest-item.zest-tag-tentative, .zest-calendar .zest-item.zest-tag-invited {
+    background-color: var(--_window);
+    border-block-style: dashed;
+    border-inline-end-style: dashed;
+    border-block-color: var(--_border);
+    border-inline-end-color: var(--_border);
+}
+.zest-calendar .zest-item.zest-tag-declined, .zest-calendar .zest-item.zest-tag-cancelled {
+    background-color: var(--_window);
+    color: var(--_secondary-text);
+}
+.zest-calendar .zest-item.zest-tag-declined .zest-item-title, .zest-calendar .zest-item.zest-tag-cancelled .zest-item-title {
+    text-decoration: line-through;
+}
+.zest-calendar .zest-grip {
     flex: none;
     min-width: 24px;
     min-height: 22px;
@@ -275,47 +290,47 @@ calendar-view, :host {
     color: inherit;
     touch-action: none;
 }
-.zest-calendar .grip[aria-pressed="true"] {
+.zest-calendar .zest-grip[aria-pressed="true"] {
     background: var(--_highlight);
     color: var(--_highlight-text);
 }
-.zest-calendar .resize {
+.zest-calendar .zest-resize {
     position: absolute;
     touch-action: none;
 }
-.zest-calendar .grid-item .resize {
+.zest-calendar .zest-grid-item .zest-resize {
     inset-inline: 0;
     inset-block-end: 0;
     height: 0.5em;
     cursor: ns-resize;
 }
-.zest-calendar .lane-item .resize {
+.zest-calendar .zest-lane-item .zest-resize {
     inset-block: 0;
     inset-inline-end: 0;
     width: 0.5em;
     cursor: ew-resize;
 }
-.zest-calendar .editing, .zest-calendar .pending {
+.zest-calendar .zest-editing, .zest-calendar .zest-pending {
     outline: 2px dashed var(--_focus);
     outline-offset: -2px;
     z-index: 2;
 }
-.zest-calendar.dragging .item {
+.zest-calendar.zest-dragging .zest-item {
     pointer-events: none;
 }
-.zest-calendar.dragging, .zest-calendar.dragging * {
+.zest-calendar.zest-dragging, .zest-calendar.zest-dragging * {
     cursor: grabbing;
     user-select: none;
 }
-.zest-calendar .head, .zest-calendar .all-day, .zest-calendar .row {
+.zest-calendar .zest-head, .zest-calendar .zest-all-day, .zest-calendar .zest-row {
     display: grid;
     grid-template-columns: var(--_time-width) repeat(var(--_days), minmax(0, 1fr));
 }
-.zest-calendar .head, .zest-calendar .all-day {
+.zest-calendar .zest-head, .zest-calendar .zest-all-day {
     overflow-y: hidden;
     scrollbar-gutter: stable;
 }
-.zest-calendar .column-head {
+.zest-calendar .zest-column-head {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -326,45 +341,45 @@ calendar-view, :host {
     overflow: hidden;
     font-size: 0.875em;
 }
-.zest-calendar .head-day {
+.zest-calendar .zest-head-day {
     min-width: 1.5em;
     text-align: center;
     border-radius: 0.75em;
 }
-.zest-calendar .time-label {
+.zest-calendar .zest-time-label {
     box-sizing: border-box;
     padding-inline: 0.25em;
     font-size: 0.75em;
     color: var(--_secondary-text);
     text-align: end;
 }
-.zest-calendar .scroller {
+.zest-calendar .zest-scroller {
     max-height: var(--_grid-height);
     overflow-y: auto;
     scrollbar-gutter: stable;
 }
-.zest-calendar .rows {
+.zest-calendar .zest-rows {
     position: relative;
 }
-.zest-calendar .row {
+.zest-calendar .zest-row {
     height: var(--_slot-height);
 }
-.zest-calendar .slot {
+.zest-calendar .zest-slot {
     box-sizing: border-box;
     min-width: 0;
     border-block-start: var(--_border-width) solid var(--_line);
     border-inline-end: var(--_border-width) solid var(--_line);
 }
-.zest-calendar .slot.half {
+.zest-calendar .zest-slot.zest-half {
     border-block-start-style: dashed;
 }
-.zest-calendar .grid-item {
+.zest-calendar .zest-grid-item {
     inset-block-start: calc(var(--_top) * 100%);
     height: calc(var(--_height) * 100%);
     inset-inline-start: calc(var(--_time-width) + (100% - var(--_time-width)) * (var(--_day) + var(--_column) / var(--_columns)) / var(--_days) + 1px);
     width: calc((100% - var(--_time-width)) / var(--_days) / var(--_columns) - 3px);
 }
-.zest-calendar .now {
+.zest-calendar .zest-now {
     position: absolute;
     z-index: 2;
     inset-block-start: calc(var(--_top) * 100%);
@@ -373,22 +388,22 @@ calendar-view, :host {
     border-block-start: 2px solid var(--_now);
     pointer-events: none;
 }
-.zest-calendar .agenda {
+.zest-calendar .zest-agenda {
     margin: 0;
     padding: 0;
     list-style: none;
 }
-.zest-calendar .agenda-day {
+.zest-calendar .zest-agenda-day {
     display: grid;
     grid-template-columns: minmax(6em, 1fr) minmax(0, 3fr);
     gap: var(--_gap);
     padding-block: var(--_gap);
     border-block-start: var(--_border-width) solid var(--_line);
 }
-.zest-calendar .agenda-date {
+.zest-calendar .zest-agenda-date {
     font-weight: bold;
 }
-.zest-calendar .agenda-items {
+.zest-calendar .zest-agenda-items {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -396,14 +411,14 @@ calendar-view, :host {
     padding: 0;
     list-style: none;
 }
-.zest-calendar .agenda .item {
+.zest-calendar .zest-agenda .zest-item {
     position: static;
     min-height: var(--_height);
 }
-.zest-calendar .agenda .item-main {
+.zest-calendar .zest-agenda .zest-item-main {
     white-space: normal;
 }
-.zest-calendar .empty {
+.zest-calendar .zest-empty {
     margin: 0;
     padding: var(--_gap);
     color: var(--_secondary-text);
@@ -413,24 +428,24 @@ calendar-view, :host {
     .zest-calendar {
         --_time-width: var(--zest-calendar-view-time-width, 3.5em);
     }
-    .zest-calendar .head-name, .zest-calendar .lane-item .item-time {
+    .zest-calendar .zest-head-name, .zest-calendar .zest-lane-item .zest-item-time {
         display: none;
     }
-    .zest-calendar .agenda-day {
+    .zest-calendar .zest-agenda-day {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 @media (forced-colors: active) {
-    .zest-calendar .item {
+    .zest-calendar .zest-item {
         border-color: CanvasText;
     }
-    .zest-calendar [aria-selected="true"], .zest-calendar .toolbar button[aria-pressed="true"], .zest-calendar .grip[aria-pressed="true"],
-    .zest-calendar .today .day-number, .zest-calendar .column-head.today .head-day {
+    .zest-calendar [aria-selected="true"], .zest-calendar .zest-toolbar button[aria-pressed="true"], .zest-calendar .zest-grip[aria-pressed="true"],
+    .zest-calendar .zest-today .zest-day-number, .zest-calendar .zest-column-head.zest-today .zest-head-day {
         forced-color-adjust: none;
         background: Highlight;
         color: HighlightText;
     }
-    .zest-calendar .now {
+    .zest-calendar .zest-now {
         border-color: Highlight;
     }
 }
@@ -451,6 +466,8 @@ const DEFAULT_LABELS = {
     moving: 'Moving {title}. Select a new place, or use the arrow keys and press Enter. Select the handle again to change the end.',
     resizing: 'Changing the end of {title}. Select the new end, or use the arrow keys and press Enter. Select the handle again to stop.',
     cancelled: 'The change is cancelled.',
+    // The hidden text that tells the state of an item with a tag. A tag with no text has none.
+    tags: {tentative: 'Tentative', invited: 'Invited', declined: 'Declined', cancelled: 'Cancelled'},
 };
 
 const kebab = (name) => name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
@@ -486,10 +503,10 @@ export default class CalendarView extends DataComponent {
         this.template = "";
         this.#wrapper = document.createElement('div');
         this.#content = document.createElement('div');
-        this.#content.className = 'content';
+        this.#content.className = 'zest-content';
         this.#content.style.display = 'contents';
         this.#live = document.createElement('div');
-        this.#live.className = 'live';
+        this.#live.className = 'zest-live';
         this.#live.setAttribute('aria-live', 'polite');
         this.#wrapper.className = 'zest-calendar';
         this.#wrapper.setAttribute('part', 'calendar');
@@ -512,6 +529,10 @@ export default class CalendarView extends DataComponent {
         return Number.isFinite(value) && value > 0 ? value : fallback;
     }
     #label(name) { return this.#config.labels?.[name] ?? DEFAULT_LABELS[name]; }
+    #tagLabel(tag) {
+        const text = this.#config.labels?.tags?.[tag] ?? DEFAULT_LABELS.tags[tag];
+        return typeof text === 'string' ? text : '';
+    }
     get locale() {
         return this.#option('locale') || (typeof navigator !== 'undefined' && navigator.language) || 'en-US';
     }
@@ -520,16 +541,30 @@ export default class CalendarView extends DataComponent {
         const view = this.#view ?? this.#option('view');
         return layout.VIEWS.includes(view) ? view : 'month';
     }
+    // A set of the same view does nothing. An application that copies calendar-range-changed into
+    // its state, and sets the view back, must not move the focus of the user.
     set view(view) {
-        this.#view = layout.VIEWS.includes(view) ? view : null;
+        const next = layout.VIEWS.includes(view) ? view : null;
+        const same = (next ?? this.#attributeView()) === this.view;
+        this.#view = next;
+        if (same) { return; }
         this.#selection = null;
         this.invalidate();
+    }
+    #attributeView() {
+        const view = this.#option('view');
+        return layout.VIEWS.includes(view) ? view : 'month';
     }
     // The anchor date, YYYY-MM-DD
     get date() { return model.formatDate(this.#anchorDate()); }
     set date(text) {
         const parsed = model.parseValue(String(text ?? ''), 'date', {timeZone: this.timeZone});
         if (parsed) {
+            // The same date, also as other text or a new object, does nothing. See the view.
+            if (model.compare(parsed, this.#anchorDate(), 'date') === 0) {
+                this.#anchor = parsed;
+                return;
+            }
             this.#anchor = parsed;
             this.#focus = null;
             this.invalidate();
@@ -575,7 +610,7 @@ export default class CalendarView extends DataComponent {
         const range = this.#range();
         const detail = layout.toDetail(model.dayNumber(range.start) * DAY, model.dayNumber(range.end) * DAY, false, this.timeZone);
         return {
-            view: this.view, start: detail.start, end: detail.end,
+            view: this.view, date: this.date, start: detail.start, end: detail.end,
             startDate: model.formatDate(range.start), endDate: model.formatDate(range.end),
             timeZone: this.timeZone ?? null,
         };
@@ -599,9 +634,24 @@ export default class CalendarView extends DataComponent {
     }
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue === newValue) { return; }
-        // An attribute from the application wins over a change that the user made in the calendar
-        if (name === 'view') { this.#view = null; }
-        if (name === 'date') { this.#anchor = null; this.#focus = null; }
+        // An attribute from the application wins over a change that the user made in the calendar.
+        // An attribute that gives the view or the date that the calendar shows does nothing more.
+        // The attribute has its new value here, so the view and the date that show come from the old value.
+        if (name === 'view') {
+            const valid = (view) => layout.VIEWS.includes(view) ? view : 'month';
+            const same = (this.#view ?? valid(oldValue)) === valid(newValue);
+            this.#view = null;
+            if (same) { return; }
+        }
+        if (name === 'date') {
+            const read = (text) => model.parseValue(String(text ?? ''), 'date');
+            const shown = this.#anchor ?? read(oldValue) ?? model.truncate(this.#now(), 'date');
+            const parsed = read(newValue);
+            const same = shown && parsed && model.compare(parsed, shown, 'date') === 0;
+            this.#anchor = null;
+            if (same) { return; }
+            this.#focus = null;
+        }
         this.#selection = null;
         this.invalidate();
     }
@@ -647,7 +697,7 @@ export default class CalendarView extends DataComponent {
         if (!this.isConnected) { return; }
         const focusKey = this.#nextFocus ?? this.#activeKey();
         this.#nextFocus = null;
-        const oldScroll = this.#wrapper.querySelector('.scroller')?.scrollTop;
+        const oldScroll = this.#wrapper.querySelector('.zest-scroller')?.scrollTop;
         const view = this.view;
         const range = this.#range();
         const rangeKey = `${view}|${model.formatDate(range.start)}|${model.formatDate(range.end)}|${this.timeZone ?? ''}`;
@@ -659,7 +709,7 @@ export default class CalendarView extends DataComponent {
             : view === 'agenda' ? this.#drawAgenda(range)
             : this.#drawTimeGrid(range);
         this.#content.replaceChildren(this.#drawToolbar(range), this.#drawStatus(), body);
-        this.#wrapper.classList.toggle('dragging', Boolean(this.#press?.dragging));
+        this.#wrapper.classList.toggle('zest-dragging', Boolean(this.#press?.dragging));
         this.#wrapper.dataset.view = view;
         this.root.replaceChildren(this.#wrapper);
         // The content is new on each render, so a fallback style element does not add up
@@ -668,7 +718,7 @@ export default class CalendarView extends DataComponent {
         const cells = this.#wrapper.querySelectorAll('[data-unit]');
         if (cells.length && ![...cells].some(cell => cell.tabIndex === 0)) { cells[0].tabIndex = 0; }
 
-        const scroller = this.#wrapper.querySelector('.scroller');
+        const scroller = this.#wrapper.querySelector('.zest-scroller');
         if (scroller) {
             if (this.#scrolledFor !== rangeKey) {
                 const {start} = this.#hours;
@@ -690,7 +740,7 @@ export default class CalendarView extends DataComponent {
     // would read the cell again each minute. A new day, or a line that comes or goes, renders.
     #moveNowLine() {
         if (!TIME_GRID.has(this.view)) { return; }
-        const line = this.#wrapper.querySelector('.now');
+        const line = this.#wrapper.querySelector('.zest-now');
         const days = layout.rangeDays(this.#range());
         const now = this.#now();
         const day = days.findIndex(found => model.compare(found, now, 'date') === 0);
@@ -704,7 +754,7 @@ export default class CalendarView extends DataComponent {
         }
     }
     #slotPixels(scroller) {
-        return scroller.querySelector('.row')?.getBoundingClientRect().height || 0;
+        return scroller.querySelector('.zest-row')?.getBoundingClientRect().height || 0;
     }
     #activeKey() {
         const active = this.root === this ? document.activeElement : this.root.activeElement;
@@ -777,21 +827,21 @@ export default class CalendarView extends DataComponent {
     #drawToolbar(range) {
         const view = this.view;
         const unit = view === 'month' ? 'Month' : view === 'week' ? 'Week' : 'Days';
-        const toolbar = this.#el('div', 'toolbar', {part: 'toolbar'});
+        const toolbar = this.#el('div', 'zest-toolbar', {part: 'toolbar'});
         toolbar.append(
-            this.#el('div', 'group', {},
-                this.#button('previous', '‹', 'previous', () => this.previous(), {'aria-label': this.#label(`previous${unit}`)}),
-                this.#button('today-button', this.#label('today'), 'today', () => this.today()),
-                this.#button('next', '›', 'next', () => this.next(), {'aria-label': this.#label(`next${unit}`)}),
+            this.#el('div', 'zest-group', {},
+                this.#button('zest-previous', '‹', 'previous', () => this.previous(), {'aria-label': this.#label(`previous${unit}`)}),
+                this.#button('zest-today-button', this.#label('today'), 'today', () => this.today()),
+                this.#button('zest-next', '›', 'next', () => this.next(), {'aria-label': this.#label(`next${unit}`)}),
             ),
-            this.#el('div', 'title', {part: 'title'}, this.#title(range)),
+            this.#el('div', 'zest-title', {part: 'title'}, this.#title(range)),
         );
         const views = String(this.#option('views') ?? layout.VIEWS.join(','))
             .split(',').map(name => name.trim()).filter(name => layout.VIEWS.includes(name));
         if (views.length > 1) {
-            const group = this.#el('div', 'group views', {role: 'group', 'aria-label': this.#label('views')});
+            const group = this.#el('div', 'zest-group zest-views', {role: 'group', 'aria-label': this.#label('views')});
             for (const name of views) {
-                group.appendChild(this.#button(`view-${name}`, this.#label(name), `view-${name}`, () => this.#setView(name),
+                group.appendChild(this.#button(`zest-view-${name}`, this.#label(name), `view-${name}`, () => this.#setView(name),
                     {'aria-pressed': String(name === view)}));
             }
             toolbar.appendChild(group);
@@ -802,12 +852,12 @@ export default class CalendarView extends DataComponent {
     // the grid down under the pointer.
     #drawStatus() {
         const shown = Boolean(this.#edit) && !this.#edit.dragged;
-        const status = this.#el('div', 'status', {part: 'status', hidden: !shown});
+        const status = this.#el('div', 'zest-status', {part: 'status', hidden: !shown});
         if (shown) {
             const title = this.#edit.title;
             status.append(
                 this.#el('span', '', {}, fill(this.#label(this.#edit.mode === 'move' ? 'moving' : 'resizing'), {title})),
-                this.#button('cancel', this.#label('cancel'), 'cancel', () => this.#cancelEdit()),
+                this.#button('zest-cancel', this.#label('cancel'), 'cancel', () => this.#cancelEdit()),
             );
         }
         return status;
@@ -833,36 +883,42 @@ export default class CalendarView extends DataComponent {
     // One item. place is 'lane' for the month and the all-day row, 'grid' for the time grid, and
     // 'list' for the agenda. key tells the copies of an item on more than one row apart.
     #drawItem(item, place, key, segment = {}) {
-        const classes = ['item', `${place}-item`];
-        if (item.busyOnly) { classes.push('busy'); }
-        if (segment.continuesBefore) { classes.push('continues-before'); }
-        if (segment.continuesAfter) { classes.push('continues-after'); }
-        if (this.#edit?.id === item.id) { classes.push('editing'); }
-        else if (this.#pending.has(item.id)) { classes.push('pending'); }
-        const element = this.#el('div', classes.join(' '), {part: 'item', 'data-id': item.id});
+        const classes = ['zest-item', `zest-${place}-item`];
+        if (item.busyOnly) { classes.push('zest-busy'); }
+        for (const tag of item.tags) { classes.push(`zest-tag-${tag}`); }
+        if (segment.continuesBefore) { classes.push('zest-continues-before'); }
+        if (segment.continuesAfter) { classes.push('zest-continues-after'); }
+        if (this.#edit?.id === item.id) { classes.push('zest-editing'); }
+        else if (this.#pending.has(item.id)) { classes.push('zest-pending'); }
+        const element = this.#el('div', classes.join(' '), {
+            part: ['item', ...item.tags.map(tag => `item-${tag}`)].join(' '), 'data-id': item.id,
+        });
         if (item.color) { element.style.setProperty('--_stripe', item.color); }
         const title = this.#itemTitle(item);
-        const main = this.#button('item-main', '', `item-${item.id}-${key}`, () => this.#selectItem(item), {'data-id': item.id});
+        const main = this.#button('zest-item-main', '', `item-${item.id}-${key}`, () => this.#selectItem(item), {'data-id': item.id});
+        // The state from the tags comes first, so that a screen reader does not give it only by a color or a line
+        const states = item.tags.map(tag => this.#tagLabel(tag)).filter(Boolean);
+        if (states.length) { main.append(this.#el('span', 'zest-sr zest-item-state', {}, `${states.join(', ')}, `)); }
         const showTime = !item.allDay && !(place === 'lane' && layout.spansDays(item) && segment.continuesBefore);
         if (showTime) {
             const start = layout.partsOf(item.start);
-            main.append(this.#el('span', 'item-time', {}, this.#clock(start.hour * 60 + start.minute)), ' ');
+            main.append(this.#el('span', 'zest-item-time', {}, this.#clock(start.hour * 60 + start.minute)), ' ');
         }
-        main.append(this.#el('span', 'item-title', {}, title), this.#el('span', 'sr', {}, this.#itemDetails(item)));
+        main.append(this.#el('span', 'zest-item-title', {}, title), this.#el('span', 'zest-sr', {}, this.#itemDetails(item)));
         if (segment.continuesBefore || segment.continuesAfter) {
-            main.appendChild(this.#el('span', 'sr', {}, `, ${this.#label('continues')}`));
+            main.appendChild(this.#el('span', 'zest-sr', {}, `, ${this.#label('continues')}`));
         }
         element.appendChild(main);
         if (item.editable && !this.readOnly && place !== 'list') {
             const editing = this.#edit?.id === item.id;
-            element.appendChild(this.#button('grip', '⠿', `grip-${item.id}-${key}`, () => this.#toggleEdit(item), {
+            element.appendChild(this.#button('zest-grip', '⠿', `grip-${item.id}-${key}`, () => this.#toggleEdit(item), {
                 'aria-label': fill(this.#label('grip'), {title}),
                 'aria-pressed': String(editing),
                 'data-id': item.id,
                 'data-grip': item.id,
             }));
             if (!item.busyOnly) {
-                element.appendChild(this.#el('div', 'resize', {'aria-hidden': 'true', 'data-id': item.id}));
+                element.appendChild(this.#el('div', 'zest-resize', {'aria-hidden': 'true', 'data-id': item.id}));
             }
         }
         return element;
@@ -871,7 +927,7 @@ export default class CalendarView extends DataComponent {
     // The name of a cell is its text, so that it holds the visible text of its items. This hidden
     // text comes first, and says the date and the time.
     #cellLabel(text) {
-        return this.#el('span', 'sr cell-label', {}, text);
+        return this.#el('span', 'zest-sr zest-cell-label', {}, text);
     }
     #countLabel(count) {
         const forms = this.#label('events');
@@ -901,10 +957,10 @@ export default class CalendarView extends DataComponent {
         const weeks = layout.monthLayout(this.#items, range, maxLanes);
         const anchor = this.#anchorDate();
         const today = model.truncate(this.#now(), 'date');
-        const grid = this.#el('div', 'month', {role: 'grid', part: 'grid', 'aria-label': this.#title(range), 'aria-readonly': this.readOnly ? 'true' : null});
-        grid.appendChild(this.#el('div', 'weekdays', {role: 'row'}, ...this.#weekdayHeads(weeks[0].days, 'weekday')));
+        const grid = this.#el('div', 'zest-month', {role: 'grid', part: 'grid', 'aria-label': this.#title(range), 'aria-readonly': this.readOnly ? 'true' : null});
+        grid.appendChild(this.#el('div', 'zest-weekdays', {role: 'row'}, ...this.#weekdayHeads(weeks[0].days, 'zest-weekday')));
         for (const week of weeks) {
-            const row = this.#el('div', 'week', {role: 'row'});
+            const row = this.#el('div', 'zest-week', {role: 'row'});
             const hasMore = week.hidden.some(count => count > 0);
             row.style.setProperty('--_lanes', week.lanes);
             if (hasMore) { row.style.setProperty('--_more-height', '26px'); }
@@ -915,18 +971,18 @@ export default class CalendarView extends DataComponent {
                     const [first, last] = layout.coveredDays(item);
                     return first <= model.dayNumber(day) && last >= model.dayNumber(day);
                 }).length;
-                const classes = ['day'];
-                if (day.month !== anchor.month) { classes.push('other-month'); }
-                if (model.compare(day, today, 'date') === 0) { classes.push('today'); }
+                const classes = ['zest-day'];
+                if (day.month !== anchor.month) { classes.push('zest-other-month'); }
+                if (model.compare(day, today, 'date') === 0) { classes.push('zest-today'); }
                 const cell = this.#el('div', classes.join(' '), {
                     role: 'gridcell', part: 'day', tabindex: this.#tabIndex(isFocus),
                     'data-key': `day-${iso}`, 'data-date': iso, 'data-unit': 'day',
                     'aria-selected': this.#isSelected(day) ? 'true' : null,
-                    'aria-current': classes.includes('today') ? 'date' : null,
+                    'aria-current': classes.includes('zest-today') ? 'date' : null,
                 });
                 cell.append(
                     this.#cellLabel(onDay ? `${this.#fullDate(day)}, ${this.#countLabel(onDay)}` : this.#fullDate(day)),
-                    this.#el('span', 'day-number', {'aria-hidden': 'true'}, model.formatNumber(day.day, this.locale)),
+                    this.#el('span', 'zest-day-number', {'aria-hidden': 'true'}, model.formatNumber(day.day, this.locale)),
                 );
                 for (const segment of week.segments.filter(found => found.startCol === col)) {
                     const element = this.#drawItem(segment.item, 'lane', iso, segment);
@@ -936,9 +992,9 @@ export default class CalendarView extends DataComponent {
                     cell.appendChild(element);
                 }
                 if (week.hidden[col]) {
-                    const more = this.#button('more', fill(this.#label('more'), {count: model.formatNumber(week.hidden[col], this.locale)}),
+                    const more = this.#button('zest-more', fill(this.#label('more'), {count: model.formatNumber(week.hidden[col], this.locale)}),
                         `more-${iso}`, () => this.#setView('day', day), {part: 'more', tabindex: this.#tabIndex(isFocus)});
-                    more.appendChild(this.#el('span', 'sr', {}, ` ${fill(this.#label('moreOn'), {date: this.#fullDate(day)})}`));
+                    more.appendChild(this.#el('span', 'zest-sr', {}, ` ${fill(this.#label('moreOn'), {date: this.#fullDate(day)})}`));
                     cell.appendChild(more);
                 }
                 row.appendChild(cell);
@@ -957,25 +1013,25 @@ export default class CalendarView extends DataComponent {
         const slot = this.#slot;
         const grid = layout.timeGridLayout(this.#items, days, {dayStart: start, dayEnd: end, minMinutes: Math.min(slot, 15)});
         const today = model.truncate(this.#now(), 'date');
-        const container = this.#el('div', 'time-grid', {role: 'grid', part: 'grid', 'aria-label': this.#title(range), 'aria-readonly': this.readOnly ? 'true' : null});
+        const container = this.#el('div', 'zest-time-grid', {role: 'grid', part: 'grid', 'aria-label': this.#title(range), 'aria-readonly': this.readOnly ? 'true' : null});
         container.style.setProperty('--_days', days.length);
 
-        const head = this.#el('div', 'head', {role: 'row'}, this.#el('div', 'corner', {role: 'columnheader'}, this.#el('span', 'sr', {}, this.#label('time'))));
+        const head = this.#el('div', 'zest-head', {role: 'row'}, this.#el('div', 'zest-corner', {role: 'columnheader'}, this.#el('span', 'zest-sr', {}, this.#label('time'))));
         const shortNames = model.weekdayNames(this.locale, 'short');
         for (const day of days) {
             const isToday = model.compare(day, today, 'date') === 0;
-            head.appendChild(this.#el('div', `column-head${isToday ? ' today' : ''}`, {role: 'columnheader', 'aria-label': this.#fullDate(day)},
-                this.#el('span', 'head-name', {}, shortNames[model.weekday(day)]),
-                this.#el('span', 'head-day', {}, model.formatNumber(day.day, this.locale))));
+            head.appendChild(this.#el('div', `zest-column-head${isToday ? ' zest-today' : ''}`, {role: 'columnheader', 'aria-label': this.#fullDate(day)},
+                this.#el('span', 'zest-head-name', {}, shortNames[model.weekday(day)]),
+                this.#el('span', 'zest-head-day', {}, model.formatNumber(day.day, this.locale))));
         }
         container.appendChild(head);
 
-        const allDay = this.#el('div', 'all-day', {role: 'row'}, this.#el('div', 'time-label', {role: 'rowheader'}, this.#label('allDay')));
+        const allDay = this.#el('div', 'zest-all-day', {role: 'row'}, this.#el('div', 'zest-time-label', {role: 'rowheader'}, this.#label('allDay')));
         allDay.style.setProperty('--_lanes', grid.lanes);
         days.forEach((day, col) => {
             const iso = model.formatDate(day);
             const isFocus = this.#focus.minute === null && model.compare(day, this.#focus.date, 'date') === 0;
-            const cell = this.#el('div', 'all-day-cell', {
+            const cell = this.#el('div', 'zest-all-day-cell', {
                 role: 'gridcell', tabindex: this.#tabIndex(isFocus), 'data-key': `all-day-${iso}`, 'data-date': iso, 'data-unit': 'day',
                 'aria-selected': this.#isSelected(day) ? 'true' : null,
             }, this.#cellLabel(`${this.#label('allDay')}, ${this.#fullDate(day)}`));
@@ -990,17 +1046,17 @@ export default class CalendarView extends DataComponent {
         });
         container.appendChild(allDay);
 
-        const rows = this.#el('div', 'rows', {role: 'rowgroup'});
+        const rows = this.#el('div', 'zest-rows', {role: 'rowgroup'});
         const slots = Math.ceil((end - start) / slot);
         for (let index = 0; index < slots; index++) {
             const minute = start + index * slot;
             const shown = minute % 60 === 0 || slot >= 60 || index === 0;
-            const row = this.#el('div', 'row', {role: 'row'},
-                this.#el('div', 'time-label', {role: 'rowheader'}, shown ? this.#clock(minute) : this.#el('span', 'sr', {}, this.#clock(minute))));
+            const row = this.#el('div', 'zest-row', {role: 'row'},
+                this.#el('div', 'zest-time-label', {role: 'rowheader'}, shown ? this.#clock(minute) : this.#el('span', 'zest-sr', {}, this.#clock(minute))));
             days.forEach((day, col) => {
                 const absolute = model.dayNumber(day) * DAY + minute;
                 const isFocus = this.#focus.minute === minute && model.compare(day, this.#focus.date, 'date') === 0;
-                const cell = this.#el('div', `slot${minute % 60 === 0 ? '' : ' half'}`, {
+                const cell = this.#el('div', `zest-slot${minute % 60 === 0 ? '' : ' zest-half'}`, {
                     role: 'gridcell', part: 'slot', tabindex: this.#tabIndex(isFocus),
                     'data-key': `slot-${absolute}`, 'data-minute': absolute, 'data-unit': 'slot',
                     'aria-selected': this.#isSelected(day, minute) ? 'true' : null,
@@ -1025,12 +1081,12 @@ export default class CalendarView extends DataComponent {
         const nowDay = days.findIndex(day => model.compare(day, now, 'date') === 0);
         const nowMinute = now.hour * 60 + now.minute;
         if (nowDay !== -1 && nowMinute >= start && nowMinute < end) {
-            const line = this.#el('div', 'now', {'aria-hidden': 'true', part: 'now'});
+            const line = this.#el('div', 'zest-now', {'aria-hidden': 'true', part: 'now'});
             line.style.setProperty('--_top', (nowMinute - start) / (end - start));
             line.style.setProperty('--_day', nowDay);
             rows.appendChild(line);
         }
-        const scroller = this.#el('div', 'scroller', {}, rows);
+        const scroller = this.#el('div', 'zest-scroller', {}, rows);
         container.appendChild(scroller);
         return container;
     }
@@ -1038,16 +1094,16 @@ export default class CalendarView extends DataComponent {
     #drawAgenda(range) {
         const days = layout.agendaLayout(this.#items, range);
         if (!days.length) {
-            return this.#el('p', 'empty', {part: 'empty'}, this.#label('noEvents'));
+            return this.#el('p', 'zest-empty', {part: 'empty'}, this.#label('noEvents'));
         }
-        const list = this.#el('ul', 'agenda', {part: 'agenda', 'aria-label': this.#title(range)});
+        const list = this.#el('ul', 'zest-agenda', {part: 'agenda', 'aria-label': this.#title(range)});
         for (const {day, items} of days) {
             const iso = model.formatDate(day);
-            const entries = this.#el('ul', 'agenda-items', {});
+            const entries = this.#el('ul', 'zest-agenda-items', {});
             for (const item of items) {
                 entries.appendChild(this.#el('li', '', {}, this.#drawItem(item, 'list', iso)));
             }
-            list.appendChild(this.#el('li', 'agenda-day', {}, this.#el('div', 'agenda-date', {}, this.#fullDate(day)), entries));
+            list.appendChild(this.#el('li', 'zest-agenda-day', {}, this.#el('div', 'zest-agenda-date', {}, this.#fullDate(day)), entries));
         }
         return list;
     }
@@ -1106,13 +1162,13 @@ export default class CalendarView extends DataComponent {
         this.#announce(fill(this.#label(mode === 'move' ? 'moving' : 'resizing'), {title: this.#edit.title}));
     }
     #gripKey(id) {
-        return this.#wrapper.querySelector(`.grip[data-grip="${CSS.escape(id)}"]`)?.dataset.key ?? null;
+        return this.#wrapper.querySelector(`.zest-grip[data-grip="${CSS.escape(id)}"]`)?.dataset.key ?? null;
     }
     #cancelEdit() {
         if (!this.#edit) { return; }
         const id = this.#edit.id;
         this.#edit = null;
-        this.#nextFocus = this.#wrapper.querySelector(`.item-main[data-id="${CSS.escape(id)}"]`)?.dataset.key ?? null;
+        this.#nextFocus = this.#wrapper.querySelector(`.zest-item-main[data-id="${CSS.escape(id)}"]`)?.dataset.key ?? null;
         this.render();
         this.#announce(this.#label('cancelled'));
     }
@@ -1155,7 +1211,7 @@ export default class CalendarView extends DataComponent {
         this.#edit = null;
         const changed = edit.start !== edit.origin.start || edit.end !== edit.origin.end;
         if (changed) { this.#pending.set(edit.id, {start: edit.start, end: edit.end}); }
-        this.#nextFocus = this.#wrapper.querySelector(`.item-main[data-id="${CSS.escape(edit.id)}"]`)?.dataset.key ?? null;
+        this.#nextFocus = this.#wrapper.querySelector(`.zest-item-main[data-id="${CSS.escape(edit.id)}"]`)?.dataset.key ?? null;
         this.render();
         if (!changed) { return; }
         const item = this.#items.find(found => found.id === edit.id);
@@ -1204,7 +1260,7 @@ export default class CalendarView extends DataComponent {
             return;
         }
         const cell = e.target.closest?.('[data-unit]');
-        if (!cell || e.target.closest('.item, .more')) { return; }
+        if (!cell || e.target.closest('.zest-item, .zest-more')) { return; }
         if (this.#edit) {
             this.#placeAt(this.#unitOf(cell));
             return;
@@ -1215,7 +1271,7 @@ export default class CalendarView extends DataComponent {
     }
     #onPointerDown(e) {
         if (e.button !== 0 || this.readOnly) { return; }
-        const itemElement = e.target.closest?.('.item');
+        const itemElement = e.target.closest?.('.zest-item');
         // A drag of an item counts from the cell under the pointer, so the item stays under it
         const cell = (itemElement && this.#cellAt(e)) || e.target.closest?.('[data-unit]');
         const unit = this.#unitOf(cell);
@@ -1223,9 +1279,9 @@ export default class CalendarView extends DataComponent {
         const item = itemElement ? this.#items.find(found => found.id === itemElement.dataset.id) : null;
         if (itemElement) {
             // A touch on an item scrolls the page. A person who uses touch moves it with the handle.
-            const onHandle = e.target.closest('.grip, .resize');
+            const onHandle = e.target.closest('.zest-grip, .zest-resize');
             if (!item?.editable || (e.pointerType === 'touch' && !onHandle)) { return; }
-            this.#press = {kind: e.target.closest('.resize') ? 'resize' : 'move', item, unit, x: e.clientX, y: e.clientY, dragging: false};
+            this.#press = {kind: e.target.closest('.zest-resize') ? 'resize' : 'move', item, unit, x: e.clientX, y: e.clientY, dragging: false};
         } else {
             if (e.pointerType === 'touch' || this.#edit) { return; }
             this.#press = {kind: 'select', unit, x: e.clientX, y: e.clientY, dragging: false};
@@ -1243,7 +1299,7 @@ export default class CalendarView extends DataComponent {
                 this.#edit = {id: press.item.id, mode: press.kind, start: press.item.start, end: press.item.end, allDay: press.item.allDay,
                     origin: {start: press.item.start, end: press.item.end}, title: this.#itemTitle(press.item), dragged: true};
             }
-            this.#wrapper.classList.add('dragging');
+            this.#wrapper.classList.add('zest-dragging');
         }
         const unit = this.#unitOf(this.#cellAt(e));
         if (!unit || unit.kind !== press.unit.kind || unit.value === press.last) { return; }
@@ -1268,7 +1324,7 @@ export default class CalendarView extends DataComponent {
         if (!press) { return; }
         this.#press = null;
         this.#wrapper.releasePointerCapture?.(e.pointerId);
-        this.#wrapper.classList.remove('dragging');
+        this.#wrapper.classList.remove('zest-dragging');
         if (!press.dragging) { return; }
         // The browser sends a click after the pointer goes up. It is part of the drag.
         this.#suppressClick = true;
@@ -1283,7 +1339,7 @@ export default class CalendarView extends DataComponent {
         if (!this.#press) { return; }
         const dragged = this.#press.dragging && this.#press.kind !== 'select';
         this.#press = null;
-        this.#wrapper.classList.remove('dragging');
+        this.#wrapper.classList.remove('zest-dragging');
         if (dragged) { this.#edit = null; }
         this.#selection = null;
         if (this.isConnected) { this.render(); }
@@ -1296,11 +1352,11 @@ export default class CalendarView extends DataComponent {
             if (this.#edit) { this.#cancelEdit(); } else { this.#selection = null; this.render(); }
             return;
         }
-        if (this.#edit && target.matches?.('.grip')) {
+        if (this.#edit && target.matches?.('.zest-grip')) {
             this.#onEditKey(e);
             return;
         }
-        if (target.matches?.('.item-main, .grip, .more') && e.key === 'Escape') {
+        if (target.matches?.('.zest-item-main, .zest-grip, .zest-more') && e.key === 'Escape') {
             e.preventDefault();
             this.#focusKey(target.closest('[data-unit]')?.dataset.key);
             return;

@@ -21,7 +21,7 @@ export class SplitView extends ShadowContainer {
         labels: {type: Object, attribute: false},
     };
     static labels = {resize: 'Resize {pane}', pane: 'pane {number}'};
-    static shadowHtml = `<div class="split" part="split"><slot></slot></div>`;
+    static shadowHtml = `<div class="zest-split" part="split"><slot></slot></div>`;
     static styles = `
 :host {
     display: grid;
@@ -34,7 +34,7 @@ export class SplitView extends ShadowContainer {
 :host([orientation="vertical"]) {
     min-height: var(--zest-split-view-min-height, 16em);
 }
-.split {
+.zest-split {
     ${tokenAliases('split-view')}
     --_divider: var(--zest-split-view-divider-size, 0.5em);
     display: grid;
@@ -43,7 +43,7 @@ export class SplitView extends ShadowContainer {
     min-width: 0;
     min-height: 0;
 }
-.split[data-orientation="vertical"] {
+.zest-split[data-orientation="vertical"] {
     grid-auto-flow: row;
     grid-template-columns: minmax(0, 1fr);
 }
@@ -60,7 +60,7 @@ ${paneOrder}
     border: none !important;
     overflow: hidden !important;
 }
-.divider {
+.zest-divider {
     position: relative;
     z-index: 1;
     box-sizing: border-box;
@@ -71,14 +71,14 @@ ${paneOrder}
     touch-action: none;
     outline: none;
 }
-.split[data-orientation="vertical"] .divider {
+.zest-split[data-orientation="vertical"] .zest-divider {
     min-width: 0;
     min-height: 24px;
     margin-inline: 0;
     margin-block: calc((24px - var(--_divider)) / -2);
     cursor: row-resize;
 }
-.divider::after {
+.zest-divider::after {
     content: "";
     position: absolute;
     inset-block: 0;
@@ -90,7 +90,7 @@ ${paneOrder}
     box-sizing: border-box;
     transition: background-color var(--_motion);
 }
-.split[data-orientation="vertical"] .divider::after {
+.zest-split[data-orientation="vertical"] .zest-divider::after {
     inset-inline: 0;
     inset-block-start: 50%;
     width: auto;
@@ -99,15 +99,15 @@ ${paneOrder}
     border-inline: none;
     border-block: var(--_border-width) solid var(--_line);
 }
-.divider:hover::after, .divider.dragging::after {
+.zest-divider:hover::after, .zest-divider.zest-dragging::after {
     background: var(--_highlight);
 }
-.divider:focus-visible::after {
+.zest-divider:focus-visible::after {
     background: var(--_highlight);
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.divider.collapsed::after {
+.zest-divider.zest-collapsed::after {
     background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--_border) 3px 4px);
 }
 `;
@@ -117,7 +117,7 @@ ${paneOrder}
     #drag = null;
 
     get panes() {
-        return this.part('slot')?.assignedElements() ?? [];
+        return this.shadowPart('slot')?.assignedElements() ?? [];
     }
     get collapsedPanes() {
         return [...this.#collapsed].sort((a, b) => a - b);
@@ -141,8 +141,8 @@ ${paneOrder}
     }
 
     built() {
-        this.#split = this.part('.split');
-        this.part('slot').addEventListener('slotchange', () => this.invalidate());
+        this.#split = this.shadowPart('.zest-split');
+        this.shadowPart('slot').addEventListener('slotchange', () => this.invalidate());
         this.#split.addEventListener('pointerdown', (e) => this.#onPointerDown(e));
         this.#split.addEventListener('keydown', (e) => this.#onKeydown(e));
     }
@@ -174,7 +174,7 @@ ${paneOrder}
         return sizes.some(size => size > 0) ? sizes : this.#weights();
     }
     #dividers() {
-        return [...this.#split.querySelectorAll('.divider')];
+        return [...this.#split.querySelectorAll('.zest-divider')];
     }
     #paneName(pane, i) {
         const name = pane.getAttribute('label') || pane.getAttribute('aria-label');
@@ -207,14 +207,14 @@ ${paneOrder}
     }
 
     #onPointerDown(e) {
-        const divider = e.target.closest?.('.divider');
+        const divider = e.target.closest?.('.zest-divider');
         if (!divider || e.button !== 0) { return; }
         e.preventDefault();
         const i = this.#dividers().indexOf(divider);
         const sizes = this.#measured();
         this.#drag = {i, start: this.#vertical() ? e.clientY : e.clientX, first: sizes[i], moved: false};
         divider.setPointerCapture?.(e.pointerId);
-        divider.classList.add('dragging');
+        divider.classList.add('zest-dragging');
         divider.focus({preventScroll: true});
         const move = (event) => {
             const position = this.#vertical() ? event.clientY : event.clientX;
@@ -227,7 +227,7 @@ ${paneOrder}
             divider.removeEventListener('pointermove', move);
             divider.removeEventListener('pointerup', end);
             divider.removeEventListener('pointercancel', end);
-            divider.classList.remove('dragging');
+            divider.classList.remove('zest-dragging');
             if (this.#drag?.moved) { this.#sendResize(); }
             this.#drag = null;
         };
@@ -237,7 +237,7 @@ ${paneOrder}
     }
 
     #onKeydown(e) {
-        const divider = e.target.closest?.('.divider');
+        const divider = e.target.closest?.('.zest-divider');
         if (!divider || e.altKey || e.ctrlKey || e.metaKey) { return; }
         const i = this.#dividers().indexOf(divider);
         const sizes = this.#measured();
@@ -269,7 +269,7 @@ ${paneOrder}
         let dividers = this.#dividers();
         while (dividers.length < panes.length - 1) {
             const divider = document.createElement('div');
-            divider.className = 'divider';
+            divider.className = 'zest-divider';
             divider.setAttribute('role', 'separator');
             divider.setAttribute('part', 'divider');
             divider.tabIndex = 0;
@@ -300,7 +300,7 @@ ${paneOrder}
             const share = this.#collapsed.has(i) ? 0 : weights[i] / total;
             divider.setAttribute('aria-valuenow', String(Math.round(share * 100)));
             divider.setAttribute('aria-label', this.text('resize').replace('{pane}', this.#paneName(panes[i], i)));
-            divider.classList.toggle('collapsed', this.#collapsed.has(i) || this.#collapsed.has(i + 1));
+            divider.classList.toggle('zest-collapsed', this.#collapsed.has(i) || this.#collapsed.has(i + 1));
         });
     }
 }

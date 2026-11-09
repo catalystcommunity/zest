@@ -89,7 +89,7 @@ function render() {
   list.itemText = (item) => item.name;
   list.renderItem = (item, row) => {
     if (!row.firstChild) {
-      row.innerHTML = '<span class="label"></span><span class="city"></span>';
+      row.innerHTML = '<span class="zest-label"></span><span class="city"></span>';
     }
     row.children[0].textContent = `${item.id + 1}. ${item.name}`;
     row.children[1].textContent = item.city;

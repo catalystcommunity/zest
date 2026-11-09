@@ -11,7 +11,7 @@ date-time-picker, :host {
     min-width: 0;
     max-width: 100%;
 }
-.dtp {
+.zest-date-time-picker {
     --_window: var(--zest-date-time-picker-window, var(--zest-color-window, Canvas));
     --_window-text: var(--zest-date-time-picker-window-text, var(--zest-color-window-text, CanvasText));
     --_field: var(--zest-date-time-picker-field, var(--zest-control-field, var(--zest-color-field, Field)));
@@ -43,30 +43,30 @@ date-time-picker, :host {
     font-family: var(--zest-font-family, inherit);
     line-height: var(--zest-line-height, inherit);
 }
-.dtp input, .dtp select, .dtp button {
+.zest-date-time-picker input, .zest-date-time-picker select, .zest-date-time-picker button {
     box-sizing: border-box;
     font: inherit;
 }
-.dtp button {
+.zest-date-time-picker button {
     cursor: pointer;
     transition: background-color var(--_motion), border-color var(--_motion);
 }
-.dtp :focus-visible {
+.zest-date-time-picker :focus-visible {
     position: relative;
     z-index: 1;
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: var(--_focus-offset);
 }
-.dtp .input-row {
+.zest-date-time-picker .zest-input-row {
     display: flex;
     align-items: stretch;
     gap: var(--_gap);
 }
-.dtp input::placeholder {
+.zest-date-time-picker input::placeholder {
     color: var(--_secondary-text);
     opacity: 1;
 }
-.dtp input, .dtp select {
+.zest-date-time-picker input, .zest-date-time-picker select {
     min-height: var(--_height);
     padding: var(--_padding-block) calc(var(--_padding-inline) / 2);
     background: var(--_field);
@@ -74,15 +74,15 @@ date-time-picker, :host {
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.dtp .input-row input {
+.zest-date-time-picker .zest-input-row input {
     flex: 1;
     min-width: 0;
 }
-.dtp input[aria-invalid="true"] {
+.zest-date-time-picker input[aria-invalid="true"] {
     border-color: var(--_invalid);
     box-shadow: inset 0 0 0 1px var(--_invalid);
 }
-.dtp .toggle, .dtp .footer button, .dtp .presets button {
+.zest-date-time-picker .zest-toggle, .zest-date-time-picker .zest-footer button, .zest-date-time-picker .zest-presets button {
     min-height: var(--_height);
     padding: var(--_padding-block) var(--_padding-inline);
     background-color: var(--_face);
@@ -91,18 +91,18 @@ date-time-picker, :host {
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.dtp .toggle {
+.zest-date-time-picker .zest-toggle {
     min-width: var(--_height);
     padding-inline: calc(var(--_padding-inline) / 2);
 }
-.dtp .toggle:hover, .dtp .footer button:hover, .dtp .presets button:hover {
+.zest-date-time-picker .zest-toggle:hover, .zest-date-time-picker .zest-footer button:hover, .zest-date-time-picker .zest-presets button:hover {
     background-image: none;
     border-color: var(--_highlight);
 }
-.dtp .picker > * {
+.zest-date-time-picker .zest-picker > * {
     flex-shrink: 0;
 }
-.dtp .picker {
+.zest-date-time-picker .zest-picker {
     position: fixed;
     inset: auto;
     margin: 0;
@@ -120,29 +120,29 @@ date-time-picker, :host {
     border-radius: var(--_radius);
     box-shadow: 0 0.25em 0.75em color-mix(in srgb, CanvasText 20%, transparent);
 }
-.dtp.inline .picker {
+.zest-date-time-picker.zest-inline .zest-picker {
     position: static;
     max-width: 100%;
     max-height: none;
     box-shadow: none;
 }
-.dtp .calendars {
+.zest-date-time-picker .zest-calendars {
     display: flex;
     flex-wrap: wrap;
     gap: var(--zest-gap-unrelated, 1.5em);
     min-width: 0;
 }
-.dtp .calendar {
+.zest-date-time-picker .zest-date-time-picker-calendar {
     min-width: 0;
 }
-.dtp .month-header {
+.zest-date-time-picker .zest-month-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 2px;
     margin-bottom: var(--_gap);
 }
-.dtp .month-name {
+.zest-date-time-picker .zest-month-name {
     flex: 1;
     min-width: 0;
     min-height: var(--_height);
@@ -153,7 +153,7 @@ date-time-picker, :host {
     border-radius: var(--_radius);
     color: inherit;
 }
-.dtp .nav {
+.zest-date-time-picker .zest-nav {
     flex: 0 1 2em;
     min-width: 24px;
     min-height: var(--_height);
@@ -163,22 +163,22 @@ date-time-picker, :host {
     border-radius: var(--_radius);
     color: inherit;
 }
-.dtp .nav[disabled] {
+.zest-date-time-picker .zest-nav[disabled] {
     visibility: hidden;
 }
-.dtp .week, .dtp .weekdays {
+.zest-date-time-picker .zest-week, .zest-date-time-picker .zest-weekdays {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, var(--_day-size));
 }
-.dtp .weekday, .dtp .week-number {
+.zest-date-time-picker .zest-weekday, .zest-date-time-picker .zest-week-number {
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.875em;
     color: var(--_secondary-text);
 }
-.dtp .day, .dtp .cell, .dtp .outside {
+.zest-date-time-picker .zest-day, .zest-date-time-picker .zest-cell, .zest-date-time-picker .zest-outside {
     position: relative;
     box-sizing: border-box;
     height: var(--_day-size);
@@ -189,59 +189,59 @@ date-time-picker, :host {
     color: inherit;
     font: inherit;
 }
-.dtp .day:hover, .dtp .cell:hover, .dtp .nav:hover, .dtp .month-name:hover, .dtp .slot:hover {
+.zest-date-time-picker .zest-day:hover, .zest-date-time-picker .zest-cell:hover, .zest-date-time-picker .zest-nav:hover, .zest-date-time-picker .zest-month-name:hover, .zest-date-time-picker .zest-slot:hover {
     background-color: var(--_hover-face);
     border-color: var(--_highlight);
 }
-.dtp .cells {
+.zest-date-time-picker .zest-cells {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2px;
     min-width: 15em;
 }
-.dtp .cell {
+.zest-date-time-picker .zest-cell {
     height: calc(var(--_height) + 0.25em);
 }
-.dtp .other-month {
+.zest-date-time-picker .zest-other-month {
     color: var(--_secondary-text);
 }
-.dtp .today {
+.zest-date-time-picker .zest-today {
     text-decoration: underline;
     font-weight: bold;
 }
-.dtp .in-range, .dtp .in-range-preview {
+.zest-date-time-picker .zest-in-range, .zest-date-time-picker .zest-in-range-preview {
     background: var(--_range-face);
 }
-.dtp .selected, .dtp .selected:hover {
+.zest-date-time-picker .zest-selected, .zest-date-time-picker .zest-selected:hover {
     background: var(--_highlight);
     color: var(--_highlight-text);
 }
-.dtp .unavailable, .dtp .unavailable:hover {
+.zest-date-time-picker .zest-unavailable, .zest-date-time-picker .zest-unavailable:hover {
     background: none;
     color: var(--_disabled-text);
     text-decoration: line-through;
     cursor: not-allowed;
     border-color: transparent;
 }
-.dtp .badge {
+.zest-date-time-picker .zest-badge {
     position: absolute;
     inset-block-end: 1px;
     inset-inline-end: 2px;
     font-size: 0.625em;
     line-height: 1;
 }
-.dtp .time-rows {
+.zest-date-time-picker .zest-time-rows {
     display: flex;
     flex-direction: column;
     gap: var(--_gap);
 }
-.dtp .time-row {
+.zest-date-time-picker .zest-time-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--_gap);
 }
-.dtp .slots {
+.zest-date-time-picker .zest-slots {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(5.5em, 1fr));
     gap: var(--_gap);
@@ -249,7 +249,7 @@ date-time-picker, :host {
     overflow-y: auto;
     padding: var(--_focus-width);
 }
-.dtp .slot {
+.zest-date-time-picker .zest-slot {
     min-height: var(--_height);
     padding: 0.25em;
     background: none;
@@ -257,15 +257,15 @@ date-time-picker, :host {
     border: var(--_border-width) solid var(--_border);
     border-radius: var(--_radius);
 }
-.dtp .presets, .dtp .footer, .dtp .footer > div {
+.zest-date-time-picker .zest-presets, .zest-date-time-picker .zest-footer, .zest-date-time-picker .zest-footer > div {
     display: flex;
     flex-wrap: wrap;
     gap: var(--_gap);
 }
-.dtp .footer {
+.zest-date-time-picker .zest-footer {
     justify-content: space-between;
 }
-.dtp .live {
+.zest-date-time-picker .zest-live {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -274,24 +274,24 @@ date-time-picker, :host {
     white-space: nowrap;
 }
 @media (forced-colors: active) {
-    .dtp :focus-visible {
+    .zest-date-time-picker :focus-visible {
         outline-color: Highlight;
     }
-    .dtp .selected, .dtp .selected:hover {
+    .zest-date-time-picker .zest-selected, .zest-date-time-picker .zest-selected:hover {
         forced-color-adjust: none;
         background: Highlight;
         color: HighlightText;
     }
-    .dtp .in-range, .dtp .in-range-preview {
+    .zest-date-time-picker .zest-in-range, .zest-date-time-picker .zest-in-range-preview {
         forced-color-adjust: none;
         background: Canvas;
         color: CanvasText;
         border-color: Highlight;
     }
-    .dtp .unavailable, .dtp .unavailable:hover {
+    .zest-date-time-picker .zest-unavailable, .zest-date-time-picker .zest-unavailable:hover {
         color: GrayText;
     }
-    .dtp .day:hover, .dtp .cell:hover, .dtp .nav:hover, .dtp .slot:hover {
+    .zest-date-time-picker .zest-day:hover, .zest-date-time-picker .zest-cell:hover, .zest-date-time-picker .zest-nav:hover, .zest-date-time-picker .zest-slot:hover {
         border-color: Highlight;
     }
 }
@@ -557,7 +557,7 @@ export default class DateTimePicker extends DataComponent {
         if (typeof state === 'string') { this.value = state; }
     }
     focus(options) {
-        const target = this.#isInline ? this.picker.querySelector('.calendars [tabindex="0"], select, .slot') : this.input;
+        const target = this.#isInline ? this.picker.querySelector('.zest-calendars [tabindex="0"], select, .zest-slot') : this.input;
         target?.focus(options);
     }
     #findProblem() {
@@ -633,7 +633,7 @@ export default class DateTimePicker extends DataComponent {
     }
     render(){
         this.root.innerHTML = "";
-        this.#inputRow.className = "input-row";
+        this.#inputRow.className = "zest-input-row";
         this.#inputRow.replaceChildren(this.input, this.toggle);
         this.#wrapper.replaceChildren(this.#inputRow, this.picker);
         this.root.appendChild(this.#wrapper);
@@ -650,7 +650,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #applyInline() {
         const inline = this.#isInline;
-        this.#wrapper.className = inline ? 'dtp inline' : 'dtp';
+        this.#wrapper.className = inline ? 'zest-date-time-picker zest-inline' : 'zest-date-time-picker';
         this.#inputRow.hidden = inline;
         this.#inputRow.style.display = inline ? 'none' : '';
         if (inline) {
@@ -708,7 +708,7 @@ export default class DateTimePicker extends DataComponent {
         this.input.setAttribute("part", "input");
         this.input.placeholder = this.#option('placeholder') ?? this.#defaultPlaceholder();
         this.toggle.type = "button";
-        this.toggle.className = "toggle";
+        this.toggle.className = "zest-toggle";
         this.toggle.setAttribute("part", "toggle");
         this.toggle.setAttribute("aria-label", this.#label('open'));
         this.toggle.textContent = this.mode === 'time' ? '\u{1F551}︎' : '\u{1F4C5}︎';
@@ -886,9 +886,9 @@ export default class DateTimePicker extends DataComponent {
     }
     #focusIntoPicker() {
         if (this.#hasCalendar) {
-            this.picker.querySelector('.calendars [tabindex="0"]')?.focus();
+            this.picker.querySelector('.zest-calendars [tabindex="0"]')?.focus();
         } else {
-            this.picker.querySelector('select, .slot')?.focus();
+            this.picker.querySelector('select, .zest-slot')?.focus();
         }
     }
 
@@ -1106,11 +1106,11 @@ export default class DateTimePicker extends DataComponent {
     // Drawing
 
     initPicker() {
-        this.picker.className = "picker";
+        this.picker.className = "zest-picker";
         this.picker.setAttribute("role", "dialog");
         this.picker.setAttribute("part", "picker");
         this.picker.setAttribute("aria-label", this.#label('dialog'));
-        this.#live.className = "live";
+        this.#live.className = "zest-live";
         this.#live.setAttribute("aria-live", "polite");
         if (!this.#open && !this.#isInline) { this.picker.style.display = "none"; }
         this.#calendarView = this.#startingCalendarView();
@@ -1135,10 +1135,10 @@ export default class DateTimePicker extends DataComponent {
         this.picker.replaceChildren(...sections);
         if (this.#moveFocusToGrid) {
             this.#moveFocusToGrid = false;
-            this.picker.querySelector('.calendars [tabindex="0"]')?.focus();
+            this.picker.querySelector('.zest-calendars [tabindex="0"]')?.focus();
         } else if (focusKey) {
             (this.picker.querySelector(`[data-key="${CSS.escape(focusKey)}"]`)
-                ?? this.picker.querySelector('.calendars [tabindex="0"]'))?.focus();
+                ?? this.picker.querySelector('.zest-calendars [tabindex="0"]'))?.focus();
         }
     }
     #button(className, text, key, onClick, label) {
@@ -1153,7 +1153,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawCalendars(rules) {
         const container = document.createElement('div');
-        container.className = 'calendars';
+        container.className = 'zest-calendars';
         container.addEventListener('keydown', (e) => this.#onGridKey(e, rules));
         if (this.#anchor) {
             container.addEventListener('mouseover', (e) => {
@@ -1181,11 +1181,11 @@ export default class DateTimePicker extends DataComponent {
         const [low, high] = model.compare(this.#anchor, end, kind) <= 0 ? [this.#anchor, end] : [end, this.#anchor];
         for (const cell of this.picker.querySelectorAll('[data-date]')) {
             const parts = model.parseValue(cell.dataset.date, kind);
-            cell.classList.toggle('in-range-preview', Boolean(parts) && model.compare(parts, low, kind) >= 0 && model.compare(parts, high, kind) <= 0);
+            cell.classList.toggle('zest-in-range-preview', Boolean(parts) && model.compare(parts, low, kind) >= 0 && model.compare(parts, high, kind) <= 0);
         }
     }
     #navButton(className, text, label, offset, disabled) {
-        const button = this.#button(`nav ${className}`, text, className, () => this.changeMonth(offset), label);
+        const button = this.#button(`zest-nav zest-${className}`, text, className, () => this.changeMonth(offset), label);
         button.disabled = disabled;
         return button;
     }
@@ -1199,10 +1199,10 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawMonth(month, isFirst, isLast, rules) {
         const block = document.createElement('div');
-        block.className = 'calendar';
+        block.className = 'zest-date-time-picker-calendar';
         block.setAttribute('part', 'calendar');
         const header = document.createElement('div');
-        header.className = 'month-header';
+        header.className = 'zest-month-header';
         const shown = Number(this.#option('months')) || 1;
         const lastShown = model.addMonths({...this.#view, day: 1}, shown - 1);
         const noPrevious = this.#monthOutOfBounds(this.#view, rules, -1);
@@ -1215,7 +1215,7 @@ export default class DateTimePicker extends DataComponent {
         }
         // The name starts with the visible text, so a person who uses voice control can say what they see
         const monthText = model.formatDisplay(month, 'month', {locale: this.locale, format: 'long'});
-        const name = this.#button('month-name', monthText, `month-name-${month.year}-${month.month}`,
+        const name = this.#button('zest-month-name', monthText, `month-name-${month.year}-${month.month}`,
             () => this.#switchCalendarView('months'), `${monthText}: ${this.#label('chooseMonth')}`);
         name.setAttribute('aria-live', 'polite');
         header.appendChild(name);
@@ -1251,11 +1251,11 @@ export default class DateTimePicker extends DataComponent {
         const showWeekNumbers = this.#flag('showWeekNumbers') || this.mode === 'week';
 
         const weekdays = document.createElement('div');
-        weekdays.className = 'weekdays';
+        weekdays.className = 'zest-weekdays';
         weekdays.setAttribute('role', 'row');
         if (showWeekNumbers) {
             const corner = document.createElement('span');
-            corner.className = 'week-number';
+            corner.className = 'zest-week-number';
             corner.setAttribute('role', 'columnheader');
             corner.textContent = this.#label('week');
             weekdays.appendChild(corner);
@@ -1265,7 +1265,7 @@ export default class DateTimePicker extends DataComponent {
         for (let index = 0; index < 7; index++) {
             const position = (firstWeekday + index) % 7;
             const cell = document.createElement('span');
-            cell.className = 'weekday';
+            cell.className = 'zest-weekday';
             cell.setAttribute('role', 'columnheader');
             cell.setAttribute('aria-label', longNames[position]);
             cell.textContent = shortNames[position];
@@ -1282,11 +1282,11 @@ export default class DateTimePicker extends DataComponent {
         const today = this.#now();
         for (let week = 0; week < weekCount; week++) {
             const row = document.createElement('div');
-            row.className = 'week';
+            row.className = 'zest-week';
             row.setAttribute('role', 'row');
             if (showWeekNumbers) {
                 const number = document.createElement('span');
-                number.className = 'week-number';
+                number.className = 'zest-week-number';
                 number.setAttribute('role', 'rowheader');
                 number.textContent = model.formatNumber(model.isoWeek(model.addDays(first, week * 7 - leading + 3)).week, this.locale);
                 row.appendChild(number);
@@ -1304,14 +1304,14 @@ export default class DateTimePicker extends DataComponent {
         // With two months on screen a day would otherwise show twice
         if (outsideMonth && shown > 1) {
             const blank = document.createElement('span');
-            blank.className = 'outside';
+            blank.className = 'zest-outside';
             blank.setAttribute('role', 'gridcell');
             return blank;
         }
         const iso = model.formatDate(day);
         const info = this.#config.getDayInfo?.(iso, day) ?? null;
         const disabled = model.dayIsDisabled(day, rules);
-        const button = this.#button('day', model.formatNumber(day.day, this.locale), `day-${iso}`, () => {
+        const button = this.#button('zest-day', model.formatNumber(day.day, this.locale), `day-${iso}`, () => {
             if (!disabled) { this.#onDayClick(day); }
         });
         button.setAttribute('role', 'gridcell');
@@ -1321,13 +1321,13 @@ export default class DateTimePicker extends DataComponent {
         button.tabIndex = focusTarget && model.compare(day, focusTarget, 'date') === 0 ? 0 : -1;
         const label = day.year !== undefined ? model.formatDisplay(day, 'date', {locale: this.locale, format: 'full'}) : iso;
         button.setAttribute('aria-label', info?.label ? `${label}, ${info.label}` : label);
-        if (outsideMonth) { button.classList.add('other-month'); }
+        if (outsideMonth) { button.classList.add('zest-other-month'); }
         if (model.compare(day, today, 'date') === 0) {
-            button.classList.add('today');
+            button.classList.add('zest-today');
             button.setAttribute('aria-current', 'date');
         }
         if (disabled) {
-            button.classList.add('unavailable');
+            button.classList.add('zest-unavailable');
             button.setAttribute('aria-disabled', 'true');
         }
         this.#markSelection(button, day);
@@ -1335,7 +1335,7 @@ export default class DateTimePicker extends DataComponent {
         if (info?.title) { button.title = info.title; }
         if (info?.badge !== undefined) {
             const badge = document.createElement('span');
-            badge.className = 'badge';
+            badge.className = 'zest-badge';
             badge.textContent = info.badge;
             button.appendChild(badge);
         }
@@ -1361,7 +1361,7 @@ export default class DateTimePicker extends DataComponent {
         const compared = kind === 'week' ? model.truncate(parts, 'week') : parts;
         if (this.#anchor) {
             if (model.compare(compared, this.#anchor, kind) === 0) {
-                cell.classList.add('selected', 'range-start');
+                cell.classList.add('zest-selected', 'zest-range-start');
                 cell.setAttribute('aria-selected', 'true');
             }
             return;
@@ -1370,19 +1370,19 @@ export default class DateTimePicker extends DataComponent {
         if (this.selection === 'range' && values.length === 2) {
             const afterStart = model.compare(compared, values[0], kind);
             const beforeEnd = model.compare(compared, values[1], kind);
-            if (afterStart === 0) { cell.classList.add('selected', 'range-start'); }
-            if (beforeEnd === 0) { cell.classList.add('selected', 'range-end'); }
-            if (afterStart > 0 && beforeEnd < 0) { cell.classList.add('in-range'); }
+            if (afterStart === 0) { cell.classList.add('zest-selected', 'zest-range-start'); }
+            if (beforeEnd === 0) { cell.classList.add('zest-selected', 'zest-range-end'); }
+            if (afterStart > 0 && beforeEnd < 0) { cell.classList.add('zest-in-range'); }
         } else if (values.some(value => model.compare(compared, value, kind) === 0)) {
-            cell.classList.add('selected');
+            cell.classList.add('zest-selected');
         }
-        if (cell.classList.contains('selected')) { cell.setAttribute('aria-selected', 'true'); }
+        if (cell.classList.contains('zest-selected')) { cell.setAttribute('aria-selected', 'true'); }
     }
     #drawPeriods(rules, view) {
         const block = document.createElement('div');
-        block.className = 'calendar';
+        block.className = 'zest-date-time-picker-calendar';
         const header = document.createElement('div');
-        header.className = 'month-header';
+        header.className = 'zest-month-header';
         const isMonths = view === 'months';
         const windowStart = Math.floor(this.#view.year / 12) * 12;
         const step = isMonths ? 12 : 144;
@@ -1390,7 +1390,7 @@ export default class DateTimePicker extends DataComponent {
             : `${model.formatDisplay({year: windowStart}, 'year', {locale: this.locale})}${RANGE_DISPLAY_SEPARATOR}${model.formatDisplay({year: windowStart + 11}, 'year', {locale: this.locale})}`;
         const previousOut = rules.min?.year !== undefined && (isMonths ? this.#view.year : windowStart) <= rules.min.year;
         const nextOut = rules.max?.year !== undefined && (isMonths ? this.#view.year : windowStart + 11) >= rules.max.year;
-        const name = this.#button('month-name', title, `period-name-${view}`,
+        const name = this.#button('zest-month-name', title, `period-name-${view}`,
             () => { if (isMonths) { this.#switchCalendarView('years'); } else if (this.mode !== 'year') { this.#switchCalendarView('months'); } },
             `${title}: ${this.#label(isMonths ? 'chooseYear' : 'chooseMonth')}`);
         header.append(
@@ -1400,7 +1400,7 @@ export default class DateTimePicker extends DataComponent {
         );
         block.appendChild(header);
         const grid = document.createElement('div');
-        grid.className = 'cells';
+        grid.className = 'zest-cells';
         grid.setAttribute('role', 'grid');
         const focusTarget = this.#focusDay ?? this.#anchor ?? this.#selected[0] ?? {...this.#view};
         const names = model.monthNames(this.locale, 'short');
@@ -1410,13 +1410,13 @@ export default class DateTimePicker extends DataComponent {
             const text = isMonths ? names[index] : model.formatDisplay(parts, 'year', {locale: this.locale});
             const iso = model.formatValue(parts, kind);
             const disabled = model.periodIsDisabled(parts, kind, rules);
-            const cell = this.#button('cell', text, `cell-${iso}`, () => {
+            const cell = this.#button('zest-cell', text, `cell-${iso}`, () => {
                 if (!disabled) { this.#onPeriodClick(parts, isMonths); }
             });
             cell.setAttribute('role', 'gridcell');
             cell.dataset.date = iso;
             if (disabled) {
-                cell.classList.add('unavailable');
+                cell.classList.add('zest-unavailable');
                 cell.setAttribute('aria-disabled', 'true');
             }
             const onTarget = focusTarget.year === parts.year && (!isMonths || (focusTarget.month ?? 1) === parts.month);
@@ -1460,7 +1460,7 @@ export default class DateTimePicker extends DataComponent {
         const years = this.#calendarView === 'years';
         const days = !months && !years;
         const target = e.target;
-        if (!target.matches?.('.day, .cell')) { return; }
+        if (!target.matches?.('.zest-day, .zest-cell')) { return; }
         const rtl = getComputedStyle(this).direction === 'rtl' ? -1 : 1;
         const current = days
             ? model.parseValue(target.dataset.date, 'date')
@@ -1521,7 +1521,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawTime(rules) {
         const section = document.createElement('div');
-        section.className = 'time';
+        section.className = 'zest-time';
         section.setAttribute('part', 'time');
         const rowCount = this.selection === 'range' ? 2 : 1;
         if (this.#usesTimeList() && !(this.mode === 'datetime' && this.selection === 'range')) {
@@ -1529,7 +1529,7 @@ export default class DateTimePicker extends DataComponent {
             return section;
         }
         const rows = document.createElement('div');
-        rows.className = 'time-rows';
+        rows.className = 'zest-time-rows';
         for (let index = 0; index < rowCount; index++) {
             rows.appendChild(this.#drawTimeRow(index, rowCount, rules));
         }
@@ -1543,7 +1543,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawTimeRow(index, rowCount, rules) {
         const row = document.createElement('div');
-        row.className = 'time-row';
+        row.className = 'zest-time-row';
         row.dataset.row = index;
         const value = this.#valueForRow(index);
         const day = this.mode === 'datetime' ? (value ?? this.#reference()) : null;
@@ -1618,7 +1618,7 @@ export default class DateTimePicker extends DataComponent {
     #drawSelect(key, label, options, selected, locked, onChange) {
         const select = document.createElement('select');
         select.dataset.key = key;
-        select.className = key.split('-')[0];
+        select.className = `zest-${key.split('-')[0]}`;
         select.setAttribute('aria-label', label);
         select.disabled = locked || this.#isDisabled || this.#isReadOnly;
         const add = (value, text, disabled = false) => {
@@ -1683,7 +1683,7 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawSlots(rules) {
         const list = document.createElement('div');
-        list.className = 'slots';
+        list.className = 'zest-slots';
         list.setAttribute('role', 'listbox');
         list.setAttribute('aria-label', this.#label('dialog'));
         const slots = this.#timeSlots() ?? this.#generatedSlots(rules);
@@ -1693,7 +1693,7 @@ export default class DateTimePicker extends DataComponent {
             const iso = model.formatTime(slot.time, this.#includeSeconds);
             const text = slot.label ?? model.formatDisplay(slot.time, 'time', this.#displayOptions);
             const disabled = slot.disabled || model.timeIsDisabled(slot.time, day, rules);
-            const button = this.#button('slot', text, `slot-${iso}`, () => {
+            const button = this.#button('zest-slot', text, `slot-${iso}`, () => {
                 if (disabled) { return; }
                 if (this.mode === 'datetime') {
                     this.#setSlotOnDay(slot.time, rules);
@@ -1705,9 +1705,9 @@ export default class DateTimePicker extends DataComponent {
             button.dataset.time = iso;
             const isSelected = current.some(value => model.compare(value, slot.time, 'time') === 0);
             button.setAttribute('aria-selected', String(isSelected));
-            if (isSelected) { button.classList.add('selected'); }
+            if (isSelected) { button.classList.add('zest-selected'); }
             if (disabled) {
-                button.classList.add('unavailable');
+                button.classList.add('zest-unavailable');
                 button.setAttribute('aria-disabled', 'true');
             }
             list.appendChild(button);
@@ -1743,7 +1743,7 @@ export default class DateTimePicker extends DataComponent {
     #drawTimeZone() {
         if (!this.#flag('timeZoneSelectable')) { return null; }
         const select = document.createElement('select');
-        select.className = 'time-zone-select';
+        select.className = 'zest-time-zone-select';
         select.dataset.key = 'time-zone';
         select.setAttribute('aria-label', this.#label('timeZone'));
         const zones = Intl.supportedValuesOf?.('timeZone') ?? [];
@@ -1772,9 +1772,9 @@ export default class DateTimePicker extends DataComponent {
         const presets = this.#config.presets;
         if (!Array.isArray(presets) || !presets.length) { return null; }
         const row = document.createElement('div');
-        row.className = 'presets';
+        row.className = 'zest-presets';
         presets.forEach((preset, index) => {
-            const button = this.#button('preset', preset.label, `preset-${index}`, () => {
+            const button = this.#button('zest-preset', preset.label, `preset-${index}`, () => {
                 const text = typeof preset.value === 'function' ? preset.value(this.#now()) : preset.value;
                 const values = model.parseSelection(text, this.mode, this.selection, {timeZone: this.timeZone});
                 if (!values || values.some(value => this.#reject(value, rules))) { return; }
@@ -1800,10 +1800,10 @@ export default class DateTimePicker extends DataComponent {
     }
     #drawFooter(rules) {
         const footer = document.createElement('div');
-        footer.className = 'footer';
+        footer.className = 'zest-footer';
         const left = document.createElement('div');
         const right = document.createElement('div');
-        const nowButton = this.#button('now', this.#nowLabel(), 'now', () => {
+        const nowButton = this.#button('zest-now', this.#nowLabel(), 'now', () => {
             const instant = new Date();
             const before = this.value;
             this.#focusDay = null;
@@ -1821,11 +1821,11 @@ export default class DateTimePicker extends DataComponent {
             || (this.selection === 'range' && model.rangeProblem(now, now, rules) !== null);
         if (this.#flag('showNow', true)) { left.appendChild(nowButton); }
         if ((this.#selected.length || this.#anchor) && !this.required && this.#flag('clearable', true) && !this.#isDisabled && !this.#isReadOnly) {
-            left.appendChild(this.#button('clear', this.#label('clear'), 'clear', () => this.clearDate()));
+            left.appendChild(this.#button('zest-clear', this.#label('clear'), 'clear', () => this.clearDate()));
         }
         footer.appendChild(left);
         if (!this.#isInline && (this.#hasTime || this.selection === 'multiple')) {
-            right.appendChild(this.#button('done', this.#label('done'), 'done', () => {
+            right.appendChild(this.#button('zest-done', this.#label('done'), 'done', () => {
                 this.closePicker();
                 this.input.focus();
             }));

@@ -49,23 +49,23 @@ describe('video-player', () => {
 
     it('has a labelled control for each thing that it does', () => {
         const {q} = video({src: '/a.webm', label: 'Sample'});
-        expect(q('.play').getAttribute('aria-label')).toBe('Play');
-        expect(q('.seek').getAttribute('aria-label')).toBe('Seek');
-        expect(q('.volume').getAttribute('aria-label')).toBe('Volume');
-        expect(q('.rate').getAttribute('aria-label')).toBe('Speed');
-        expect(q('.mute').getAttribute('aria-pressed')).toBe('false');
-        expect(q('.player-controls').getAttribute('aria-label')).toBe('Sample: Player controls');
+        expect(q('.zest-play').getAttribute('aria-label')).toBe('Play');
+        expect(q('.zest-seek').getAttribute('aria-label')).toBe('Seek');
+        expect(q('.zest-volume').getAttribute('aria-label')).toBe('Volume');
+        expect(q('.zest-rate').getAttribute('aria-label')).toBe('Speed');
+        expect(q('.zest-mute').getAttribute('aria-pressed')).toBe('false');
+        expect(q('.zest-player-controls').getAttribute('aria-label')).toBe('Sample: Player controls');
         expect(q('video').getAttribute('src')).toBe('/a.webm');
     });
 
     it('plays with the button, and shows the pause label while it plays', () => {
         const {player, q} = video({src: '/a.webm'});
-        q('.play').click();
+        q('.zest-play').click();
         expect(player.media.play).toHaveBeenCalled();
-        expect(q('.play').getAttribute('aria-label')).toBe('Pause');
-        q('.play').click();
+        expect(q('.zest-play').getAttribute('aria-label')).toBe('Pause');
+        q('.zest-play').click();
         expect(player.media.pause).toHaveBeenCalled();
-        expect(q('.play').getAttribute('aria-label')).toBe('Play');
+        expect(q('.zest-play').getAttribute('aria-label')).toBe('Play');
     });
 
     it('sends its own events, which bubble and leave a shadow root', () => {
@@ -78,13 +78,13 @@ describe('video-player', () => {
         player.play();
         expect(heard).toHaveBeenCalledTimes(1);
         expect(heard.mock.calls[0][0].detail).toMatchObject({paused: false, duration: 60});
-        expect(player.shadowRoot.querySelector('.play')).not.toBeNull();
+        expect(player.shadowRoot.querySelector('.zest-play')).not.toBeNull();
         expect(player).toBeInstanceOf(ShadowVideoPlayer);
     });
 
     it('uses the keys of a player while the focus is in it', () => {
         const {player, state, q} = video({src: '/a.webm'});
-        const seek = q('.seek');
+        const seek = q('.zest-seek');
         key(seek, 'k');
         expect(player.media.play).toHaveBeenCalled();
         key(seek, 'ArrowRight');
@@ -99,44 +99,44 @@ describe('video-player', () => {
         expect(state.currentTime).toBe(60);
         key(seek, 'Home');
         expect(state.currentTime).toBe(0);
-        key(q('.play'), 'm');
+        key(q('.zest-play'), 'm');
         expect(player.media.muted).toBe(true);
-        expect(q('.mute').getAttribute('aria-pressed')).toBe('true');
+        expect(q('.zest-mute').getAttribute('aria-pressed')).toBe('true');
     });
 
     it('tells the time as words on the seek slider', () => {
         const {player, q} = video({src: '/a.webm'});
         player.seek(65);
         // A seek past the end stops at the end
-        expect(q('.seek').getAttribute('aria-valuetext')).toBe('1 minute of 1 minute');
-        expect(q('.time').textContent).toBe('1:00 / 1:00');
+        expect(q('.zest-seek').getAttribute('aria-valuetext')).toBe('1 minute of 1 minute');
+        expect(q('.zest-time').textContent).toBe('1:00 / 1:00');
         player.seek(5);
-        expect(q('.seek').getAttribute('aria-valuetext')).toBe('5 seconds of 1 minute');
+        expect(q('.zest-seek').getAttribute('aria-valuetext')).toBe('5 seconds of 1 minute');
     });
 
     it('leaves Space to a button, and leaves the keys of a select and the volume slider', () => {
         const {player, q} = video({src: '/a.webm'});
-        expect(key(q('.play'), ' ').defaultPrevented).toBe(false);
-        expect(key(q('.rate'), 'k').defaultPrevented).toBe(false);
-        expect(key(q('.volume'), 'ArrowUp').defaultPrevented).toBe(false);
-        expect(key(q('.seek'), 'k', {ctrlKey: true}).defaultPrevented).toBe(false);
+        expect(key(q('.zest-play'), ' ').defaultPrevented).toBe(false);
+        expect(key(q('.zest-rate'), 'k').defaultPrevented).toBe(false);
+        expect(key(q('.zest-volume'), 'ArrowUp').defaultPrevented).toBe(false);
+        expect(key(q('.zest-seek'), 'k', {ctrlKey: true}).defaultPrevented).toBe(false);
         expect(player.media.play).not.toHaveBeenCalled();
     });
 
     it('changes the volume with the up and down arrows, and tells the new volume', async () => {
         const {player, q} = video({src: '/a.webm'});
         player.media.volume = 0.5;
-        key(q('.play'), 'ArrowDown');
+        key(q('.zest-play'), 'ArrowDown');
         expect(player.media.volume).toBe(0.45);
         await new Promise(resolve => requestAnimationFrame(resolve));
-        expect(q('.sr[aria-live]').textContent).toBe('Volume 45 percent');
+        expect(q('.zest-sr[aria-live]').textContent).toBe('Volume 45 percent');
     });
 
     it('hides the captions button when there are no captions, and shows the cue text when they are on', () => {
         const {player, q} = video({src: '/a.webm'});
-        expect(q('.captions').hidden).toBe(true);
+        expect(q('.zest-captions').hidden).toBe(true);
         expect(player.toggleCaptions(true)).toBe(true);
-        expect(q('.captions').getAttribute('aria-pressed')).toBe('true');
+        expect(q('.zest-captions').getAttribute('aria-pressed')).toBe('true');
     });
 
     it('mutes for autoplay, because a browser plays by itself only with no sound', () => {
@@ -162,9 +162,9 @@ describe('video-player', () => {
         player.hideDelay = 100;
         player.play();
         vi.advanceTimersByTime(150);
-        expect(q('.zest-media').classList.contains('idle')).toBe(true);
+        expect(q('.zest-media').classList.contains('zest-idle')).toBe(true);
         q('.zest-media').dispatchEvent(new Event('pointermove'));
-        expect(q('.zest-media').classList.contains('idle')).toBe(false);
+        expect(q('.zest-media').classList.contains('zest-idle')).toBe(false);
         vi.useRealTimers();
     });
 });
@@ -183,18 +183,18 @@ describe('audio-player', () => {
 
     it('shows a playlist, and marks the current track', () => {
         const {player, q, all} = audio();
-        expect(all('.playlist button').map(b => b.textContent)).toEqual(['1.One', '2.Two', '3.Three']);
-        expect(q('.playlist [aria-current="true"]').textContent).toBe('1.One');
-        expect(q('.track-title').textContent).toBe('One');
+        expect(all('.zest-playlist button').map(b => b.textContent)).toEqual(['1.One', '2.Two', '3.Three']);
+        expect(q('.zest-playlist [aria-current="true"]').textContent).toBe('1.One');
+        expect(q('.zest-track-title').textContent).toBe('One');
         expect(player.media.getAttribute('src')).toBe('/one.ogg');
-        expect(q('.previous').disabled).toBe(true);
+        expect(q('.zest-previous').disabled).toBe(true);
     });
 
     it('goes to the next track with the button, and sends an event', () => {
         const {player, q} = audio();
         const heard = vi.fn();
         document.addEventListener('audio-player-track', heard);
-        q('.next').click();
+        q('.zest-next').click();
         expect(player.trackIndex).toBe(1);
         expect(player.media.getAttribute('src')).toBe('/two.ogg');
         expect(heard.mock.calls[0][0].detail).toMatchObject({index: 1, reason: 'next', track: tracks[1]});
@@ -224,15 +224,15 @@ describe('audio-player', () => {
 
     it('plays a track that the user selects in the list', () => {
         const {player, all} = audio();
-        all('.playlist button')[1].click();
+        all('.zest-playlist button')[1].click();
         expect(player.trackIndex).toBe(1);
         expect(player.media.play).toHaveBeenCalled();
     });
 
     it('has no full screen and no captions keys', () => {
         const {player, q} = audio();
-        expect(q('.fullscreen')).toBeNull();
-        expect(key(q('.seek'), 'f').defaultPrevented).toBe(false);
+        expect(q('.zest-fullscreen')).toBeNull();
+        expect(key(q('.zest-seek'), 'f').defaultPrevented).toBe(false);
         expect(player).toBeInstanceOf(AudioPlayer);
     });
 });

@@ -68,6 +68,14 @@ function readInstant(value) {
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// The tags of an item: each text of letters, digits, and "-", in lower case, one time each.
+// A tag goes into a class name and a part name, so other text is left out.
+export function readTags(tags) {
+    if (!Array.isArray(tags)) { return []; }
+    const found = tags.filter(tag => typeof tag === 'string' && /^[a-z0-9-]+$/i.test(tag)).map(tag => tag.toLowerCase());
+    return [...new Set(found)];
+}
+
 // The items in wall clock minutes of the time zone, sorted. An all-day item takes dates, and its
 // end is the day after its last day, as in iCalendar. An item that cannot be read is left out.
 export function normalizeEvents(events = [], timeZone) {
@@ -99,6 +107,7 @@ export function normalizeEvents(events = [], timeZone) {
             busyOnly: Boolean(event.busyOnly),
             editable: Boolean(event.editable) && !event.busyOnly,
             color: event.color ?? null,
+            tags: readTags(event.tags),
             start,
             end,
         });

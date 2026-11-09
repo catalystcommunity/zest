@@ -1,5 +1,5 @@
 import { tokenAliases, visuallyHidden } from "@catalystcommunity/base-components";
-import { FormControl, fieldStyles, shadowOf, uniqueId } from "./form-control.js";
+import { FormControl, fieldStyles, isSubmitKey, shadowOf, submitImplicitly, uniqueId } from "./form-control.js";
 
 const TYPES = ['text', 'email', 'password', 'search', 'url', 'tel'];
 
@@ -22,29 +22,29 @@ ${fieldStyles('.zest-text-area')}
     min-height: calc(var(--_rows, 3) * 1lh + var(--_padding-block) * 2);
     resize: vertical;
 }
-.zest-text-area.grow textarea {
+.zest-text-area.zest-grow textarea {
     resize: none;
     overflow: hidden;
 }
-.zest-text-area .footer {
+.zest-text-area .zest-footer {
     display: flex;
     gap: var(--_gap);
     justify-content: space-between;
 }
-.zest-text-area .count {
+.zest-text-area .zest-count {
     margin-inline-start: auto;
     font-size: 0.875em;
     color: var(--_secondary-text);
     font-variant-numeric: tabular-nums;
 }
-.zest-text-area .count:empty {
+.zest-text-area .zest-count:empty {
     display: none;
 }
-.zest-text-area .count.full {
+.zest-text-area .zest-count.zest-full {
     color: var(--_invalid);
     font-weight: 600;
 }
-.zest-text-field .sr, .zest-text-area .sr {
+.zest-text-field .zest-sr, .zest-text-area .zest-sr {
     ${visuallyHidden}
 }
 `;
@@ -69,6 +69,8 @@ function mirrorValidity(control, field, customError) {
 
 class TextControl extends FormControl {
     static styles = styles;
+    // The browser reads these from the native field, so they go to it from the host
+    static forwardAttributes = ['autocapitalize', 'autocorrect', 'spellcheck', 'enterkeyhint'];
     static properties = {
         value: {type: String, default: ''},
         placeholder: {type: String, default: ''},
@@ -96,11 +98,11 @@ class TextControl extends FormControl {
         this.wrapper.part = 'control';
         this.field = this.makeField();
         this.field.id = uniqueId(kind);
-        this.field.className = 'field';
-        this.labelElement = Object.assign(document.createElement('label'), {className: 'label', htmlFor: this.field.id});
-        this.box = Object.assign(document.createElement('div'), {className: 'box'});
+        this.field.className = 'zest-field';
+        this.labelElement = Object.assign(document.createElement('label'), {className: 'zest-label', htmlFor: this.field.id});
+        this.box = Object.assign(document.createElement('div'), {className: 'zest-box'});
         this.box.part = 'box';
-        this.help = Object.assign(document.createElement('div'), {className: 'help', id: uniqueId(`${kind}-help`)});
+        this.help = Object.assign(document.createElement('div'), {className: 'zest-help', id: uniqueId(`${kind}-help`)});
         this.buildBox();
         this.wrapper.append(this.labelElement, this.box, this.footer());
         this.stopInner(this.wrapper);
@@ -129,9 +131,8 @@ class TextControl extends FormControl {
         const field = this.field;
         if (field.value !== this.value) { field.value = this.value ?? ''; }
         this.labelElement.textContent = this.label;
-        if (!this.label && this.getAttribute('aria-label')) {
-            field.setAttribute('aria-label', this.getAttribute('aria-label'));
-        }
+        this.nameInner(field);
+        this.forwardTo(field);
         field.placeholder = this.placeholder;
         field.disabled = this.isDisabled;
         field.readOnly = this.readonly;
@@ -141,22 +142,17 @@ class TextControl extends FormControl {
         }
         if (this.autocomplete) { field.setAttribute('autocomplete', this.autocomplete); } else { field.removeAttribute('autocomplete'); }
         this.updateField();
-        this.wrapper.classList.toggle('disabled', this.isDisabled);
+        this.wrapper.classList.toggle('zest-disabled', this.isDisabled);
         this.setFormValue(this.value || null, this.value);
         const problem = mirrorValidity(this, field, this.error);
         const showProblem = Boolean(problem) && (this.touched || Boolean(this.error));
         if (showProblem) { field.setAttribute('aria-invalid', 'true'); } else { field.removeAttribute('aria-invalid'); }
         this.help.textContent = showProblem ? problem : this.helper;
-        this.help.classList.toggle('error', showProblem);
+        this.help.classList.toggle('zest-error', showProblem);
         this.describe([this.help.textContent && this.help.id, ...this.moreDescriptions()]);
     }
     updateField() { }
     moreDescriptions() { return []; }
-
-    describe(ids) {
-        const list = ids.filter(Boolean).join(' ');
-        if (list) { this.field.setAttribute('aria-describedby', list); } else { this.field.removeAttribute('aria-describedby'); }
-    }
 
     select() { this.field?.select(); }
     setCustomValidity(message) { this.error = message || ''; }
@@ -185,11 +181,13 @@ export class TextField extends TextControl {
     #reveal;
     #revealed = false;
 
+    get blocksImplicitSubmission() { return true; }
+
     buildBox() {
-        this.#prefix = Object.assign(document.createElement('span'), {className: 'affix prefix', id: uniqueId('prefix')});
-        this.#suffix = Object.assign(document.createElement('span'), {className: 'affix suffix', id: uniqueId('suffix')});
-        this.#clear = Object.assign(document.createElement('button'), {type: 'button', className: 'clear', textContent: '✕'});
-        this.#reveal = Object.assign(document.createElement('button'), {type: 'button', className: 'reveal'});
+        this.#prefix = Object.assign(document.createElement('span'), {className: 'zest-affix zest-prefix', id: uniqueId('prefix')});
+        this.#suffix = Object.assign(document.createElement('span'), {className: 'zest-affix zest-suffix', id: uniqueId('suffix')});
+        this.#clear = Object.assign(document.createElement('button'), {type: 'button', className: 'zest-clear', textContent: '✕'});
+        this.#reveal = Object.assign(document.createElement('button'), {type: 'button', className: 'zest-reveal'});
         this.#clear.addEventListener('click', () => this.clear());
         this.#reveal.addEventListener('click', () => {
             this.#revealed = !this.#revealed;
@@ -199,6 +197,11 @@ export class TextField extends TextControl {
             if (e.key === 'Escape' && this.type === 'search' && this.value) {
                 e.preventDefault();
                 this.clear();
+            } else if (isSubmitKey(e)) {
+                // A field in a shadow root is not in the form, and the browser does not know a
+                // push-button as the default button. The control does the implicit submission.
+                e.preventDefault();
+                submitImplicitly(this.form);
             }
         });
         this.box.append(this.#prefix, this.field, this.#clear, this.#reveal, this.#suffix);
@@ -250,10 +253,10 @@ export class TextArea extends TextControl {
     makeField() { return document.createElement('textarea'); }
 
     footer() {
-        const footer = Object.assign(document.createElement('div'), {className: 'footer'});
-        this.#count = Object.assign(document.createElement('span'), {className: 'count', id: uniqueId('count')});
+        const footer = Object.assign(document.createElement('div'), {className: 'zest-footer'});
+        this.#count = Object.assign(document.createElement('span'), {className: 'zest-count', id: uniqueId('count')});
         this.#count.setAttribute('aria-hidden', 'true');
-        this.#live = Object.assign(document.createElement('span'), {className: 'sr'});
+        this.#live = Object.assign(document.createElement('span'), {className: 'zest-sr'});
         this.#live.setAttribute('aria-live', 'polite');
         footer.append(this.help, this.#count, this.#live);
         return footer;
@@ -277,10 +280,10 @@ export class TextArea extends TextControl {
     updateField() {
         this.field.rows = Math.max(1, this.rows || 3);
         this.wrapper.style.setProperty('--_rows', Math.max(1, this.rows || 3));
-        this.wrapper.classList.toggle('grow', this.autogrow);
+        this.wrapper.classList.toggle('zest-grow', this.autogrow);
         const max = this.maxlength;
         this.#count.textContent = max ? this.text.characterCount(this.value.length, max) : '';
-        this.#count.classList.toggle('full', Boolean(max) && this.value.length >= max);
+        this.#count.classList.toggle('zest-full', Boolean(max) && this.value.length >= max);
         if (this.autogrow && this.isConnected) {
             this.field.style.height = 'auto';
             if (this.field.scrollHeight) { this.field.style.height = `${this.field.scrollHeight + 2}px`; }

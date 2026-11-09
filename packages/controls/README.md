@@ -37,6 +37,8 @@ You can also define each class with your own tag: `customElements.define('my-but
 - **Events.** A control with a value sends `input` while the value changes and `change` when the user commits the value, as a native input does. Each event bubbles and is composed. The events of the inner native element do not leave the control, so you hear each event one time. A change from code sends no event.
 - **Forms.** Each control is form associated. It gives its value to its form, follows `disabled` on a parent `fieldset`, goes back to its first value on form reset, and gets its state back when the browser restores the page. `checkValidity()`, `reportValidity()`, `validity`, and `validationMessage` work as on a native input. `focus()` and `blur()` act on the inner control.
 - **Problems.** A field shows a problem only after the user leaves the field, or after the form checks it. The problem text is under the field, and the field has `aria-invalid`.
+- **Children that change.** In the light DOM, the children of a button, a check box, or a radio button move into the control. Children that you add later also move, and `textContent` or `replaceChildren()` on the host changes only the text. In a shadow root, a slot shows them.
+- **Enter submits the form.** Enter in a `text-field` does an implicit submission, as in a native input. It clicks the default button: the first submit button of the form, a `push-button type="submit"` or a native one. A disabled default button stops the submission. With no submit button, the form submits only if it has one field. The control does this itself, because a field in a shadow root is not in the form, and the browser does not know a `push-button` as a submit button. `submitImplicitly(form)` and `defaultButton(form)` do the same for your own fields.
 - **Words.** Set the `labels` property to change the words, for example `field.labels = {clear: 'Löschen'}`. The keys are in `DEFAULT_LABELS` in `src/form-control.js`.
 
 Each control has these attributes, and a property with the same name in camelCase:
@@ -44,6 +46,9 @@ Each control has these attributes, and a property with the same name in camelCas
 | Attribute | Description |
 | --- | --- |
 | `label` | The visible label. With no label, set `aria-label` on the control. |
+| `aria-label` | The name of the inner control. It wins over `label` and over the text of a button, so that a row action can say which row it acts on. A change goes to the inner control. |
+| `aria-describedby` | Ids of page elements that describe the control, for example a password rule. The inner control gets them after its own help text. In a shadow root, the inner control gets the elements through `ariaDescribedByElements`, because an id cannot refer across the shadow root. |
+| `autofocus` | The control gets the focus when it connects, if no other element has the focus. The browser does autofocus only while the page loads, so a control that is added later does it itself. |
 | `name` | The name of the value in the form data. |
 | `disabled` | The user cannot change the value. The control is not in the form data. |
 | `required` | The form is not valid with no value. |
@@ -60,7 +65,7 @@ Each control has these attributes, and a property with the same name in camelCas
 | `variant` | `default` | `default`, `primary`, `danger`, or `flat`. |
 | `toggle` | | The button stays pressed until the user selects it again. It has `aria-pressed`. |
 | `pressed` | | The pressed state of a toggle button. |
-| `type` | `button` | `submit` or `reset` acts on the form of the button, also from a shadow root. |
+| `type` | `button` | `submit` or `reset` acts on the form of the button, also from a shadow root. In the light DOM, the inner button has the same type, so the browser also knows it as the default button for a native input. In a shadow root, the default button listens for Enter in the native inputs of its form. |
 | `icon` | | A URL of an image, or a character. A screen reader does not read the icon. |
 
 A toggle button sends `input` and `change` when the user changes it. Each button sends the native `click`.
@@ -125,6 +130,7 @@ group.options = [{value: 's', label: 'Small'}, 'Medium', {value: 'l', label: 'La
 | `pattern`, `minlength`, `maxlength` | | The same rules as a native input. |
 | `prefix-text`, `suffix-text` | | Text before and after the value, for example a unit. A screen reader reads it as the description. |
 | `readonly`, `autocomplete`, `inputmode` | | The same as a native input. |
+| `autocapitalize`, `autocorrect`, `spellcheck`, `enterkeyhint` | | The control copies them to the input. For a user name, set `autocapitalize="none"` and `spellcheck="false"`. `text-area` copies them too. |
 
 - A `search` field has a Clear button. Escape also clears it.
 - A `password` field has a Show button. It has `aria-pressed`.
@@ -277,6 +283,30 @@ The `values` property has all of the selected values. With `multiple`, the form 
 | A letter | Goes to an option that starts with it. | The same. |
 
 A click on an option in a list of many selects or clears it, and the check mark shows the state. Shift and a click selects a range.
+
+## Page CSS and the light DOM
+
+A light DOM control is part of the page, so a page rule for an element type also changes the inside of the control. For example, `label { display: flex; flex-direction: column }` puts the box of a check box above its text. The default styles of a control are in `@layer zest`, and a page rule with no layer wins over them.
+
+Do one of these:
+
+- Put general page rules for element types in a layer before `zest`:
+
+  ```css
+  @layer page, zest;
+  @layer page {
+      label { display: flex; flex-direction: column; }
+  }
+  ```
+
+- Or keep the rule off the controls: `label:not(:is(text-field, text-area, combo-box, check-box, toggle-switch, radio-group) label) { ... }`.
+- Or use the `Shadow...` classes. A page rule does not go into a shadow root.
+
+The internal class names of each control start with `zest-`. This is also true for the state classes, for example `zest-disabled`, `zest-error`, and `zest-primary`. Thus a page rule for a class such as `.label`, `.box`, or `.primary` does not change a control.
+
+## Tests in happy-dom and jsdom
+
+These environments do not connect a custom element to its form. `form` of a control is `null`, so a `push-button type="submit"` does not submit and Enter in a field does not submit. Call the submit handler in the test, or test the form in a real browser.
 
 ## Look
 

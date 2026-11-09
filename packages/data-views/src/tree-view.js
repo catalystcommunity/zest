@@ -2,11 +2,11 @@ import { isRtl } from "@catalystcommunity/base-components";
 import { VirtualView, viewStyles } from "./virtual.js";
 
 const treeStyles = `
-.zest-tree-view .row {
+.zest-tree-view .zest-row {
     padding-inline-start: calc(0.25em + var(--_level, 0) * var(--_indent));
     gap: 0.25em;
 }
-.zest-tree-view .twisty, .zest-tree-view .check {
+.zest-tree-view .zest-twisty, .zest-tree-view .zest-check {
     display: inline-flex;
     flex: none;
     align-items: center;
@@ -14,25 +14,25 @@ const treeStyles = `
     min-width: 1.5em;
     min-height: 1.5em;
 }
-.zest-tree-view .check[hidden] {
+.zest-tree-view .zest-check[hidden] {
     display: none;
 }
-.zest-tree-view .twisty::before {
+.zest-tree-view .zest-twisty::before {
     content: "";
 }
-.zest-tree-view [aria-expanded="false"] > .twisty::before {
+.zest-tree-view [aria-expanded="false"] > .zest-twisty::before {
     content: "▸";
 }
-.zest-tree-view [aria-expanded="true"] > .twisty::before {
+.zest-tree-view [aria-expanded="true"] > .zest-twisty::before {
     content: "▾";
 }
-.zest-tree-view [aria-busy="true"] > .twisty::before {
+.zest-tree-view [aria-busy="true"] > .zest-twisty::before {
     content: "…";
 }
-.zest-tree-view .scroller:dir(rtl) [aria-expanded="false"] > .twisty::before {
+.zest-tree-view .zest-scroller:dir(rtl) [aria-expanded="false"] > .zest-twisty::before {
     content: "◂";
 }
-.zest-tree-view .check::before {
+.zest-tree-view .zest-check::before {
     content: "";
     box-sizing: border-box;
     display: inline-flex;
@@ -47,30 +47,30 @@ const treeStyles = `
     border: var(--_border-width) solid var(--_border);
     border-radius: 0.2em;
 }
-.zest-tree-view [aria-checked="true"] > .check::before {
+.zest-tree-view [aria-checked="true"] > .zest-check::before {
     content: "✓";
     background: var(--_highlight);
     color: var(--_highlight-text);
     border-color: var(--_highlight);
 }
-.zest-tree-view [aria-checked="mixed"] > .check::before {
+.zest-tree-view [aria-checked="mixed"] > .zest-check::before {
     content: "–";
     background: var(--_highlight);
     color: var(--_highlight-text);
     border-color: var(--_highlight);
 }
-.zest-tree-view .icon {
+.zest-tree-view .zest-icon {
     flex: none;
 }
-.zest-tree-view .icon:empty {
+.zest-tree-view .zest-icon:empty {
     display: none;
 }
-.zest-tree-view .loading {
+.zest-tree-view .zest-loading {
     font-style: italic;
     color: var(--_secondary-text);
 }
 @media (forced-colors: active) {
-    .zest-tree-view [aria-checked] > .check::before {
+    .zest-tree-view [aria-checked] > .zest-check::before {
         forced-color-adjust: none;
         background: Canvas;
         color: CanvasText;
@@ -259,7 +259,7 @@ export class TreeView extends VirtualView {
         const row = document.createElement('div');
         row.setAttribute('role', 'treeitem');
         row.setAttribute('part', 'item');
-        row.innerHTML = '<span class="twisty" aria-hidden="true"></span><span class="check" aria-hidden="true"></span><span class="icon" aria-hidden="true"></span><span class="label"></span>';
+        row.innerHTML = '<span class="zest-twisty" aria-hidden="true"></span><span class="zest-check" aria-hidden="true"></span><span class="zest-icon" aria-hidden="true"></span><span class="zest-label"></span>';
         return row;
     }
 
@@ -271,7 +271,7 @@ export class TreeView extends VirtualView {
         row.setAttribute('aria-posinset', String(entry.posinset));
         row.setAttribute('aria-setsize', String(entry.setsize));
         const [, check, icon, label] = row.children;
-        row.classList.toggle('loading', Boolean(entry.loading));
+        row.classList.toggle('zest-loading', Boolean(entry.loading));
         if (entry.loading) {
             for (const name of ['aria-expanded', 'aria-checked', 'aria-busy']) { row.removeAttribute(name); }
             row.setAttribute('aria-disabled', 'true');
@@ -312,18 +312,18 @@ export class TreeView extends VirtualView {
         } else if (row.getAttribute('aria-selected') !== selected) {
             row.setAttribute('aria-selected', selected);
         }
-        row.classList.toggle('active', index === this.active);
+        row.classList.toggle('zest-active', index === this.active);
     }
 
     onRowClick(index, e) {
         const entry = this.visibleEntries[index];
         if (!entry || entry.loading) { return; }
-        if (e.target.closest('.twisty')) {
+        if (e.target.closest('.zest-twisty')) {
             this.active = index;
             this.setExpanded(entry.node, !this.isExpanded(entry.node), e);
             return;
         }
-        if (this.checkboxes && e.target.closest('.check')) {
+        if (this.checkboxes && e.target.closest('.zest-check')) {
             this.active = index;
             this.toggleChecked(entry.node, e);
             return;
@@ -333,7 +333,7 @@ export class TreeView extends VirtualView {
 
     onRowDoubleClick(index, e) {
         const entry = this.visibleEntries[index];
-        if (!entry || entry.loading || e.target.closest('.twisty, .check')) { return; }
+        if (!entry || entry.loading || e.target.closest('.zest-twisty, .zest-check')) { return; }
         if (this.#activate(entry, e) && this.hasChildren(entry.node)) {
             this.setExpanded(entry.node, !this.isExpanded(entry.node), e);
         }

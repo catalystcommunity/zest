@@ -33,7 +33,7 @@ image-view, :host {
     border-radius: var(--_radius);
     overflow: hidden;
 }
-.zest-image-view .tools {
+.zest-image-view .zest-tools {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -62,12 +62,12 @@ image-view, :host {
     color: var(--_selected-text);
     font-weight: bold;
 }
-.zest-image-view .level {
+.zest-image-view .zest-level {
     min-width: 3.5em;
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
-.zest-image-view .viewport {
+.zest-image-view .zest-viewport {
     position: relative;
     height: var(--zest-image-view-height, 20em);
     overflow: hidden;
@@ -75,10 +75,10 @@ image-view, :host {
     cursor: grab;
     touch-action: none;
 }
-.zest-image-view .viewport.dragging {
+.zest-image-view .zest-viewport.zest-dragging {
     cursor: grabbing;
 }
-.zest-image-view .viewport:focus-visible, .zest-image-view button:focus-visible {
+.zest-image-view .zest-viewport:focus-visible, .zest-image-view button:focus-visible {
     outline: var(--_focus-width) solid var(--_focus);
     outline-offset: calc(var(--_focus-width) * -1);
 }
@@ -143,20 +143,20 @@ export class ImageView extends BaseComponent {
         wrapper.className = 'zest-image-view';
         wrapper.setAttribute('part', 'view');
         wrapper.innerHTML = `
-            <div class="tools" role="toolbar" part="tools">
-                <button type="button" class="out"></button>
-                <span class="level" part="level"></span>
-                <button type="button" class="in"></button>
-                <button type="button" class="fit-contain" aria-pressed="false"></button>
-                <button type="button" class="fit-cover" aria-pressed="false"></button>
-                <button type="button" class="fit-actual" aria-pressed="false"></button>
+            <div class="zest-tools" role="toolbar" part="tools">
+                <button type="button" class="zest-out"></button>
+                <span class="zest-level" part="level"></span>
+                <button type="button" class="zest-in"></button>
+                <button type="button" class="zest-fit-contain" aria-pressed="false"></button>
+                <button type="button" class="zest-fit-cover" aria-pressed="false"></button>
+                <button type="button" class="zest-fit-actual" aria-pressed="false"></button>
             </div>
-            <div class="viewport" part="viewport" tabindex="0" role="group"><img part="image" draggable="false"></div>`;
+            <div class="zest-viewport" part="viewport" tabindex="0" role="group"><img part="image" draggable="false"></div>`;
         const q = (selector) => wrapper.querySelector(selector);
         const parts = {
-            wrapper, tools: q('.tools'), out: q('.out'), in: q('.in'), level: q('.level'),
-            contain: q('.fit-contain'), cover: q('.fit-cover'), actual: q('.fit-actual'),
-            viewport: q('.viewport'), img: q('img'),
+            wrapper, tools: q('.zest-tools'), out: q('.zest-out'), in: q('.zest-in'), level: q('.zest-level'),
+            contain: q('.zest-fit-contain'), cover: q('.zest-fit-cover'), actual: q('.zest-fit-actual'),
+            viewport: q('.zest-viewport'), img: q('img'),
         };
         this.#parts = parts;
         parts.out.textContent = '−';
@@ -327,7 +327,7 @@ export class ImageView extends BaseComponent {
         if (e.button !== 0) { return; }
         this.#drag = {id: e.pointerId, x: e.clientX, y: e.clientY};
         this.#parts.viewport.setPointerCapture?.(e.pointerId);
-        this.#parts.viewport.classList.add('dragging');
+        this.#parts.viewport.classList.add('zest-dragging');
     }
 
     #onPointerMove(e) {
@@ -341,7 +341,7 @@ export class ImageView extends BaseComponent {
     #onPointerUp(e) {
         if (!this.#drag || this.#drag.id !== e.pointerId) { return; }
         this.#drag = null;
-        this.#parts.viewport.classList.remove('dragging');
+        this.#parts.viewport.classList.remove('zest-dragging');
     }
 }
 

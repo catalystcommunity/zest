@@ -27,7 +27,7 @@ two-tier-menu, :host {
     color: var(--_face-text);
 }
 
-two-tier-menu .items, :host .items {
+two-tier-menu .zest-items, :host .zest-items {
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -59,12 +59,12 @@ two-tier-menu menu-item:not(:has(> a)), :host menu-item:not(:has(> a)) {
   padding-block: 0.25em;
   padding-inline: calc(var(--_padding) * 2) var(--_padding);
 }
-two-tier-menu menu-item.section-header, :host menu-item.section-header {
+two-tier-menu menu-item.zest-section-header, :host menu-item.zest-section-header {
   margin-block-start: var(--_gap);
   font-weight: bold;
 }
-two-tier-menu menu-item.section-header > a, :host menu-item.section-header > a,
-two-tier-menu menu-item.section-header:not(:has(> a)), :host menu-item.section-header:not(:has(> a)) {
+two-tier-menu menu-item.zest-section-header > a, :host menu-item.zest-section-header > a,
+two-tier-menu menu-item.zest-section-header:not(:has(> a)), :host menu-item.zest-section-header:not(:has(> a)) {
   padding-inline-start: var(--_padding);
 }
 two-tier-menu menu-gutter, :host menu-gutter {
@@ -138,21 +138,21 @@ export default class TwoTierMenu extends DataComponent {
             this.root.appendChild(menuLogo);
         }
         let itemContainer = document.createElement('nav');
-        itemContainer.setAttribute("class", "items");
+        itemContainer.setAttribute("class", "zest-items");
         itemContainer.setAttribute("aria-label", this.menuConfig.label || "Menu");
         this.root.appendChild(itemContainer);
         if(this.menuConfig.sections && Array.isArray(this.menuConfig.sections)){
             for (let i = 0; i < this.menuConfig.sections.length; i++) {
                 let section = this.menuConfig.sections[i];
                 let sectionHeader = document.createElement('menu-item');
-                sectionHeader.setAttribute("class", "section-header");
+                sectionHeader.setAttribute("class", "zest-section-header");
                 this.setItemAttributes(sectionHeader, section);
                 itemContainer.appendChild(sectionHeader);
                 if(section.items && Array.isArray(section.items)) {
                     for(let j = 0; j < section.items.length; j++ ) {
                         let item = section.items[j];
                         let menuItem = document.createElement('menu-item');
-                        menuItem.setAttribute("class", "item");
+                        menuItem.setAttribute("class", "zest-item");
                         this.setItemAttributes(menuItem, item);
                         itemContainer.appendChild(menuItem);
                         // This is where we could go one deeper, but that should really be a thing we refactor to a second function

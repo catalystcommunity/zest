@@ -30,17 +30,17 @@ export class FloatingWindow extends ShadowContainer {
         sizeHint: 'Size: use the arrow keys, or select the new corner in the area. Enter keeps it, Escape cancels.',
     };
     static shadowHtml = `
-<div class="window" part="window" role="dialog">
-  <div class="titlebar" part="titlebar">
-    <button type="button" class="handle" part="handle" aria-pressed="false">⠿</button>
-    <span class="title"></span>
-    <button type="button" class="minimize" part="minimize"></button>
-    <button type="button" class="maximize" part="maximize"></button>
-    <button type="button" class="close" part="close">×</button>
+<div class="zest-window" part="window" role="dialog">
+  <div class="zest-titlebar" part="titlebar">
+    <button type="button" class="zest-handle" part="handle" aria-pressed="false">⠿</button>
+    <span class="zest-title"></span>
+    <button type="button" class="zest-minimize" part="minimize"></button>
+    <button type="button" class="zest-maximize" part="maximize"></button>
+    <button type="button" class="zest-close" part="close">×</button>
   </div>
-  <div class="hint" part="hint" role="status"></div>
-  <div class="content" part="content"><slot></slot></div>
-  <div class="corner" part="corner" aria-hidden="true"></div>
+  <div class="zest-hint" part="hint" role="status"></div>
+  <div class="zest-content" part="content"><slot></slot></div>
+  <div class="zest-corner" part="corner" aria-hidden="true"></div>
 </div>`;
     static styles = `
 :host {
@@ -52,7 +52,7 @@ export class FloatingWindow extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.window {
+.zest-window {
     ${tokenAliases('floating-window', 'window')}
     box-sizing: border-box;
     display: flex;
@@ -66,11 +66,11 @@ export class FloatingWindow extends ShadowContainer {
     box-shadow: 0 0.25em 1em rgb(0 0 0 / 0.2);
     overflow: hidden;
 }
-:host([active]) .window {
+:host([active]) .zest-window {
     box-shadow: 0 0.5em 1.5em rgb(0 0 0 / 0.35);
     border-color: var(--_highlight);
 }
-.titlebar {
+.zest-titlebar {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -86,14 +86,14 @@ export class FloatingWindow extends ShadowContainer {
     user-select: none;
 }
 /* The active window has a highlight title bar and a bold title, so that color is not the only sign */
-:host([active]) .titlebar {
+:host([active]) .zest-titlebar {
     color: var(--_highlight-text);
     background: var(--_highlight);
 }
-:host([active]) .title {
+:host([active]) .zest-title {
     font-weight: bold;
 }
-.title {
+.zest-title {
     flex: 1;
     min-width: 0;
     padding-inline: 0.25em;
@@ -101,37 +101,37 @@ export class FloatingWindow extends ShadowContainer {
     white-space: nowrap;
     text-overflow: ellipsis;
 }
-${smallButton('.titlebar button')}
-.titlebar button {
+${smallButton('.zest-titlebar button')}
+.zest-titlebar button {
     cursor: pointer;
 }
-.handle[aria-pressed="true"] {
+.zest-handle[aria-pressed="true"] {
     background: var(--_window);
     color: var(--_window-text);
     border-color: var(--_border);
 }
-.hint {
+.zest-hint {
     flex: none;
     padding: 0.25em 0.5em;
     font-size: 0.875em;
     border-block-end: var(--_border-width) dashed var(--_focus);
 }
-.hint:empty {
+.zest-hint:empty {
     display: none;
 }
-.content {
+.zest-content {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding: var(--_gap);
 }
-:host([state="minimized"]) .content, :host([state="minimized"]) .corner {
+:host([state="minimized"]) .zest-content, :host([state="minimized"]) .zest-corner {
     display: none;
 }
-:host([state="maximized"]) .window {
+:host([state="maximized"]) .zest-window {
     border-radius: 0;
 }
-.corner {
+.zest-corner {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -141,7 +141,7 @@ ${smallButton('.titlebar button')}
     touch-action: none;
     background: linear-gradient(135deg, transparent 0 55%, var(--_border) 55% 62%, transparent 62% 72%, var(--_border) 72% 79%, transparent 79%);
 }
-:host([state="maximized"]) .corner {
+:host([state="maximized"]) .zest-corner {
     display: none;
 }
 ${focusRing}
@@ -159,14 +159,14 @@ ${focusRing}
     }
 
     built() {
-        const title = this.part('.title');
+        const title = this.shadowPart('.zest-title');
         title.id = uid('window-title');
-        this.part('.window').setAttribute('aria-labelledby', title.id);
-        this.part('.handle').addEventListener('click', () => this.#cycleMode());
-        this.part('.minimize').addEventListener('click', () => this.#userState(this.state === 'minimized' ? 'normal' : 'minimized'));
-        this.part('.maximize').addEventListener('click', () => this.#userState(this.state === 'maximized' ? 'normal' : 'maximized'));
-        this.part('.close').addEventListener('click', () => this.#userClose());
-        const titlebar = this.part('.titlebar');
+        this.shadowPart('.zest-window').setAttribute('aria-labelledby', title.id);
+        this.shadowPart('.zest-handle').addEventListener('click', () => this.#cycleMode());
+        this.shadowPart('.zest-minimize').addEventListener('click', () => this.#userState(this.state === 'minimized' ? 'normal' : 'minimized'));
+        this.shadowPart('.zest-maximize').addEventListener('click', () => this.#userState(this.state === 'maximized' ? 'normal' : 'maximized'));
+        this.shadowPart('.zest-close').addEventListener('click', () => this.#userClose());
+        const titlebar = this.shadowPart('.zest-titlebar');
         titlebar.addEventListener('dblclick', (e) => {
             if (!e.target.closest('button')) { this.#userState(this.state === 'maximized' ? 'normal' : 'maximized'); }
         });
@@ -174,7 +174,7 @@ ${focusRing}
             if (e.target.closest('button') || this.state === 'maximized') { return; }
             this.#drag(e, titlebar, 'move');
         });
-        const corner = this.part('.corner');
+        const corner = this.shadowPart('.zest-corner');
         corner.addEventListener('pointerdown', (e) => this.#drag(e, corner, 'size'));
         this.root.addEventListener('keydown', (e) => this.#onKeydown(e));
     }
@@ -282,7 +282,7 @@ ${focusRing}
                 if (this.#mode === 'move') { this.setGeometry({x: px, y: py}); }
                 else { this.setGeometry({width: px - this.x, height: py - this.y}); }
                 this.#stopMode(true);
-                this.part('.handle').focus();
+                this.shadowPart('.zest-handle').focus();
             };
             area.addEventListener('pointerdown', place, true);
             this.#endPlacing = () => area.removeEventListener('pointerdown', place, true);
@@ -310,7 +310,7 @@ ${focusRing}
         if (e.altKey && (e.key === 'F7' || e.key === 'F8')) {
             e.preventDefault();
             this.#startMode(e.key === 'F7' ? 'move' : 'size');
-            this.part('.handle').focus();
+            this.shadowPart('.zest-handle').focus();
             return;
         }
         if (!this.#mode) { return; }
@@ -333,24 +333,24 @@ ${focusRing}
 
     render() {
         const state = STATES.includes(this.state) ? this.state : 'normal';
-        this.part('.title').textContent = this.label;
-        const handle = this.part('.handle');
+        this.shadowPart('.zest-title').textContent = this.label;
+        const handle = this.shadowPart('.zest-handle');
         handle.setAttribute('aria-label', this.text('handle'));
         handle.title = this.text('handle');
         handle.setAttribute('aria-pressed', String(Boolean(this.#mode)));
         handle.setAttribute('aria-keyshortcuts', 'Alt+F7 Alt+F8');
-        const minimize = this.part('.minimize');
-        const maximize = this.part('.maximize');
+        const minimize = this.shadowPart('.zest-minimize');
+        const maximize = this.shadowPart('.zest-maximize');
         minimize.textContent = state === 'minimized' ? '▭' : '–';
         minimize.setAttribute('aria-label', this.text(state === 'minimized' ? 'restore' : 'minimize'));
         minimize.title = minimize.getAttribute('aria-label');
         maximize.textContent = state === 'maximized' ? '❐' : '□';
         maximize.setAttribute('aria-label', this.text(state === 'maximized' ? 'restore' : 'maximize'));
         maximize.title = maximize.getAttribute('aria-label');
-        const close = this.part('.close');
+        const close = this.shadowPart('.zest-close');
         close.setAttribute('aria-label', this.text('close'));
         close.title = this.text('close');
-        this.part('.hint').textContent = this.#mode ? this.text(`${this.#mode}Hint`) : '';
+        this.shadowPart('.zest-hint').textContent = this.#mode ? this.text(`${this.#mode}Hint`) : '';
 
         const style = this.style;
         if (state === 'maximized') {
@@ -371,7 +371,7 @@ export class WindowArea extends ShadowContainer {
     static properties = {
         label: {type: String, default: ''},
     };
-    static shadowHtml = `<div class="area" part="area"><slot></slot></div>`;
+    static shadowHtml = `<div class="zest-area" part="area"><slot></slot></div>`;
     static styles = `
 :host {
     position: relative;
@@ -388,7 +388,7 @@ export class WindowArea extends ShadowContainer {
 :host([hidden]) {
     display: none;
 }
-.area {
+.zest-area {
     position: absolute;
     inset: 0;
 }
@@ -403,7 +403,7 @@ export class WindowArea extends ShadowContainer {
     }
 
     built() {
-        this.part('slot').addEventListener('slotchange', () => this.#restack());
+        this.shadowPart('slot').addEventListener('slotchange', () => this.#restack());
         this.addEventListener('pointerdown', (e) => this.#activateFrom(e), true);
         this.addEventListener('focusin', (e) => this.#activateFrom(e));
     }
@@ -433,7 +433,7 @@ export class WindowArea extends ShadowContainer {
         const top = this.#order.filter(win => win.parentElement === this).at(-1) ?? this.windows.at(-1);
         if (!top) { return; }
         this.activate(top);
-        top.shadowRoot?.querySelector('.handle')?.focus();
+        top.shadowRoot?.querySelector('.zest-handle')?.focus();
     }
 
     // Puts the minimized windows in a row at the bottom

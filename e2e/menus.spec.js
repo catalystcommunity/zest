@@ -11,7 +11,7 @@ const top = (page, name) => bar(page).getByRole('menuitem', {name, exact: true})
 const focused = (page) => page.evaluate(() => {
     let active = document.activeElement;
     while (active?.shadowRoot?.activeElement) { active = active.shadowRoot.activeElement; }
-    return active?.querySelector?.('.label')?.textContent ?? active?.getAttribute('aria-label') ?? active?.textContent;
+    return active?.querySelector?.('.zest-label')?.textContent ?? active?.getAttribute('aria-label') ?? active?.textContent;
 });
 
 test.describe('menus', () => {
@@ -226,13 +226,13 @@ test.describe('menus', () => {
     test('notices go in a live region, pause on hover, and an error stays', async ({page}) => {
         await open(page);
         await page.getByTestId('menus-notice-info').click();
-        const info = page.getByRole('status').locator('.notice', {hasText: 'The file was moved.'});
+        const info = page.getByRole('status').locator('.zest-notice', {hasText: 'The file was moved.'});
         await expect(info).toBeVisible();
         await info.getByRole('button', {name: 'Undo'}).click();
         await expect(log(page)).toContainText('undo from the notice');
         await expect(log(page)).toContainText('info notice closed: action');
         await page.getByTestId('menus-notice-error').click();
-        const error = page.getByRole('alert').locator('.notice');
+        const error = page.getByRole('alert').locator('.zest-notice');
         await expect(error).toContainText('Error: The file could not be saved.');
         await error.getByRole('button', {name: 'Dismiss'}).click();
         await expect(error).toHaveCount(0);
@@ -268,7 +268,7 @@ test.describe('menus', () => {
     test('gives each target at least 24 by 24 CSS pixels, and shows a 2px focus ring', async ({page}) => {
         await open(page);
         await top(page, 'File').click();
-        const targets = page.locator('.zest-menu-bar .top, .zest-popup-menu:popover-open .item, .zest-tool-bar button:not([hidden]), .zest-menu-button button:not([hidden])');
+        const targets = page.locator('.zest-menu-bar .zest-top, .zest-popup-menu:popover-open .zest-item, .zest-tool-bar button:not([hidden]), .zest-menu-button button:not([hidden])');
         const boxes = await targets.evaluateAll(elements => elements.filter(element => !element.closest('.zest-popup-menu') || element.closest('.zest-popup-menu').matches(':popover-open')).map(element => {
             const rect = element.getBoundingClientRect();
             return {name: element.textContent, width: rect.width, height: rect.height};
@@ -279,8 +279,58 @@ test.describe('menus', () => {
             expect(box.height, box.name).toBeGreaterThanOrEqual(24);
         }
         await page.keyboard.press('ArrowDown');
-        const item = page.locator('.zest-popup-menu .item:focus');
+        const item = page.locator('.zest-popup-menu .zest-item:focus');
         expect(await item.evaluate(element => getComputedStyle(element).outlineWidth)).toBe('2px');
+    });
+
+    test('a menu button shows its children as its face, and the label names a face with no text', async ({page}) => {
+        await open(page);
+        const account = page.getByTestId('menus-avatar').getByRole('button', {name: 'Account', exact: true});
+        await expect(account).toBeVisible();
+        await expect(account).toHaveAttribute('aria-haspopup', 'menu');
+        // The avatar is inside the button
+        const face = await account.boundingBox();
+        const avatar = await page.getByTestId('menus-avatar').locator('.menus-avatar').boundingBox();
+        expect(avatar.width).toBeGreaterThan(16);
+        expect(avatar.x).toBeGreaterThanOrEqual(face.x);
+        expect(avatar.y).toBeGreaterThanOrEqual(face.y);
+        expect(avatar.x + avatar.width).toBeLessThanOrEqual(face.x + face.width);
+        expect(avatar.y + avatar.height).toBeLessThanOrEqual(face.y + face.height);
+        await account.focus();
+        await page.keyboard.press('ArrowDown');
+        await expect(page.getByRole('menuitem', {name: 'Profile'})).toBeFocused();
+        await page.keyboard.press('o');
+        await expect(log(page)).toContainText('sign out from the account menu');
+        await expect(account).toBeFocused();
+
+        const shadow = page.getByTestId('menus-avatar-shadow').getByRole('button', {name: 'Team account', exact: true});
+        await shadow.click();
+        await expect(page.getByRole('menuitem', {name: 'Switch team'})).toBeVisible();
+        const shadowFace = await shadow.boundingBox();
+        const shadowAvatar = await page.getByTestId('menus-avatar-shadow').locator('.menus-avatar').boundingBox();
+        expect(shadowAvatar.x).toBeGreaterThanOrEqual(shadowFace.x);
+        expect(shadowAvatar.x + shadowAvatar.width).toBeLessThanOrEqual(shadowFace.x + shadowFace.width);
+        await page.keyboard.press('Escape');
+
+        // Text in the face is the name
+        await expect(page.getByTestId('menus-status').getByRole('button', {name: 'Status: away'})).toBeVisible();
+    });
+
+    test('labels from user data show each &, with mnemonics off or escaped', async ({page}) => {
+        await open(page);
+        await page.getByTestId('menus-teams').getByRole('button', {name: 'Teams'}).click();
+        const teams = page.getByRole('menu', {name: 'Teams'});
+        await expect(teams.getByRole('menuitem')).toHaveText(['R&D', 'Sales & Marketing', 'Q&A']);
+        expect(await teams.locator('u').count()).toBe(0);
+        // With no mnemonics, a letter does not run an item
+        await page.keyboard.press('d');
+        await expect(teams).toBeVisible();
+        await page.keyboard.press('Escape');
+        await page.getByTestId('menus-recent-teams').getByRole('button', {name: 'Recent team'}).click();
+        const recent = page.getByRole('menu', {name: 'Recent team'});
+        await expect(recent.getByRole('menuitem')).toHaveText(['R&D', 'Sales & Marketing', 'Q&A', 'Clear the list']);
+        await page.keyboard.press('c');
+        await expect(log(page)).toContainText('clear the list');
     });
 
     test('the page keeps one menu element for each menu after a route change', async ({page}) => {
@@ -299,7 +349,7 @@ test.describe('menus', () => {
             await open(page);
             await page.getByTestId('menus-notice-info').click();
             await page.getByTestId('menus-notice-error').click();
-            await expect(page.getByRole('alert').locator('.notice')).toBeVisible();
+            await expect(page.getByRole('alert').locator('.zest-notice')).toBeVisible();
             await page.getByTestId('menus-toolbar').getByRole('button', {name: 'Save'}).hover();
             await expect(page.getByRole('tooltip', {name: 'Save (Ctrl+S)'})).toBeVisible();
             await top(page, 'View').click();

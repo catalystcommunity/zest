@@ -116,22 +116,55 @@ const result = await dialog.showModal();   // 'save' or 'cancel'
 ```
 
 - `showModal()` makes the rest of the page inert. `show()` does not. Both give a promise of the result.
-- A button in the `buttons` slot, or a button with `data-close`, closes the dialog. The result is its `value`.
+- A button in the `buttons` slot, or a button with `data-close`, closes the dialog. The result is the `data-close` value, or else its `value`.
+- A component button in the slot, such as `push-button`, closes the dialog as a native button does. The result is its `value` attribute. A component is a button when its `focusTarget` is the clicked native button.
+- A slot button with `data-keep-open` does not close the dialog. Use it for a button such as "Test connection".
+- A button in an element of the slot, such as a `div`, does not close the dialog.
 - Enter clicks the button with `data-default`, but not when the focus is in a text area, a select, or a button.
-- Escape and the × button give `'cancel'`.
+- Escape (in a modal dialog) and the × button give `'cancel'`. If a child calls `preventDefault()` on the Escape key, the dialog does not close.
 - The dialog first gives the focus to the element with `autofocus`, then to the first field, then to the default button. When the dialog closes, the focus goes back to the element that had it before.
 - `kind` is `info`, `warning`, `error`, or `question`. The words of the kind come before the content for a screen reader, and the icon is only for the eyes. A warning, an error, or a question is an `alertdialog`.
 - `no-close` removes the × button.
 - Event: `dialog-window-close` `{value}`, for each close.
-- A page style for `button` wins over the default style of a slotted button. If your page styles buttons, also give a style to `[data-default]`.
+- Event: `dialog-window-before-close` `{value, reason, button}`, before the user closes the dialog. It is cancelable. `reason` is `button`, `close-button`, `escape`, or `code`. `button` is the button element, or `null`. Call `preventDefault()`, and the dialog stays open.
+- `requestClose(value)` closes as the user does: it first sends `dialog-window-before-close` with the reason `code`. It gives `true` if the dialog closed.
+- `close(value)` closes the dialog at once. It sends no `dialog-window-before-close`.
+- `data-danger` on a slot button gives it the look of an action that the user cannot undo. With `data-default`, the button is filled. Also put a sign or a word in the text, so that the danger is not shown by color only. The functions below do this for you.
+- A page style for `button` wins over the default style of a slotted button. If your page styles buttons, also give a style to `[data-default]` and `[data-danger]`.
+
+To keep the dialog open while the application saves, stop the close, save, and then call `close()`:
+
+```js
+dialog.addEventListener('dialog-window-before-close', async (e) => {
+  if (e.detail.value !== 'save') { return; }
+  e.preventDefault();
+  e.detail.button.disabled = true;
+  try {
+    await saveChanges();
+    dialog.close('save');
+  } catch (error) {
+    showError(error);      // The dialog stays open
+  } finally {
+    e.detail.button.disabled = false;
+  }
+});
+```
 
 The functions make a dialog, open it as a modal, and remove it after it closes:
 
 | Function | Result |
 | --- | --- |
-| `showMessage({title, text, buttons, kind})` | The value of the button, or `'cancel'`. `buttons` is `['OK', 'Show']` or `[{label, value, default}]`. |
-| `askConfirm({title, text, okLabel, cancelLabel})` | `true` for OK. |
-| `askText({title, label, value, required, type})` | The text, or `null`. Enter in the field is the same as OK. |
+| `showMessage({title, text, buttons, kind})` | The value of the button, or `'cancel'`. `buttons` is `['OK', 'Show']` or `[{label, value, default, danger}]`. |
+| `askConfirm({title, text, okLabel, cancelLabel, kind, danger})` | `true` for OK. |
+| `askText({title, label, value, okLabel, cancelLabel, required, type})` | The text, or `null`. Enter in the field is the same as OK. |
+
+Each function also takes `parent`, the element that gets the dialog (the default is `document.body`), and `labels`, the words of the dialog.
+
+- `danger: true` gives the button the danger look, with a warning sign (⚠) before the text. The sign is `aria-hidden`. Use it for an action that the user cannot undo, such as a delete. With `askConfirm`, `danger` is on the OK button:
+
+```js
+const remove = await askConfirm({title: 'Delete the project?', text: 'You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true});
+```
 
 ## `window-area` and `floating-window`
 
