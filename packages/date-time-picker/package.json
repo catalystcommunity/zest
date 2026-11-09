@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/date-time-picker",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "DateTimePicker: The last Date, Time, or DateTime Picker we will ever use in web UI.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/date-time-picker#readme",
   "main": "src/index.js",
@@ -34,7 +34,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@catalystcommunity/base-components": ">=0.2.5 <1.0.0",
-    "@catalystcommunity/date-model": ">=0.1.1 <1.0.0"
+    "@catalystcommunity/base-components": ">=0.2.7 <1.0.0",
+    "@catalystcommunity/date-model": ">=0.1.2 <1.0.0"
   }
 }

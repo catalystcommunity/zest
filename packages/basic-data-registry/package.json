@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/basic-data-registry",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "BasicDataRegistry: A simple holder of a registration functions.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/basic-data-registry#readme",
   "main": "src/index.js",
