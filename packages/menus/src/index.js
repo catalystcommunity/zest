@@ -105,7 +105,8 @@ function toAction(definition) {
 
 // The data of a menu: an Action, {action}, {label, shortcut, run}, {separator: true}, or a
 // submenu {label, items} or {action, items}. Separators at the ends or next to each other go away.
-// mnemonic: false on an item shows each '&' of its label as text.
+// mnemonic: false on an item shows each '&' of its label as text. danger: true marks an action that
+// the user cannot undo, such as a delete.
 export function menuEntries(items = []) {
     const entries = [];
     for (const item of items ?? []) {
@@ -122,7 +123,10 @@ export function menuEntries(items = []) {
             entry = {type: 'action', action: toAction(item.action ?? item)};
         }
         if (entry.type === 'separator' && (!entries.length || entries.at(-1).type === 'separator')) { continue; }
-        if (entry.type !== 'separator') { entry.mnemonic = item.mnemonic !== false && item.action?.mnemonic !== false; }
+        if (entry.type !== 'separator') {
+            entry.mnemonic = item.mnemonic !== false && item.action?.mnemonic !== false;
+            entry.danger = entry.type === 'action' && Boolean(item.danger || item.action?.danger);
+        }
         entries.push(entry);
     }
     while (entries.at(-1)?.type === 'separator') { entries.pop(); }
@@ -207,6 +211,14 @@ function makeMenuItem(entry, className = 'zest-item', mnemonics = true) {
     shortcut.setAttribute('aria-hidden', 'true');
     item.append(span('zest-icon'), span('zest-label'), shortcut);
     item.setAttribute('role', 'menuitem');
+    if (entry.danger) {
+        // A sign before the label, so that the danger is not shown by color only
+        item.classList.add('zest-danger');
+        const sign = span('zest-danger-sign');
+        sign.setAttribute('aria-hidden', 'true');
+        sign.textContent = '⚠';
+        item.querySelector('.zest-label').before(sign);
+    }
     if (entry.type === 'submenu') {
         item.classList.add('zest-has-sub');
         item.setAttribute('aria-haspopup', 'menu');
@@ -239,6 +251,9 @@ class PopupMenu extends BaseComponent {
     #hoverTimer = null;
     #spaceOn = null;
     #removeGlobal = null;
+    // A pointer press started in the open menu. A click with no such press, such as the second click
+    // of a double-click that opened the menu, does nothing.
+    #pressed = false;
 
     constructor() {
         super();
@@ -257,9 +272,12 @@ class PopupMenu extends BaseComponent {
         this.#roving = new RovingFocus(this.#menu, {items: () => this.#items(), orientation: 'vertical', typeahead: true});
         this.#menu.addEventListener('keydown', (e) => this.#onKeydown(e));
         this.#menu.addEventListener('keyup', (e) => this.#onKeyup(e));
+        this.#menu.addEventListener('mousedown', (e) => { if (e.detail <= 1) { this.#pressed = true; } });
+        this.#menu.addEventListener('pointerdown', (e) => { if (e.pointerType && e.pointerType !== 'mouse') { this.#pressed = true; } });
         this.#menu.addEventListener('click', (e) => {
             const item = this.#ownItem(e.target);
-            if (item) { this.#activate(item, 'pointer'); }
+            if (!item || (e.isTrusted && e.detail > 0 && !this.#pressed)) { return; }
+            this.#activate(item, 'pointer');
         });
         this.#menu.addEventListener('pointerover', (e) => this.#onHover(e));
         this.#roving.attach();
@@ -339,6 +357,7 @@ class PopupMenu extends BaseComponent {
         if (this.#dirty) { this.render(); }
         if (!this.#open) {
             this.#open = true;
+            this.#pressed = false;
             this.#opener = opener;
             this.#menu.hidden = false;
             try { this.#menu.showPopover?.(); } catch { /* It is open already */ }
@@ -424,6 +443,12 @@ class PopupMenu extends BaseComponent {
         const back = rtl ? 'ArrowRight' : 'ArrowLeft';
         const entry = item._zestEntry;
         if (hasModifier(e) && e.key !== 'Tab') { return; }
+        // A held key repeats. The menu opened while it was down (Enter on a menu button), or its first
+        // press already chose an item, so the repeat chooses nothing.
+        if (e.repeat && (e.key === 'Enter' || e.key === ' ' || (e.key.length === 1 && e.key.trim()))) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); }
+            return;
+        }
         switch (e.key) {
         case 'Enter':
             e.preventDefault();
@@ -466,7 +491,8 @@ class PopupMenu extends BaseComponent {
             if (matches.length === 1) {
                 e.preventDefault();
                 this.#roving.focus(matches[0]);
-                this.#activate(matches[0], 'keyboard');
+                // The mnemonic of a danger item only moves the focus to it. Enter then chooses it.
+                if (!matches[0]._zestEntry.danger) { this.#activate(matches[0], 'keyboard'); }
             }
         }
     }
@@ -1560,13 +1586,19 @@ class NoticeArea extends BaseComponent {
             timer = null;
             left -= performance.now() - startedAt;
         };
+        // A pointer press that started on the notice. A notice that comes in under the pointer
+        // between the two clicks of a double-click does not run its action.
+        let pressed = false;
+        notice.addEventListener('mousedown', (e) => { if (e.detail <= 1) { pressed = true; } });
+        notice.addEventListener('pointerdown', (e) => { if (e.pointerType && e.pointerType !== 'mouse') { pressed = true; } });
         if (action) {
             const run = action instanceof Action ? action : toAction(action);
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'zest-action';
             button.textContent = readLabel(run.label, action.mnemonic !== false).text;
-            button.addEventListener('click', () => {
+            button.addEventListener('click', (e) => {
+                if (e.isTrusted && e.detail > 0 && !pressed) { return; }
                 run.trigger(button, {notice});
                 close('action');
             });

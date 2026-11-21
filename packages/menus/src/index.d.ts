@@ -26,11 +26,15 @@ export declare function escapeMnemonic(text?: string | null): string;
 export type MenuActionDefinition = Partial<ActionOptions> & ({id: string} | {label: string}) & {
     /** `false` shows each '&' of the label as text. */
     mnemonic?: false;
+    /** An action that the user cannot undo, such as a delete: a warning sign and the danger color. Its mnemonic only moves the focus to it. */
+    danger?: boolean;
 };
 
 export interface MenuActionItem {
     action: Action | MenuActionDefinition;
     mnemonic?: false;
+    /** An action that the user cannot undo, such as a delete: a warning sign and the danger color. Its mnemonic only moves the focus to it. */
+    danger?: boolean;
 }
 
 export interface MenuSeparatorItem {
@@ -54,7 +58,7 @@ export type MenuItems = readonly (MenuItem | null | undefined | false)[];
 
 /** An entry as the menus read it. `mnemonic` is false when the label shows each '&' as text. */
 export type MenuEntry =
-    | {type: 'action'; action: Action; mnemonic: boolean}
+    | {type: 'action'; action: Action; mnemonic: boolean; danger: boolean}
     | {type: 'separator'}
     | {type: 'submenu'; label: string; icon: unknown; items: MenuItems; action: Action | null; disabled: boolean; mnemonic: boolean};
 

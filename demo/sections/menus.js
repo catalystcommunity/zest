@@ -104,7 +104,15 @@ function buttonsCard(log, actions) {
   ];
   const split = el('menu-button', {split: '', 'data-testid': 'menus-split', 'more-label': 'More save options'});
   split.items = [actions.save, actions.saveAs];
-  return card('menus-buttons', 'Menu buttons', el('div', {class: 'controls'}, plain, split));
+  // A danger item has a sign and the danger color. Its mnemonic only moves the focus to it.
+  const project = el('menu-button', {label: 'Project', 'data-testid': 'menus-danger'});
+  project.items = [
+    {label: '&Rename', run: () => log.add('rename the project')},
+    {label: '&Archive', run: () => log.add('archive the project')},
+    {separator: true},
+    {label: '&Delete', run: () => log.add('delete the project'), danger: true},
+  ];
+  return card('menus-buttons', 'Menu buttons', el('div', {class: 'controls'}, plain, split, project));
 }
 
 // An avatar image with initials. The initials are in the image, so they are not text of the button.

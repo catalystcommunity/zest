@@ -301,7 +301,9 @@ test.describe('dialog-window', () => {
             const dialog = page.getByRole('alertdialog', {name: 'Delete the project?'});
             await expect(dialog).toBeVisible();
             const remove = page.getByRole('button', {name: 'Delete', exact: true});
-            await expect(remove).toBeFocused();
+            // The message has the focus, not the danger button
+            await expect(remove).not.toBeFocused();
+            expect(await page.evaluate(() => [...document.querySelectorAll('dialog-window')].find(item => item.open).shadowRoot.activeElement?.className)).toBe('zest-content');
             await expect(remove).toHaveText('⚠ Delete');
             const look = await remove.evaluate((button) => {
                 const style = getComputedStyle(button);
@@ -319,9 +321,91 @@ test.describe('dialog-window', () => {
             await dialog.screenshot({path: test.info().outputPath(`danger-${colorScheme}.png`)});
             const {violations} = await new AxeBuilder({page}).include('dialog-window').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
             expect(violations.map(item => `${item.id}: ${item.nodes.map(node => node.target.join(' ')).join(', ')}`)).toEqual([]);
+            // Enter and Space on the message press nothing. The user moves to the button first.
+            await page.keyboard.press('Enter');
+            await page.keyboard.press('Space');
+            await expect(dialog).toBeVisible();
+            await page.keyboard.press('Tab');
+            await expect(remove).toBeFocused();
             await page.keyboard.press('Enter');
             await expect(log(page)).toContainText('danger: true');
         }
+    });
+
+    test('a held Enter that opened the dialog does not press its default button', async ({page}) => {
+        await open(page);
+        const opener = page.getByTestId('dialog-confirm');
+        await opener.focus();
+        // The key goes down on the opener, and the dialog opens. The key then repeats.
+        await page.keyboard.down('Enter');
+        const dialog = page.getByRole('alertdialog', {name: 'Delete'});
+        await expect(dialog).toBeVisible();
+        const ok = page.locator('dialog-window[label="Delete"]').getByRole('button', {name: 'Delete'});
+        await expect(ok).toBeFocused();
+        for (let i = 0; i < 5; i++) { await page.keyboard.down('Enter'); }
+        await page.keyboard.up('Enter');
+        await expect(dialog).toBeVisible();
+        await page.keyboard.press('Enter');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('confirm: true');
+    });
+
+    test('the second click of a double-click does not press a button, and a new click does', async ({page}) => {
+        await open(page);
+        await page.getByTestId('dialog-confirm').focus();
+        await page.keyboard.press('Enter');
+        const dialog = page.getByRole('alertdialog', {name: 'Delete'});
+        const ok = page.locator('dialog-window[label="Delete"]').getByRole('button', {name: 'Delete'});
+        const place = await ok.boundingBox();
+        await page.mouse.move(place.x + place.width / 2, place.y + place.height / 2);
+        // The first click of the double-click was on the opener, and the dialog came in under the pointer
+        await page.mouse.down({clickCount: 2});
+        await page.mouse.up({clickCount: 2});
+        await expect(dialog).toBeVisible();
+        await page.waitForTimeout(600);
+        await page.mouse.click(place.x + place.width / 2, place.y + place.height / 2);
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('confirm: true');
+    });
+
+    test('disable-for keeps the buttons from acting for that time, and Escape still cancels', async ({page}) => {
+        await open(page);
+        await page.getByTestId('dialog-confirm-wait').click();
+        const dialog = page.getByRole('alertdialog', {name: 'Empty the trash?'});
+        const empty = page.locator('dialog-window[label="Empty the trash?"]').getByRole('button', {name: 'Empty'});
+        await expect(empty).toBeDisabled();
+        await empty.click({force: true});
+        await expect(dialog).toBeVisible();
+        await expect(empty).toBeEnabled();
+        await empty.click();
+        await expect(log(page)).toContainText('wait: true');
+        await page.getByTestId('dialog-confirm-wait').click();
+        await expect(dialog).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('wait: false');
+    });
+
+    test('a typed confirmation enables the danger button only for the exact text', async ({page}) => {
+        await open(page);
+        await page.getByTestId('dialog-confirm-typed').click();
+        const dialog = page.getByRole('alertdialog', {name: 'Delete the repository?'});
+        const host = page.locator('dialog-window[label="Delete the repository?"]');
+        const input = host.getByRole('textbox', {name: 'Type notes to confirm'});
+        const remove = host.getByRole('button', {name: 'Delete'});
+        await expect(input).toBeFocused();
+        await expect(remove).toBeDisabled();
+        // The page style for button (demo/style.css) must not hide the disabled look
+        await expect(remove).toHaveCSS('border-top-style', 'dashed');
+        await input.fill('Notes');
+        await page.keyboard.press('Enter');
+        await expect(dialog).toBeVisible();
+        await input.fill('notes');
+        await expect(remove).toBeEnabled();
+        await expect(remove).not.toHaveCSS('border-top-style', 'dashed');
+        await page.keyboard.press('Enter');
+        await expect(dialog).toBeHidden();
+        await expect(log(page)).toContainText('typed: true');
     });
 
     test('asks for text, and an error tells its kind in words', async ({page}) => {
