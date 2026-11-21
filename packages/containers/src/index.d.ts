@@ -141,6 +141,8 @@ export interface DialogWindowLabels {
     warning: string;
     error: string;
     question: string;
+    /** The label of the `askConfirm` field for `confirmText`. `{text}` is where the text goes. */
+    confirmPrompt: string;
 }
 
 export type DialogCloseReason = 'button' | 'close-button' | 'escape' | 'code';
@@ -149,7 +151,8 @@ export type DialogCloseReason = 'button' | 'close-button' | 'escape' | 'code';
  * A window over the page, from a native dialog. A button in the `buttons` slot, or a button with
  * `data-close`, closes it. A slot button with `data-keep-open` does not close it. `data-default`
  * marks the button that Enter clicks. `data-danger` gives a button the look of an action that the
- * user cannot undo.
+ * user cannot undo: the message then gets the focus first, and Enter does not click that button.
+ * A button acts only on a press that started after the dialog opened.
  */
 export declare class DialogWindow extends ShadowContainer {
     static labels: DialogWindowLabels;
@@ -158,6 +161,8 @@ export declare class DialogWindow extends ShadowContainer {
     kind: DialogKind | '' | (string & {});
     /** No close button in the title bar. */
     noClose: boolean;
+    /** Milliseconds after the dialog opens while its buttons do nothing. 0 (the default) is no wait. Attribute `disable-for`. */
+    disableFor: number;
     open: boolean;
     labels?: Partial<DialogWindowLabels>;
     readonly returnValue: string;
@@ -186,6 +191,8 @@ interface DialogFunctionOptions {
     /** The dialog is added here. The default is `document.body`. */
     parent?: Element;
     labels?: Partial<DialogWindowLabels>;
+    /** Milliseconds after the dialog opens while its buttons do nothing. The default is 0. */
+    disableFor?: number;
 }
 
 export interface ShowMessageOptions extends DialogFunctionOptions {
@@ -200,8 +207,10 @@ export interface AskConfirmOptions extends DialogFunctionOptions {
     okLabel?: string;
     cancelLabel?: string;
     kind?: DialogKind | '';
-    /** The OK button has the danger look. */
+    /** The OK button has the danger look. The message gets the focus, and Enter does not click OK. */
     danger?: boolean;
+    /** OK is enabled only when the user types this text (case-sensitive) in a field. */
+    confirmText?: string;
 }
 
 export interface AskTextOptions extends DialogFunctionOptions {

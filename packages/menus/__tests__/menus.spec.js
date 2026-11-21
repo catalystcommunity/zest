@@ -278,6 +278,39 @@ describe('popup menus', () => {
         expect(a.run).toHaveBeenCalledWith(expect.objectContaining({action: a.open}));
     });
 
+    it('a held key chooses nothing: Enter, Space, and a mnemonic letter that repeat', () => {
+        const a = editorActions();
+        const {menu, items} = openMenu([a.save, a.open]);
+        const held = press(items()[0], 'Enter', {repeat: true});
+        expect(held.defaultPrevented).toBe(true);
+        press(items()[0], ' ', {repeat: true});
+        release(items()[0], ' ');
+        press(items()[0], 'o', {repeat: true});
+        expect(a.run).not.toHaveBeenCalled();
+        expect(menu.isOpen).toBe(true);
+        press(items()[0], 'Enter');
+        expect(a.run).toHaveBeenCalledWith(expect.objectContaining({action: a.save}));
+    });
+
+    it('a danger item has a sign and a class, and its mnemonic only moves the focus', () => {
+        const remove = vi.fn();
+        const a = editorActions();
+        const {menu, items} = openMenu([a.save, {label: '&Delete', run: remove, danger: true}, {action: a.open, danger: true}]);
+        const [, item, open] = items();
+        expect(item.classList.contains('zest-danger')).toBe(true);
+        expect(item.querySelector('.zest-danger-sign').getAttribute('aria-hidden')).toBe('true');
+        expect(item.textContent).toContain('⚠');
+        expect(open.classList.contains('zest-danger')).toBe(true);
+        expect(items()[0].classList.contains('zest-danger')).toBe(false);
+        expect(menuEntries([{label: 'Sub', items: [], danger: true}])[0].danger).toBe(false);
+        press(items()[0], 'd');
+        expect(deepActive()).toBe(item);
+        expect(remove).not.toHaveBeenCalled();
+        expect(menu.isOpen).toBe(true);
+        press(item, 'Enter');
+        expect(remove).toHaveBeenCalled();
+    });
+
     it('closes on a pointer press outside, but not inside', () => {
         const a = editorActions();
         const {menu, items} = openMenu([a.save]);

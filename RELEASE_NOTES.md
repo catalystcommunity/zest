@@ -1,5 +1,20 @@
 # Release Notes
 
+## Since the 2026-11-09 Release
+
+### `dialog-window` (containers)
+
+- Changed behavior: a button acts only on a press that started after the dialog opened. A held key that only repeats, a Space release with no press in the dialog, and the second click of a double-click do nothing. A click from code still acts.
+- Changed behavior: a dialog with a danger button (`data-danger`, or a `push-button` with `variant="danger"`) and no field gives the focus to its message, not to a button. Enter never clicks a danger button, also with `data-default`. Before, `askConfirm({danger: true})` gave the focus to the danger button, and Enter confirmed. A test that pressed Enter to confirm a danger dialog must now press Tab first, or click the button.
+- New: the `disable-for` attribute (`disableFor` property), in milliseconds. The buttons do nothing for that time after the dialog opens, and have `aria-disabled="true"`. The default is `0`. `showMessage`, `askConfirm`, and `askText` take `disableFor`.
+- New: `askConfirm({confirmText})`. OK is enabled only when the user types that text in a field. The new label `confirmPrompt` (`Type {text} to confirm`) is the label of the field.
+- Fix: a disabled button in the `buttons` slot has a dashed border and the disabled colors, also when a page style for `button` sets a border or colors. Before, a page style removed the disabled look, and a disabled danger button looked like a button that the user can press.
+
+### `menus`
+
+- New: `danger: true` on a menu item. The item has a warning sign and the danger color. Its mnemonic only moves the focus to it.
+- Changed behavior: a key that repeats (Enter, Space, or a mnemonic letter) runs no item. A click runs an item only if the pointer press started in the open menu. The action button of a notice has the same click rule.
+
 ## Breaking Changes
 
 ### Internal class names start with `zest-`

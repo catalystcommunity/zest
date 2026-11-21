@@ -58,6 +58,7 @@ The `items` property of a menu bar, a popup menu, a menu button, and a toolbar i
   - `mnemonic: false` on an entry (`{label, run, mnemonic: false}`, `{action, mnemonic: false}`, or `{label, items, mnemonic: false}`) shows each `&` of its label as text.
   - The `mnemonics="false"` attribute of a menu bar, a popup menu, a menu button, or a toolbar does this for all of its labels, also in its menus. `attachContextMenu` takes the `mnemonics: false` option.
 - An item with no mnemonic has no letter key. Typeahead still moves to it.
+- `danger: true` on an item (`{label, run, danger: true}` or `{action, danger: true}`) marks an action that the user cannot undo, such as a delete. The item shows a warning sign (⚠, `aria-hidden`) and the danger color, so that the danger is not shown by color only. Its mnemonic letter only moves the focus to it. The user then presses Enter or Space to run it. A submenu cannot be a danger item.
 - An `icon` is the path of an image, or a short text such as a symbol.
 - `menuEntries(items)` gives the entries as the menus read them. `menuActions(items)` gives each action, also from submenus.
 
@@ -103,6 +104,8 @@ menu.close();
 - The menu sends `popup-menu-open`, `popup-menu-close` with `{reason}`, and `popup-menu-select` with `{id, action}`.
 - A submenu opens on the right side, and on the left side in a right-to-left page.
 - A pointer press outside the menus, a change of the window size, and a scroll of the page close the menus. A scroll that starts before the menu opens does not close it. For example, a focus that moves the page and then the key that opens the menu.
+- A held key does not run an item. Enter on a menu button opens the menu, and if the user holds the key, the repeats run nothing. The same is true for Space and for a mnemonic letter.
+- A click runs an item only if the pointer press started in the open menu. The second click of a double-click that opened the menu runs nothing. A click from code (`item.click()`) always runs.
 
 | Key | Action |
 | --- | --- |
@@ -197,6 +200,7 @@ const reason = await notice.closed;   // 'timeout', 'dismiss', 'action', or 'cod
 - The default time is 6 seconds, and 10 seconds for a warning. An error stays until the user closes it. Set `timeout: 0` to keep a notice.
 - The time stops while the pointer or the focus is on the notice.
 - Each notice has a Dismiss button. `notice.close()` closes it from code.
+- The action of a notice runs on a click only if the pointer press started on the notice. A notice that comes in under the pointer between the two clicks of a double-click does not run its action.
 - The notices go in one `notice-area` at the end of the page. Make a `NoticeArea` and give it as `area` to show notices in a different place. Its `max` property is the number of notices that show at one time.
 
 ## Look

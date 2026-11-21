@@ -448,8 +448,11 @@ describe('danger buttons', () => {
         const ok = document.querySelector('dialog-window [value="ok"]');
         expect(ok.hasAttribute('data-danger')).toBe(true);
         expect(ok.hasAttribute('data-default')).toBe(true);
-        // The button row shows before the focus moves, so the default button gets it
-        expect(document.activeElement).toBe(ok);
+        // The message gets the focus, not the danger button, and Enter there does not click it
+        const shown = document.querySelector('dialog-window');
+        expect(shown.shadowRoot.activeElement).toBe(shown.shadowRoot.querySelector('.zest-content'));
+        key(shown.shadowRoot.querySelector('.zest-content'), 'Enter');
+        expect(shown.open).toBe(true);
         expect(ok.querySelector('[aria-hidden="true"]').textContent).toBe('⚠ ');
         expect(ok.textContent).toBe('⚠ Delete');
         expect(document.querySelector('dialog-window [value="cancel"]').hasAttribute('data-danger')).toBe(false);
@@ -469,6 +472,168 @@ describe('danger buttons', () => {
         expect([...document.querySelectorAll('dialog-window [data-danger]')].map(button => button.value)).toEqual(['remove']);
         document.querySelector('dialog-window [value="remove"]').click();
         await expect(message).resolves.toBe('remove');
+    });
+});
+
+describe('the press guard', () => {
+    const keyup = (target, name, init = {}) => {
+        const event = new KeyboardEvent('keyup', {key: name, bubbles: true, composed: true, cancelable: true, ...init});
+        target.dispatchEvent(event);
+        return event;
+    };
+    const open = async (html) => {
+        const dialog = add(`<dialog-window label="Q"><p>Text</p>${html}</dialog-window>`);
+        await tick();
+        const result = dialog.showModal();
+        return {dialog, result};
+    };
+
+    it('a held Enter from before the dialog opened clicks nothing, and a new press does', async () => {
+        const {dialog, result} = await open('<button slot="buttons" value="yes" data-default>Yes</button>');
+        const yes = dialog.querySelector('[value="yes"]');
+        expect(document.activeElement).toBe(yes);
+        // Only repeats arrive: the key went down before the dialog opened
+        const held = new KeyboardEvent('keydown', {key: 'Enter', repeat: true, bubbles: true, cancelable: true});
+        yes.dispatchEvent(held);
+        expect(held.defaultPrevented).toBe(true);
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter', {repeat: true});
+        expect(dialog.open).toBe(true);
+        keyup(yes, 'Enter');
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter');
+        await expect(result).resolves.toBe('yes');
+    });
+
+    it('a Space keyup with no keydown in the dialog is stopped, but Space still types in a field', async () => {
+        const {dialog} = await open('<input aria-label="Name"><button slot="buttons" value="ok">OK</button>');
+        const ok = dialog.querySelector('[value="ok"]');
+        expect(keyup(ok, ' ').defaultPrevented).toBe(true);
+        expect(keyup(dialog.querySelector('input'), ' ').defaultPrevented).toBe(false);
+        const typed = new KeyboardEvent('keydown', {key: ' ', repeat: true, bubbles: true, cancelable: true});
+        dialog.querySelector('input').dispatchEvent(typed);
+        expect(typed.defaultPrevented).toBe(false);
+        // A new Space press is not stopped
+        key(ok, ' ');
+        expect(keyup(ok, ' ').defaultPrevented).toBe(false);
+    });
+
+    it('a click from code always acts', async () => {
+        const {dialog, result} = await open('<button slot="buttons" value="ok">OK</button>');
+        dialog.querySelector('[value="ok"]').click();
+        await expect(result).resolves.toBe('ok');
+    });
+
+    it('Enter does not click a danger default, also on a push-button with variant="danger"', async () => {
+        for (const button of ['<button slot="buttons" value="delete" data-default data-danger>Delete</button>', '<fake-button slot="buttons" value="delete" label="Delete" variant="danger" data-default></fake-button>']) {
+            const {dialog} = await open(`${button}<button slot="buttons" value="cancel">Cancel</button>`);
+            expect(dialog.shadowRoot.activeElement).toBe(dialog.shadowRoot.querySelector('.zest-content'));
+            key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter');
+            expect(dialog.open).toBe(true);
+            dialog.close();
+            dialog.remove();
+        }
+    });
+
+    it('a safe default next to a danger button still takes Enter', async () => {
+        const message = showMessage({title: 'Remove', buttons: [{label: 'Keep', value: 'keep', default: true}, {label: 'Remove', value: 'remove', danger: true}]});
+        await tick();
+        const dialog = document.querySelector('dialog-window');
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter');
+        await expect(message).resolves.toBe('keep');
+    });
+});
+
+describe('disable-for', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('the buttons do nothing for that time, but Escape and the close button still cancel', async () => {
+        vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout', 'performance']});
+        const dialog = add('<dialog-window label="Q" disable-for="500"><p>Text</p><button slot="buttons" value="ok" data-default>OK</button><fake-button slot="buttons" value="other" label="Other"></fake-button></dialog-window>');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(dialog.disableFor).toBe(500);
+        let result = dialog.showModal();
+        const ok = dialog.querySelector('[value="ok"]');
+        const other = dialog.querySelector('[value="other"]');
+        // aria-disabled, not disabled, so that the focus stays on the button
+        expect(ok.getAttribute('aria-disabled')).toBe('true');
+        expect(other.inner.getAttribute('aria-disabled')).toBe('true');
+        expect(document.activeElement).toBe(ok);
+        ok.click();
+        other.inner.click();
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Enter');
+        expect(dialog.open).toBe(true);
+        // A key that goes down while the buttons wait is not a new press later
+        key(ok, 'Enter');
+        await vi.advanceTimersByTimeAsync(500);
+        expect(ok.hasAttribute('aria-disabled')).toBe(false);
+        expect(other.inner.hasAttribute('aria-disabled')).toBe(false);
+        key(ok, 'Enter', {repeat: true});
+        expect(dialog.open).toBe(true);
+        ok.click();
+        await expect(result).resolves.toBe('ok');
+
+        result = dialog.showModal();
+        key(dialog.shadowRoot.querySelector('.zest-content'), 'Escape');
+        await expect(result).resolves.toBe('cancel');
+        result = dialog.showModal();
+        dialog.shadowRoot.querySelector('.zest-close').click();
+        await expect(result).resolves.toBe('cancel');
+    });
+
+    it('keeps an aria-disabled that the application set, and the dialog functions take disableFor', async () => {
+        vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout', 'performance']});
+        const dialog = add('<dialog-window label="Q" disable-for="100"><button slot="buttons" value="off" aria-disabled="true">Off</button></dialog-window>');
+        await vi.advanceTimersByTimeAsync(0);
+        dialog.showModal();
+        await vi.advanceTimersByTimeAsync(100);
+        expect(dialog.querySelector('[value="off"]').getAttribute('aria-disabled')).toBe('true');
+        dialog.close();
+
+        const confirm = askConfirm({title: 'Delete?', disableFor: 300});
+        await vi.advanceTimersByTimeAsync(0);
+        const ok = document.querySelector('dialog-window [value="ok"]');
+        ok.click();
+        expect(document.querySelector('dialog-window')).not.toBeNull();
+        await vi.advanceTimersByTimeAsync(300);
+        ok.click();
+        await expect(confirm).resolves.toBe(true);
+    });
+});
+
+describe('typed confirmation', () => {
+    it('askConfirm({confirmText}) enables OK only when the field has that text', async () => {
+        const confirm = askConfirm({title: 'Delete the project?', text: 'You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true, confirmText: 'my-project'});
+        await tick();
+        const dialog = document.querySelector('dialog-window');
+        const input = dialog.querySelector('input');
+        const ok = dialog.querySelector('[value="ok"]');
+        expect(document.activeElement).toBe(input);
+        expect(dialog.querySelector(`label[for="${input.id}"]`).textContent).toBe('Type my-project to confirm');
+        expect(dialog.querySelector('label strong').textContent).toBe('my-project');
+        expect(input.autocomplete).toBe('off');
+        expect(input.getAttribute('autocapitalize')).toBe('none');
+        expect(ok.disabled).toBe(true);
+        key(input, 'Enter');
+        input.dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter', bubbles: true}));
+        expect(dialog.open).toBe(true);
+        input.value = 'My-Project';
+        input.dispatchEvent(new Event('input'));
+        expect(ok.disabled).toBe(true);
+        input.value = 'my-project ';
+        input.dispatchEvent(new Event('input'));
+        expect(ok.disabled).toBe(false);
+        // A held Enter does not confirm, a new press does
+        key(input, 'Enter', {repeat: true});
+        expect(dialog.open).toBe(true);
+        key(input, 'Enter');
+        await expect(confirm).resolves.toBe(true);
+    });
+
+    it('takes the prompt from the labels', async () => {
+        const confirm = askConfirm({title: 'Löschen?', confirmText: 'abc', labels: {confirmPrompt: 'Geben Sie {text} ein'}});
+        await tick();
+        expect(document.querySelector('dialog-window label').textContent).toBe('Geben Sie abc ein');
+        document.querySelector('dialog-window [value="cancel"]').click();
+        await expect(confirm).resolves.toBe(false);
     });
 });
 

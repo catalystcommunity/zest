@@ -120,9 +120,9 @@ const result = await dialog.showModal();   // 'save' or 'cancel'
 - A component button in the slot, such as `push-button`, closes the dialog as a native button does. The result is its `value` attribute. A component is a button when its `focusTarget` is the clicked native button.
 - A slot button with `data-keep-open` does not close the dialog. Use it for a button such as "Test connection".
 - A button in an element of the slot, such as a `div`, does not close the dialog.
-- Enter clicks the button with `data-default`, but not when the focus is in a text area, a select, or a button.
+- Enter clicks the button with `data-default`, but not when the focus is in a text area, a select, or a button. Enter never clicks a danger button (see below).
 - Escape (in a modal dialog) and the × button give `'cancel'`. If a child calls `preventDefault()` on the Escape key, the dialog does not close.
-- The dialog first gives the focus to the element with `autofocus`, then to the first field, then to the default button. When the dialog closes, the focus goes back to the element that had it before.
+- The dialog first gives the focus to the element with `autofocus`, then to the first field. With no field, a dialog with a danger button gives the focus to its message. Other dialogs give it to the default button. When the dialog closes, the focus goes back to the element that had it before.
 - `kind` is `info`, `warning`, `error`, or `question`. The words of the kind come before the content for a screen reader, and the icon is only for the eyes. A warning, an error, or a question is an `alertdialog`.
 - `no-close` removes the × button.
 - Event: `dialog-window-close` `{value}`, for each close.
@@ -131,6 +131,15 @@ const result = await dialog.showModal();   // 'save' or 'cancel'
 - `close(value)` closes the dialog at once. It sends no `dialog-window-before-close`.
 - `data-danger` on a slot button gives it the look of an action that the user cannot undo. With `data-default`, the button is filled. Also put a sign or a word in the text, so that the danger is not shown by color only. The functions below do this for you.
 - A page style for `button` wins over the default style of a slotted button. If your page styles buttons, also give a style to `[data-default]` and `[data-danger]`.
+
+### Presses that the user did not make for the dialog
+
+A dialog can open while the user types or clicks in another part of the page. The dialog makes sure that those keys and clicks do not press its buttons:
+
+- **A press must start in the open dialog.** A button acts on Enter or Space only if the key went down after the dialog opened. A key that the user held before the dialog opened only repeats, and it does nothing. A click acts only if the pointer press started in the open dialog. The second click of a double-click that opened the dialog does nothing. This is always on, for each button in the dialog.
+- **A click from code always acts.** `button.click()` in a test or in the application is not stopped.
+- **A danger dialog gives the focus to its message.** With a button that has `data-danger` (or a `push-button` with `variant="danger"`) and no field, the message gets the focus. Enter and Space on the message press nothing. Enter never clicks a danger button, also with `data-default`. The user moves the focus to the button with Tab, or clicks it. Escape cancels at once.
+- **`disable-for="800"`** (milliseconds) makes the buttons do nothing for that time after the dialog opens. The default is `0`, no wait. During the wait, each button in the `buttons` slot and each `data-close` button has `aria-disabled="true"`, and the button row shows dimmed. The dialog does not use `disabled`, because a disabled button loses the focus and leaves the Tab order. Escape and the × button still cancel. Use the wait together with the rules above, not in place of them.
 
 To keep the dialog open while the application saves, stop the close, save, and then call `close()`:
 
@@ -155,16 +164,30 @@ The functions make a dialog, open it as a modal, and remove it after it closes:
 | Function | Result |
 | --- | --- |
 | `showMessage({title, text, buttons, kind})` | The value of the button, or `'cancel'`. `buttons` is `['OK', 'Show']` or `[{label, value, default, danger}]`. |
-| `askConfirm({title, text, okLabel, cancelLabel, kind, danger})` | `true` for OK. |
+| `askConfirm({title, text, okLabel, cancelLabel, kind, danger, confirmText})` | `true` for OK. |
 | `askText({title, label, value, okLabel, cancelLabel, required, type})` | The text, or `null`. Enter in the field is the same as OK. |
 
-Each function also takes `parent`, the element that gets the dialog (the default is `document.body`), and `labels`, the words of the dialog.
+Each function also takes `parent`, the element that gets the dialog (the default is `document.body`), `labels`, the words of the dialog, and `disableFor`, the milliseconds of `disable-for`.
 
 - `danger: true` gives the button the danger look, with a warning sign (⚠) before the text. The sign is `aria-hidden`. Use it for an action that the user cannot undo, such as a delete. With `askConfirm`, `danger` is on the OK button:
 
 ```js
 const remove = await askConfirm({title: 'Delete the project?', text: 'You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true});
 ```
+
+- `confirmText` adds a field to `askConfirm`. OK is enabled only when the field has that text (case-sensitive, spaces at the ends are ignored). Use it for an action with a large effect, such as the delete of a repository. The label of the field is `labels.confirmPrompt`, by default `Type {text} to confirm`. `{text}` shows in bold.
+
+```js
+const remove = await askConfirm({
+  title: 'Delete the repository?', text: 'You cannot undo this.', okLabel: 'Delete',
+  kind: 'warning', danger: true, confirmText: 'notes', disableFor: 500,
+});
+```
+
+Some rules for a confirmation:
+
+- Give the button a verb, such as "Delete project", not "OK".
+- If the action can be undone, do not ask first. Do the action, and show a notice with an Undo action (`showNotice({text, action})` in `@catalystcommunity/menus`).
 
 ## `window-area` and `floating-window`
 

@@ -125,6 +125,12 @@ function dialogsCard(log) {
       button('dialog-confirm-danger', 'Confirm (danger)', run('danger', () => askConfirm({
         title: 'Delete the project?', text: 'The project and its files go away. You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true,
       }))),
+      button('dialog-confirm-wait', 'Confirm (wait 1 s)', run('wait', () => askConfirm({
+        title: 'Empty the trash?', text: 'The 12 files in the trash go away.', okLabel: 'Empty', kind: 'warning', danger: true, disableFor: 1000,
+      }))),
+      button('dialog-confirm-typed', 'Confirm (type the name)', run('typed', () => askConfirm({
+        title: 'Delete the repository?', text: 'The repository "notes" and its history go away. You cannot undo this.', okLabel: 'Delete', kind: 'warning', danger: true, confirmText: 'notes',
+      }))),
       button('dialog-open-saving', 'Save on a server', run('saving', () => saving.showModal())),
       button('dialog-ask', 'Ask for text', run('ask', () => askText({title: 'Rename', label: 'New name', value: 'notes.txt', required: true}))),
     ),

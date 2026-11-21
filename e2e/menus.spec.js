@@ -223,6 +223,28 @@ test.describe('menus', () => {
         await expect(log(page)).toContainText('save from the button');
     });
 
+    test('a held Enter that opened a menu chooses nothing, and a danger mnemonic only moves the focus', async ({page}) => {
+        await open(page);
+        const button = page.getByTestId('menus-danger').getByRole('button', {name: 'Project'});
+        await button.focus();
+        await page.keyboard.down('Enter');
+        await expect(button).toHaveAttribute('aria-expanded', 'true');
+        expect(await focused(page)).toBe('Rename');
+        for (let i = 0; i < 5; i++) { await page.keyboard.down('Enter'); }
+        await page.keyboard.up('Enter');
+        await expect(button).toHaveAttribute('aria-expanded', 'true');
+        await expect(log(page)).not.toContainText('rename the project');
+        const remove = page.getByRole('menuitem', {name: 'Delete'});
+        await expect(remove).toHaveText(/⚠/);
+        const colors = await remove.evaluate((item) => ({item: getComputedStyle(item).color, invalid: getComputedStyle(item.closest('.zest-popup-menu')).getPropertyValue('--_invalid')}));
+        expect(colors.invalid).not.toBe('');
+        await page.keyboard.press('d');
+        expect(await focused(page)).toBe('Delete');
+        await expect(button).toHaveAttribute('aria-expanded', 'true');
+        await page.keyboard.press('Enter');
+        await expect(log(page)).toContainText('delete the project');
+    });
+
     test('notices go in a live region, pause on hover, and an error stays', async ({page}) => {
         await open(page);
         await page.getByTestId('menus-notice-info').click();

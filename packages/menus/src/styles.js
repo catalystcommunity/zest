@@ -103,6 +103,10 @@ popup-menu, :host {
 .zest-popup-menu .zest-label {
     flex: 1;
 }
+.zest-popup-menu .zest-item.zest-danger:not([aria-disabled="true"]) {
+    color: var(--_invalid);
+    font-weight: bold;
+}
 .zest-popup-menu .zest-shortcut {
     margin-inline-start: auto;
     padding-inline-start: 2em;
