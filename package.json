@@ -72,7 +72,8 @@
     "@catalystcommunity/menus": ">=0.1.2 <1.0.0",
     "@catalystcommunity/simple-router": ">=0.3.2 <1.0.0",
     "@catalystcommunity/spreadsheet": ">=0.1.2 <1.0.0",
-    "@catalystcommunity/two-tier-menu": ">=0.2.5 <1.0.0"
+    "@catalystcommunity/two-tier-menu": ">=0.2.5 <1.0.0",
+    "@catalystcommunity/validators": ">=0.1.0 <1.0.0"
   },
   "publishConfig": {
     "access": "public"

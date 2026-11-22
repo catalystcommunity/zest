@@ -199,6 +199,14 @@ export declare class TextField extends TextControl {
     prefixText: string;
     suffixText: string;
     inputmode: string;
+    /** A list of suggestions under the field, or a function that gives them for a text. */
+    suggestions: readonly TypeaheadItem[] | TypeaheadSource | null;
+    /** Shows the list of suggestions now. Nothing happens when `suggestions` is not set. */
+    openSuggestions(): void;
+    closeSuggestions(): void;
+    /** Asks the source again, for example after the data of a function source changed. */
+    refreshSuggestions(): void;
+    readonly suggestionsOpen: boolean;
     field: HTMLInputElement;
     readonly focusTarget: HTMLInputElement;
     /** Removes the text, and sends the events as the user would. */
@@ -389,3 +397,94 @@ declare global {
         'shadow-list-box': ShadowListBox;
     }
 }
+
+// Type-ahead
+
+/** A text, or an object. `insertText` goes into the field; the default is the label. */
+export type TypeaheadItem = string | number | {
+    value?: unknown;
+    label?: string;
+    insertText?: string;
+    /** A short text after the label, for example the arguments of a function. */
+    description?: string;
+    disabled?: boolean;
+    [key: string]: unknown;
+};
+
+export interface TypeaheadQuery {
+    text: string;
+    /** The part of the field value that an accepted item replaces. */
+    start: number;
+    end: number;
+}
+
+export type TypeaheadSource = (text: string, context: {field: HTMLInputElement | HTMLTextAreaElement; all: boolean}) =>
+    readonly TypeaheadItem[] | Promise<readonly TypeaheadItem[]> | null | undefined;
+
+/** What Enter or Tab does while the list is open: use the key, or accept and let the key continue, or only close. */
+export type TypeaheadKeyMode = 'accept' | 'accept-continue' | 'none';
+
+export interface TypeaheadOptions {
+    /** An array (read one time; give a new array to change it), or a function. */
+    source?: readonly TypeaheadItem[] | TypeaheadSource;
+    /** The most items that show. The default is 50. */
+    max?: number;
+    /** 'contains' (the default) also shows labels that contain the text after the labels that start with it. */
+    match?: 'prefix' | 'contains';
+    /** The fewest characters before the list shows. The default is 1. */
+    minLength?: number;
+    /** Milliseconds to wait before a function source is called. The default is 0. */
+    delay?: number;
+    /** The first item is active when the list opens, so that Enter accepts it. The default is false. */
+    autoSelect?: boolean;
+    /** Types the rest of the first item that starts with the text, and selects it. The next key replaces it, Backspace removes it, and Escape removes it and closes the list. The default is false. */
+    inline?: boolean;
+    /** Arrow Down and Arrow Up open the list. Alt+Arrow Down always opens it. The default is true. */
+    arrowOpens?: boolean;
+    /** The default is 'accept'. */
+    enter?: TypeaheadKeyMode;
+    /** The default is 'accept-continue'. */
+    tab?: TypeaheadKeyMode;
+    /** The part of the value to complete. The default is all of the value. Return null for no list. */
+    query?: (field: HTMLInputElement | HTMLTextAreaElement) => TypeaheadQuery | null;
+    /** The accessible name of the list. */
+    label?: string;
+    /** Where the list element goes. The default is the shadow root of the field, or the body. */
+    container?: Node;
+    onAccept?: (item: Exclude<TypeaheadItem, string | number>, context: {field: HTMLInputElement | HTMLTextAreaElement; query: TypeaheadQuery}) => void;
+}
+
+type TypeaheadField = HTMLInputElement | HTMLTextAreaElement;
+type TypeaheadEntry = Exclude<TypeaheadItem, string | number>;
+
+/** Commands and questions for the list of a field. A field with no list gives false, null, or an empty list. */
+export declare const typeahead: {
+    isAttached(field: TypeaheadField): boolean;
+    isOpen(field: TypeaheadField): boolean;
+    activeItem(field: TypeaheadField): TypeaheadEntry | null;
+    items(field: TypeaheadField): readonly TypeaheadEntry[];
+    /** The element with `role="listbox"`. */
+    listOf(field: TypeaheadField): HTMLDivElement | null;
+    /** Shows the list now. `all` (the default) also shows it for an empty text. */
+    open(field: TypeaheadField, options?: {all?: boolean}): void;
+    close(field: TypeaheadField): void;
+    /** Accepts the active item. Returns false if no item is active. */
+    accept(field: TypeaheadField): boolean;
+    refresh(field: TypeaheadField): void;
+    setSource(field: TypeaheadField, source: readonly TypeaheadItem[] | TypeaheadSource): void;
+    /** Removes the list and the listeners, and gives the field its attributes back. */
+    remove(field: TypeaheadField): void;
+};
+
+/** The `detail` of the events that a field with a list sends. All events bubble and are composed. */
+export interface TypeaheadEventMap {
+    'typeahead-open': CustomEvent<{items: readonly TypeaheadEntry[]}>;
+    'typeahead-close': CustomEvent<Record<string, never>>;
+    'typeahead-active': CustomEvent<{item: TypeaheadEntry | null; index: number}>;
+    'typeahead-accept': CustomEvent<{item: TypeaheadEntry; query: TypeaheadQuery}>;
+}
+
+/** Adds a list of suggestions to a native input or text area. Returns a function that removes it. */
+export declare function attachTypeahead(field: TypeaheadField, options?: TypeaheadOptions): () => void;
+/** The items that match a text: the labels that start with it first, then the labels that contain it. */
+export declare function matchSuggestions(list: readonly TypeaheadItem[], text: string, options?: {max?: number; match?: 'prefix' | 'contains'}): Exclude<TypeaheadItem, string | number>[];

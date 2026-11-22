@@ -63,5 +63,8 @@ export {
     ListBox, ShadowListBox,
 };
 
+// A list of suggestions for any native text field
+export { attachTypeahead, matchSuggestions, typeahead } from "./typeahead.js";
+
 // Implicit submission for a field that is not a native input of the form
 export { defaultButton, submitImplicitly } from "./form-control.js";

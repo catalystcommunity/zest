@@ -335,3 +335,104 @@ describe('import, export, and search', () => {
         expect(model.summary({top: 0, left: 0, bottom: 9, right: 0})).toEqual({count: 4, numbers: 3, sum: 6, average: 2});
     });
 });
+
+describe('changes from outside the sheet', () => {
+    it('setCells with history: false is not an undo step', () => {
+        const model = new SheetModel({rows: 5, columns: 2});
+        model.setCell('A1', '1');
+        model.setCells([{address: 'A2', input: '2'}], {history: false});
+        expect(model.getValue('A2')).toBe(2);
+        model.undo();
+        expect(model.getValue('A1')).toBe(null);
+        expect(model.getValue('A2')).toBe(2);
+        expect(model.canUndo).toBe(false);
+    });
+
+    it('remapRows moves the cells, the formulas that read them, the locks, and the undo steps', () => {
+        const model = new SheetModel({rows: 4, columns: 3});
+        model.setCells([{address: 'A3', input: '5'}, {address: 'B3', input: '=A3*2'}, {address: 'C1', input: '=A3+1'}]);
+        model.setLocked('A3', true);
+        model.setCell('A4', 'last');
+        // Two new rows before row 3
+        const mapping = Int32Array.from([0, 1, 4, 5]);
+        model.remapRows(mapping, 6);
+        expect(model.rowCount).toBe(6);
+        expect(model.getValue('A5')).toBe(5);
+        expect(model.getInput('B5')).toBe('=A5*2');
+        expect(model.getValue('B5')).toBe(10);
+        expect(model.getInput('C1')).toBe('=A5+1');
+        expect(model.isLocked(4, 0)).toBe(true);
+        expect(model.isLocked(2, 0)).toBe(false);
+        model.undo();
+        expect(model.getValue('A6')).toBe(null);
+        expect(model.getValue('A5')).toBe(5);
+    });
+
+    it('a reference to a removed row becomes #REF!', () => {
+        const model = new SheetModel({rows: 3, columns: 2});
+        model.setCells([{address: 'A2', input: '1'}, {address: 'B1', input: '=A2'}]);
+        model.remapRows(Int32Array.from([0, -1, 1]), 2);
+        expect(model.getInput('B1')).toBe('=#REF!');
+    });
+
+    it('remapRows keeps the text of a formula, calculates ranges again, and follows a new order', () => {
+        const model = new SheetModel({rows: 4, columns: 3});
+        model.setCells([
+            {address: 'A1', input: '1'}, {address: 'A2', input: '2'}, {address: 'A3', input: '3'},
+            {address: 'B1', input: '= A1 *  $A$2'}, {address: 'C1', input: '=SUM(A1:A3)'}, {address: 'C2', input: '=A3'},
+        ]);
+        // A new row at the start, and rows 2 and 3 change places
+        model.remapRows(Int32Array.from([1, 3, 2, 4]), 5);
+        expect(model.getInput('B2')).toBe('= A2 *  $A$4');
+        expect(model.getValue('B2')).toBe(2);
+        // Each end of a range follows its cell
+        expect(model.getInput('C2')).toBe('=SUM(A2:A3)');
+        expect(model.getValue('C2')).toBe(1 + 3);
+        expect(model.getInput('C4')).toBe('=A3');
+        expect(model.getValue('C4')).toBe(3);
+        // A new value in the range calculates the moved formula
+        model.setCell('A3', '10');
+        expect(model.getValue('C2')).toBe(11);
+        expect(model.getValue('C4')).toBe(10);
+        // A row in the middle of a range: the range grows, and the sum reads the new row
+        model.remapRows(Int32Array.from([0, 1, 3, 4, 5]), 6);
+        expect(model.getInput('C2')).toBe('=SUM(A2:A4)');
+        model.setCell('A3', '100');
+        expect(model.getValue('C2')).toBe(1 + 100 + 10);
+    });
+
+    it('a move of a row is fast: no new parse for each formula', () => {
+        const model = new SheetModel({rows: 10002, columns: 3});
+        const cells = {};
+        for (let r = 1; r <= 10000; r++) { cells[`A${r}`] = String(r); cells[`B${r}`] = '2'; cells[`C${r}`] = `=A${r}*B${r}`; }
+        model.load({rows: 10002, columns: 3, cells});
+        const mapping = Int32Array.from({length: model.rowCount}, (_, r) => r + 1);
+        const start = performance.now();
+        model.remapRows(mapping, model.rowCount + 1);
+        // About 30 ms in Node; the limit is for slow test computers
+        expect(performance.now() - start).toBeLessThan(400);
+        expect(model.getInput('C10001')).toBe('=A10001*B10001');
+        expect(model.getValue('C10001')).toBe(20000);
+    });
+
+    it('withGuard finds the locked cells of a change, and skips them', () => {
+        const model = new SheetModel({rows: 3, columns: 2});
+        model.setCells([{address: 'A1', input: '1'}, {address: 'B1', input: '2'}]);
+        const locked = (row, col) => col === 1;
+        const probe = {mode: 'probe', locked, hits: []};
+        model.withGuard(probe, () => model.clear('A1:B1'));
+        expect(probe.hits.length).toBe(1);
+        expect(model.getValue('A1')).toBe(1);
+        const skip = {mode: 'skip', locked, hits: []};
+        model.withGuard(skip, () => model.clear('A1:B1'));
+        expect(model.getValue('A1')).toBe(null);
+        expect(model.getValue('B1')).toBe(2);
+    });
+
+    it('a column with a validator gets its type, and a column with options shows the labels', () => {
+        const model = new SheetModel({rows: 2, columns: [{validate: {kind: 'int', parse: () => ({valid: true})}}, {options: [{value: 1, label: 'Low'}]}]});
+        model.setCells([{address: 'A1', input: '42'}, {address: 'B1', input: '1'}]);
+        expect(model.typeAt(0, 0)).toBe('number');
+        expect(model.getCell('B1').display).toBe('Low');
+    });
+});

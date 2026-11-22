@@ -239,10 +239,24 @@ describe('the keyboard', () => {
         expect(sheet.model.column(0).width).toBe(before + 16);
     });
 
-    it('lets Tab leave the grid at the last column', () => {
-        const sheet = make({columns: '2'});
+    it('Tab wraps to the next row, and leaves the grid only at the last cell or after Escape', () => {
+        const sheet = make({columns: '2', rows: '2'});
         key(sheet, {key: 'Tab'});
+        expect(key(sheet, {key: 'Tab'}).defaultPrevented).toBe(true);
+        expect(sheet.activeAddress).toBe('A2');
+        key(sheet, {key: 'Tab'});
+        expect(sheet.activeAddress).toBe('B2');
         expect(key(sheet, {key: 'Tab'}).defaultPrevented).toBe(false);
+        sheet.selection = 'A1';
+        key(sheet, {key: 'Escape'});
+        expect(key(sheet, {key: 'Tab'}).defaultPrevented).toBe(false);
+        expect(sheet.activeAddress).toBe('A1');
+        // Another key in between stops the way out
+        key(sheet, {key: 'Escape'});
+        key(sheet, {key: 'ArrowRight'});
+        expect(key(sheet, {key: 'Tab'}).defaultPrevented).toBe(true);
+        const help = sheet.querySelector(`#${grid(sheet).getAttribute('aria-describedby')}`);
+        expect(help.textContent).toContain('Escape, then Tab');
     });
 
     it('does not change a read-only sheet', () => {

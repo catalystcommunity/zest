@@ -10,6 +10,7 @@ import {section as dataViewsSection} from './sections/data-views.js';
 import {section as mediaSection} from './sections/media.js';
 import {section as menusSection} from './sections/menus.js';
 import {section as spreadsheetSection} from './sections/spreadsheet.js';
+import {section as validatorsSection} from './sections/validators.js';
 
 const sampleMenuConfig = {
   logo: {text: 'Menu'},
@@ -532,6 +533,7 @@ export const sections = [
   {id: 'simple-router', title: 'Simple router', render: simpleRouterSection},
   spreadsheetSection,
   {id: 'two-tier-menu', title: 'Two tier menu', render: twoTierMenuSection},
+  validatorsSection,
 ];
 
 export function renderSection(section, context) {

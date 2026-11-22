@@ -1,5 +1,6 @@
 import { tokenAliases, visuallyHidden } from "@catalystcommunity/base-components";
 import { FormControl, fieldStyles, isSubmitKey, shadowOf, submitImplicitly, uniqueId } from "./form-control.js";
+import { attachTypeahead, matchSuggestions, typeahead } from "./typeahead.js";
 
 const TYPES = ['text', 'email', 'password', 'search', 'url', 'tel'];
 
@@ -174,8 +175,11 @@ export class TextField extends TextControl {
         prefixText: {type: String, default: ''},
         suffixText: {type: String, default: ''},
         inputmode: {type: String, default: ''},
+        // A list of suggestions, or a function (text) => suggestions or a promise of them
+        suggestions: {type: Array, default: null, render: false},
     };
     #prefix;
+    #typeahead = null;
     #suffix;
     #clear;
     #reveal;
@@ -194,6 +198,8 @@ export class TextField extends TextControl {
             this.update();
         });
         this.field.addEventListener('keydown', (e) => {
+            // The list of suggestions used the key
+            if (e.defaultPrevented) { return; }
             if (e.key === 'Escape' && this.type === 'search' && this.value) {
                 e.preventDefault();
                 this.clear();
@@ -205,6 +211,46 @@ export class TextField extends TextControl {
             }
         });
         this.box.append(this.#prefix, this.field, this.#clear, this.#reveal, this.#suffix);
+    }
+
+    connected() {
+        super.connected?.();
+        this.own(() => {
+            this.#typeahead?.();
+            this.#typeahead = null;
+        });
+        this.#syncTypeahead();
+    }
+
+    propertyChanged(name, oldValue, value) {
+        super.propertyChanged?.(name, oldValue, value);
+        if (name === 'suggestions') { this.#syncTypeahead(); }
+    }
+
+    // Commands for the list of suggestions. They do nothing when `suggestions` is not set.
+    // The field sends the typeahead-open, typeahead-close, typeahead-active, and typeahead-accept events.
+    openSuggestions() { typeahead.open(this.field); }
+    closeSuggestions() { typeahead.close(this.field); }
+    refreshSuggestions() { typeahead.refresh(this.field); }
+    get suggestionsOpen() { return typeahead.isOpen(this.field); }
+
+    #syncTypeahead() {
+        const wanted = Boolean(this.suggestions) && this.isConnected && Boolean(this.field);
+        if (wanted && !this.#typeahead) {
+            this.#typeahead = attachTypeahead(this.field, {
+                source: (text, context) => {
+                    const source = this.suggestions;
+                    if (typeof source === 'function') { return source(text, context); }
+                    return matchSuggestions(source ?? [], context.all && !text ? '' : text);
+                },
+                label: this.label ? `${this.label} suggestions` : 'Suggestions',
+            });
+        } else if (!wanted && this.#typeahead) {
+            this.#typeahead();
+            this.#typeahead = null;
+        } else if (this.#typeahead) {
+            typeahead.refresh(this.field);
+        }
     }
 
     // Removes the text, and sends the events as the user would

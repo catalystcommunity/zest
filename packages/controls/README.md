@@ -131,10 +131,65 @@ group.options = [{value: 's', label: 'Small'}, 'Medium', {value: 'l', label: 'La
 | `prefix-text`, `suffix-text` | | Text before and after the value, for example a unit. A screen reader reads it as the description. |
 | `readonly`, `autocomplete`, `inputmode` | | The same as a native input. |
 | `autocapitalize`, `autocorrect`, `spellcheck`, `enterkeyhint` | | The control copies them to the input. For a user name, set `autocapitalize="none"` and `spellcheck="false"`. `text-area` copies them too. |
+| `suggestions` | | A list of suggestions under the field, as JSON, or the `suggestions` property. The property can also be a function. See "Type-ahead". |
 
 - A `search` field has a Clear button. Escape also clears it.
 - A `password` field has a Show button. It has `aria-pressed`.
 - `select()` selects the text.
+- With `suggestions`, the field is a combo box with a list of suggestions. The person can still type any text. Enter on a suggestion accepts it and does not submit the form. `openSuggestions()`, `closeSuggestions()`, and `refreshSuggestions()` control the list, and `suggestionsOpen` tells if it shows. The field sends the `typeahead-*` events.
+
+## Type-ahead
+
+`attachTypeahead(field, options)` adds a list of suggestions to any native `input` or `textarea`. `text-field` uses it for `suggestions`, and the spreadsheet uses it in its cell editor. It returns a function that removes the list.
+
+```js
+import { attachTypeahead, typeahead } from '@catalystcommunity/controls';
+
+const remove = attachTypeahead(input, {source: ['Apple', 'Apricot', 'Banana'], label: 'Fruit'});
+input.addEventListener('typeahead-accept', (e) => console.log(e.detail.item.value));
+typeahead.open(input);
+// Later:
+remove();
+```
+
+The list has no object for you to keep. Its state belongs to the field, and goes away with the field. Commands go in through the functions of `typeahead`, which take the field. Changes come out as events on the field.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `source` | `[]` | An array, or a function `(text, {field, all}) => items` that can also give a promise. An item is a text or `{value, label, insertText, description, disabled}`. |
+| `max` | 50 | The most items that show. |
+| `match` | `'contains'` | The labels that start with the text show first. `'contains'` then also shows the labels that contain it. `'prefix'` shows only the first group. |
+| `minLength` | 1 | The fewest characters before the list shows. |
+| `delay` | 0 | Milliseconds to wait before the function source is called, for example for a request to a server. |
+| `autoSelect` | `false` | The first item is active when the list opens, so that Enter accepts it. Use it when the field must have one of the items. |
+| `inline` | `false` | Types the rest of the first item that starts with the text, and selects that rest. The next key replaces it. Backspace removes it. Escape removes it and closes the list. Enter or Tab accepts it. |
+| `arrowOpens` | `true` | Arrow Down and Arrow Up open the list. Alt+Arrow Down always opens it. |
+| `enter`, `tab` | `'accept'`, `'accept-continue'` | What the key does while an item is active. `'accept'` accepts and uses the key. `'accept-continue'` accepts, and the key then does its normal action, for example Tab goes to the next field. `'none'` only closes the list. |
+| `query` | all of the value | `(field) => ({text, start, end})`. The part of the value to complete. An accepted item replaces only that part. Return `null` for no list. |
+| `label` | | The accessible name of the list. |
+| `container` | the shadow root of the field, or the body | Where the list element goes. |
+| `onAccept` | | `(item, {field, query})` after the item goes into the field. |
+
+Keys while the list is open:
+
+| Key | Action |
+| --- | --- |
+| Arrow Down, Arrow Up | Make the next or the previous item active. |
+| Page Down, Page Up | Go 10 items. |
+| Enter, Tab | Accept the active item. See `enter` and `tab`. With no active item, the key does its normal action. |
+| Escape | Close the list. The key does not go to the parent, so that a dialog or a cell editor stays open. |
+| Alt+Arrow Up | Close the list. |
+
+- The field gets `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`, and `aria-activedescendant`. `remove()` gives the field its old attributes back.
+- An accepted item goes into the field, and the field sends an `input` event, as for typing.
+- The list is in the top layer (`popover="manual"`), so a parent with `overflow: hidden` does not cut it.
+- The list reads an array source one time: each label in lower case. Give a new array to change the items. `matchSuggestions(items, text)` is the same match, for a function source that filters its own data.
+- A function source can answer late. The list shows only the answer to the last text.
+- The list reuses its option elements. The matched part of each label is bold.
+- Commands: `typeahead.open(field, {all})`, `close(field)`, `accept(field)`, `refresh(field)`, `setSource(field, source)`, and `remove(field)`. A field with no list ignores them.
+- Questions: `typeahead.isAttached(field)`, `isOpen(field)`, `activeItem(field)`, `items(field)`, and `listOf(field)`.
+- Events on the field (they bubble and go out of shadow roots): `typeahead-open` (`detail.items`), `typeahead-close`, `typeahead-active` (`detail.item`, `detail.index`), and `typeahead-accept` (`detail.item`, `detail.query`).
+- A second `attachTypeahead` on the same field removes the first list.
 
 ## TextArea
 

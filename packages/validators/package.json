@@ -1,0 +1,40 @@
+{
+  "name": "@catalystcommunity/validators",
+  "version": "0.1.0",
+  "description": "Validators for the core CSIL types: read typed text into values, with messages for each problem. No DOM.",
+  "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/validators#readme",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "type": "module",
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystcommunity/zest.git"
+  },
+  "keywords": [
+    "validation",
+    "csil",
+    "forms",
+    "spreadsheet",
+    "parse"
+  ],
+  "author": "Catalyst Squad <opensource@catalystcommunity.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/catalystcommunity/zest/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

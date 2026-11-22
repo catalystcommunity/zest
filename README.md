@@ -32,6 +32,7 @@ These packages together are the parts of a GUI toolkit. Each family is one packa
 | `menus` | Menu bars, popup and context menus, menu buttons, toolbars, tooltips, and notices. |
 | `data-views` | List, tree, and table views with virtual scrolling for very large data. |
 | `spreadsheet` | A grid of typed cells with formulas, and the keyboard of a spreadsheet application. |
+| `validators` | Validators for the core CSIL types (whole numbers, numbers, decimals, text, booleans, bytes, timestamps, UUIDs, and lists of values). They read typed text into values and give a message for each problem. A form, a spreadsheet, and a server can use the same validators. |
 | `media` | Video and audio players, a canvas view that draws one time for each frame, and an image view. |
 | `calendar-view`, `date-time-picker` | A calendar, and a date and time field. |
 

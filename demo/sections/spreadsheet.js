@@ -1,5 +1,5 @@
 // The gallery section of @catalystcommunity/spreadsheet. definitions are the tags that the demo defines.
-import {FormulaBar, ShadowSpreadSheet, SheetCell, SheetModel, SpreadSheet, ariaShortcut, formatShortcut} from '../../src/index.js';
+import {FormulaBar, ShadowSpreadSheet, SheetCell, SheetModel, SpreadSheet, ariaShortcut, formatShortcut, validators as v} from '../../src/index.js';
 import {button, card, el, makeLog} from '../kit.js';
 
 export const definitions = {
@@ -121,8 +121,82 @@ function largeCard() {
   ));
 }
 
+// Data entry: the records are the data of the application. A fake server keeps them, and a
+// second person adds rows, as a websocket would.
+function entryCard() {
+  const log = makeLog('sheet-entry-log');
+  let nextId = 4;
+  let failNext = false;
+  let store = [
+    {id: 1, item: 'Laptops', category: 'hardware', quantity: 4, price: '1299.00', paid: true},
+    {id: 2, item: 'Licenses', category: 'software', quantity: 10, price: '89.00', paid: false},
+    {id: 3, item: 'Training', category: 'services', quantity: 2, price: '650.00', paid: false},
+  ];
+  const sheet = el('spread-sheet', {'entry-rows': '2', label: 'Orders', 'data-testid': 'sheet-entry-element'});
+  sheet.style.setProperty('--zest-spread-sheet-height', '16em');
+  sheet.setColumns([
+    {key: 'item', title: 'Item', validate: v.text({required: true, maxLength: 40}), width: 140},
+    {key: 'category', title: 'Category', validate: v.oneOf([{value: 'hardware', label: 'Hardware'}, {value: 'software', label: 'Software'}, {value: 'services', label: 'Services'}], {required: true}), width: 110},
+    {key: 'quantity', title: 'Quantity', validate: v.uint({required: true, max: 1000}), width: 90},
+    {key: 'price', title: 'Unit price', type: 'currency', decimals: 2, validate: v.decimal({scale: 2, min: 0}), width: 100},
+    {key: 'paid', title: 'Paid', validate: v.bool(), display: 'checkbox', width: 60},
+    {title: 'Total', type: 'currency', decimals: 2, formula: '=C1*D1', width: 110},
+    {key: 'due', title: 'Due', validate: v.date(), width: 110},
+  ]);
+  sheet.showConflicts = true;
+  // A paid order is protected, as in a form that shows it
+  sheet.lockRule = ({row}) => Boolean(sheet.records?.[row]?.paid);
+  sheet.records = store;
+  sheet.onSubmitRow = (record, context) => new Promise((resolve, reject) => {
+    log.add(`send ${context.kind} ${JSON.stringify(record)}`);
+    setTimeout(() => {
+      if (failNext) {
+        failNext = false;
+        reject(new Error('The server did not accept the row'));
+        return;
+      }
+      const saved = context.kind === 'new' ? {id: nextId++, ...record} : {...context.original, ...record};
+      store = context.kind === 'new' ? [...store, saved] : store.map(item => (item.id === saved.id ? saved : item));
+      resolve(saved);
+      // The application gives the sheet its new data, as after a message from the server
+      sheet.records = store;
+    }, 400);
+  });
+  sheet.addEventListener('spreadsheet-row-state', (e) => log.add(`row ${e.detail.row + 1} ${e.detail.state}${e.detail.error ? `: ${e.detail.error}` : ''}`));
+  sheet.addEventListener('spreadsheet-locked', (e) => log.add(`locked ${e.detail.operation} ${e.detail.cells.map(cell => cell.address).join(' ')}`));
+  sheet.addEventListener('spreadsheet-row-conflict', (e) => log.add(`row ${e.detail.row + 1} changed elsewhere: ${e.detail.fields.join(', ')}`));
+  const policy = el('select', {'data-testid': 'sheet-entry-policy', 'aria-label': 'Send a row'},
+    ...['leave-row', 'enter', 'change', 'manual'].map(value => el('option', {value}, `Send on ${value}`)));
+  policy.addEventListener('change', () => { sheet.submitOn = policy.value; sheet.focus(); });
+  const locale = el('select', {'data-testid': 'sheet-entry-locale', 'aria-label': 'Locale'},
+    ...[['', 'Locale of the page'], ['en-US', 'English (US)'], ['de-DE', 'Deutsch'], ['fr-FR', 'Français']].map(([value, label]) => el('option', {value}, label)));
+  locale.addEventListener('change', () => { sheet.locale = locale.value; sheet.focus(); });
+  const {submitRow, discardRow, undo} = sheet.actions;
+  return wide(card('sheet-entry', 'Data entry: typed and protected columns, with rows from another person',
+    el('p', {}, 'Type in the empty rows at the end. Tab goes to the next cell, and Enter goes to the start of the next row. Category lists its options as you type. Space changes Paid. Alt+Arrow Down opens the calendar of Due. A row goes to the server when you leave it. Paid rows are locked. Change a row, then click "Change row 2 elsewhere" to see a conflict.'),
+    el('div', {class: 'controls'},
+      policy,
+      actionButton(submitRow, 'sheet-entry-send', sheet), actionButton(discardRow, 'sheet-entry-discard', sheet), actionButton(undo, 'sheet-entry-undo', sheet),
+      button('sheet-entry-remote', 'Add a row from another person', () => {
+        store = [...store, {id: nextId++, item: `Remote order ${nextId - 1}`, category: 'services', quantity: 1, price: '10.00', paid: false}];
+        sheet.records = store;
+        log.add('another person added a row');
+      }),
+      button('sheet-entry-fail', 'Fail the next send', () => { failNext = true; log.add('the next send fails'); }),
+      button('sheet-entry-elsewhere', 'Change row 2 elsewhere', () => {
+        store = store.map(item => (item.id === 2 ? {...item, price: (Number(item.price) + 1).toFixed(2)} : item));
+        sheet.records = store;
+        log.add('another person changed row 2');
+      }),
+      button('sheet-entry-keep', 'Keep my changes', () => { sheet.keepRowChanges(sheet.selection.top); sheet.focus(); }),
+      locale),
+    sheet,
+    log,
+  ));
+}
+
 export const section = {
   id: 'spreadsheet',
   title: 'Spreadsheet',
-  render: () => [budgetCard(), cellsCard(), sharedCard(), largeCard()],
+  render: () => [budgetCard(), entryCard(), cellsCard(), sharedCard(), largeCard()],
 };

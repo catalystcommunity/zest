@@ -1,6 +1,7 @@
 import { placePopup, tokenAliases } from "@catalystcommunity/base-components";
 import { FormControl, Typeahead, fieldStyles, readOptions, shadowOf, uniqueId } from "./form-control.js";
 import { optionElement, optionStyles } from "./listbox.js";
+import { matchSuggestions } from "./typeahead.js";
 
 const styles = `
 combo-box, :host {
@@ -225,10 +226,11 @@ export class ComboBox extends FormControl {
         this.setValidity(missing ? {valueMissing: true} : {}, this.text.selectOne, control);
     }
 
-    // The options that the list shows: all of them, or the ones that match the text
+    // The options that the list shows: all of them, or the ones that match the text. The match is
+    // the one of the type-ahead: the labels that start with the text first, then the others.
     #filter(byText) {
-        const query = byText ? this.#text.trim().toLowerCase() : '';
-        this.#shown = query ? this.#items.filter(item => item.label.toLowerCase().includes(query)) : this.#items;
+        const query = byText ? this.#text.trim() : '';
+        this.#shown = query ? matchSuggestions(this.#items, query, {max: Infinity}) : this.#items;
         this.#elements.clear();
         const base = uniqueId('combo-option');
         const elements = this.#shown.map((item, index) => {

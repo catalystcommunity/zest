@@ -27,6 +27,7 @@ export * from '@catalystcommunity/data-views';
 export * from '@catalystcommunity/media';
 export * from '@catalystcommunity/menus';
 export * from '@catalystcommunity/spreadsheet';
+export * from '@catalystcommunity/validators';
 
 export { 
   ZestGlobalObject, BaseComponent, OpenShadowComponent, DataComponent, OpenShadowDataComponent, CheckCleanupCall,
