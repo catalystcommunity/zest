@@ -86,6 +86,8 @@ function controlsSection() {
       el('text-field', {label: 'Search', type: 'search', placeholder: 'Find a component', 'data-testid': 'text-search'}),
       el('text-field', {label: 'Price', 'prefix-text': '$', 'suffix-text': 'USD', pattern: '\\d+(\\.\\d{2})?', inputmode: 'decimal', helper: 'For example 12.50', 'data-testid': 'text-price'}),
       el('shadow-text-field', {label: 'Code, in a shadow root', maxlength: '6', 'data-testid': 'text-shadow'}),
+      withSuggestions(el('text-field', {label: 'City, with suggestions', helper: 'Type B, then use the arrow keys.', 'data-testid': 'text-suggest'}),
+        ['Berlin', 'Bern', 'Bogotá', 'Boston', 'Brisbane', 'Brussels', 'Budapest', 'Buenos Aires', 'Cairo', 'Copenhagen']),
     ),
   );
 
@@ -172,6 +174,11 @@ function controlsSection() {
   const all = [buttons, checks, radios, texts, areas, spins, sliders, progressCard, combos, lists, formCard];
   for (const item of all) { watch(item); }
   return [...all, card('controls-log-card', 'Events', log)];
+}
+
+function withSuggestions(field, list) {
+  field.suggestions = list;
+  return field;
 }
 
 export const section = {

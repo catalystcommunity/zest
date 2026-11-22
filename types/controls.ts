@@ -35,3 +35,24 @@ const submitted: boolean = submitImplicitly(name.form);
 const custom = new TextField();
 custom.setCustomValidity('That name is used');
 void [count, root, valid, button, submitted, custom.text.clear];
+
+// Type-ahead
+import { attachTypeahead, matchSuggestions, typeahead } from '@catalystcommunity/controls';
+const cityField = document.createElement('text-field');
+cityField.suggestions = ['Berlin', 'Bern'];
+cityField.suggestions = async (text) => matchSuggestions(['Boston'], text);
+const plain = document.createElement('input');
+const removeTypeahead: () => void = attachTypeahead(plain, {
+    source: [{label: 'SUM', insertText: 'SUM(', description: 'SUM(number, ...)'}],
+    autoSelect: true,
+    enter: 'none',
+    tab: 'accept',
+    query: (field) => ({text: field.value, start: 0, end: field.value.length}),
+    inline: true,
+    onAccept: (item) => console.log(item.label),
+});
+if (typeahead.isOpen(plain)) { typeahead.close(plain); }
+plain.addEventListener('typeahead-accept', (e) => console.log((e as CustomEvent).detail.item));
+cityField.openSuggestions();
+const isOpen: boolean = cityField.suggestionsOpen;
+removeTypeahead();

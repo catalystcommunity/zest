@@ -85,6 +85,8 @@ const TOKEN = new RegExp([
     /(?<op><=|>=|<>|[-+*/^&=<>%(),:;])/,
 ].map(part => part.source).join('|'), 'y');
 
+const TOKEN_NAMES = ['space', 'string', 'error', 'ref', 'number', 'name', 'op'];
+
 export function tokenize(text) {
     const tokens = [];
     TOKEN.lastIndex = 0;
@@ -97,7 +99,13 @@ export function tokenize(text) {
             at++;
             continue;
         }
-        const [type, value] = Object.entries(match.groups).find(([, v]) => v !== undefined);
+        // The first group that matched. A loop is faster than Object.entries for each token.
+        const groups = match.groups;
+        let type = 'bad';
+        for (const name of TOKEN_NAMES) {
+            if (groups[name] !== undefined) { type = name; break; }
+        }
+        const value = groups[type];
         tokens.push({type, text: value, at});
         at += value.length;
     }
@@ -161,7 +169,8 @@ export function parseFormula(text) {
     function reference(token) {
         const address = parseAddress(token.text);
         if (!address) { return {t: 'err', code: '#REF!'}; }
-        return {t: 'ref', ...address};
+        // The place in the text, so that a move of rows can change the text with no new parse
+        return {t: 'ref', ...address, at: token.at, len: token.text.length};
     }
     function primary() {
         const token = next();
@@ -509,6 +518,45 @@ export function rewriteFormula(text, {move, moveRange = null}) {
 
 const inBounds = (ref) => ref.row >= 0 && ref.col >= 0 && ref.row < MAX_ROWS && ref.col < MAX_COLUMNS;
 
+// Moves the references of a parsed formula in place, and gives the new text of the formula (with
+// no "="). move(ref) gives the new reference. Returns null, and changes nothing, when a reference
+// goes away (the caller then uses rewriteFormula) or the tree has no places.
+export function moveTreeReferences(tree, body, move) {
+    const refs = [];
+    const collect = (node) => {
+        switch (node.t) {
+            case 'ref': refs.push(node); break;
+            case 'range': refs.push(node.from, node.to); break;
+            case 'bin': collect(node.a); collect(node.b); break;
+            case 'neg': case 'pct': collect(node.a); break;
+            case 'call': for (const arg of node.args) { collect(arg); } break;
+        }
+    };
+    collect(tree);
+    const items = [];
+    for (const ref of refs) {
+        if (ref.at === undefined) { return null; }
+        const next = move(ref);
+        if (!next) { return null; }
+        items.push({ref, next});
+    }
+    items.sort((a, b) => a.ref.at - b.ref.at);
+    let text = '';
+    let last = 0;
+    for (const {ref, next} of items) {
+        const written = formatAddress(next.row, next.col, next);
+        text += body.slice(last, ref.at);
+        const at = text.length;
+        text += written;
+        last = ref.at + ref.len;
+        ref.row = next.row;
+        ref.col = next.col;
+        ref.at = at;
+        ref.len = written.length;
+    }
+    return text + body.slice(last);
+}
+
 // A copy to a place that is dRows down and dCols right. An absolute part ($) stays.
 export function shiftFormula(text, dRows, dCols) {
     return rewriteFormula(text, {
@@ -543,4 +591,114 @@ export function adjustForInsertDelete(text, axis, index, count) {
         return [{...first, [key]: start}, {...last, [key]: end}];
     };
     return rewriteFormula(text, {move: moveOne, moveRange});
+}
+
+// ---------- Editing helpers ----------
+
+// The references in the text of a formula, with their place in the text. `text` includes the
+// "=" at the start. A range is one item: {start, end, text, range: {top, left, bottom, right}}.
+export function referenceSpans(text) {
+    if (!String(text).startsWith('=')) { return []; }
+    const body = text.slice(1);
+    const tokens = tokenize(body);
+    const spans = [];
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        if (token.type !== 'ref') { continue; }
+        const from = parseAddress(token.text);
+        if (!from) { continue; }
+        let j = i + 1;
+        while (tokens[j]?.type === 'space') { j++; }
+        if (tokens[j]?.type === 'op' && tokens[j].text === ':') {
+            let k = j + 1;
+            while (tokens[k]?.type === 'space') { k++; }
+            const to = tokens[k]?.type === 'ref' ? parseAddress(tokens[k].text) : null;
+            if (to) {
+                const end = tokens[k].at + tokens[k].text.length;
+                spans.push({start: token.at + 1, end: end + 1, text: body.slice(token.at, end), range: normalizeRange({top: from.row, left: from.col, bottom: to.row, right: to.col})});
+                i = k;
+                continue;
+            }
+        }
+        spans.push({start: token.at + 1, end: token.at + token.text.length + 1, text: token.text, range: {top: from.row, left: from.col, bottom: from.row, right: from.col}});
+    }
+    return spans;
+}
+
+// True when a reference can go at the caret: the text is a formula, and the caret is after "=",
+// an operator, "(", ",", or ";", with only spaces between
+export function canInsertReference(text, caret = text.length) {
+    if (!String(text).startsWith('=')) { return false; }
+    const before = text.slice(0, caret).replace(/\s+$/, '');
+    if (before === '=') { return true; }
+    return /(?:[-+*/^&=<>(,;:]|<=|>=|<>)$/.test(before) && !before.endsWith('%');
+}
+
+const ABSOLUTE_CYCLE = [
+    {colAbs: false, rowAbs: false},
+    {colAbs: true, rowAbs: true},
+    {colAbs: false, rowAbs: true},
+    {colAbs: true, rowAbs: false},
+];
+
+// F4: A1, $A$1, A$1, $A1, then A1 again, for the reference or range at the caret. Returns the new
+// text and the place of the reference, or null when the caret is not at a reference.
+export function cycleReference(text, caret) {
+    const span = referenceSpans(text).find(item => caret >= item.start && caret <= item.end);
+    if (!span) { return null; }
+    const parts = span.text.split(':').map(part => parseAddress(part.trim()));
+    const first = parts[0];
+    const index = ABSOLUTE_CYCLE.findIndex(item => item.colAbs === first.colAbs && item.rowAbs === first.rowAbs);
+    const next = ABSOLUTE_CYCLE[(index + 1) % ABSOLUTE_CYCLE.length];
+    const replaced = parts.map(part => formatAddress(part.row, part.col, next)).join(':');
+    return {
+        text: text.slice(0, span.start) + replaced + text.slice(span.end),
+        start: span.start,
+        end: span.start + replaced.length,
+    };
+}
+
+// The name of a function that the person is typing at the caret, for a list of functions:
+// {text, start, end}, or null
+export function functionNameAt(text, caret = text.length) {
+    if (!String(text).startsWith('=')) { return null; }
+    const before = text.slice(0, caret);
+    const match = /[A-Za-z_][A-Za-z0-9_.]*$/.exec(before);
+    if (!match) { return null; }
+    const previous = before.slice(0, match.index).replace(/\s+$/, '');
+    if (!(previous === '=' || /[-+*/^&=<>(,;:]$/.test(previous))) { return null; }
+    // A name that goes on after the caret is not complete yet, so the list is for all of it
+    const after = /^[A-Za-z0-9_.]*/.exec(text.slice(caret))[0];
+    if (/^\$?[A-Za-z]{1,3}\$?\d+$/.test(match[0] + after)) { return null; }
+    return {text: match[0], start: match.index, end: caret + after.length};
+}
+
+// The function call at the caret, for a hint of its arguments: {name, index, start}, where `index`
+// is the number of the argument (from 0) that the caret is in. `separator` is the sign between the
+// arguments (';' in a locale with a decimal comma); by default ',' and ';' both count. null when the caret is not in the
+// parentheses of a function.
+export function argumentAt(text, caret = text.length, separator = null) {
+    if (!String(text).startsWith('=')) { return null; }
+    const stack = [];
+    let quoted = false;
+    for (let i = 1; i < caret; i++) {
+        const char = text[i];
+        if (quoted) {
+            if (char === '"') { if (text[i + 1] === '"') { i++; } else { quoted = false; } }
+            continue;
+        }
+        if (char === '"') { quoted = true; continue; }
+        if (char === '(') {
+            const match = /([A-Za-z_][A-Za-z0-9_.]*)\s*$/.exec(text.slice(1, i));
+            stack.push({name: match ? match[1].toUpperCase() : null, index: 0, start: match ? match.index + 1 : i});
+        } else if (char === ')') {
+            stack.pop();
+        } else if ((separator ? char === separator : (char === ',' || char === ';')) && stack.length) {
+            stack[stack.length - 1].index++;
+        }
+    }
+    for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].name) { return stack[i]; }
+    }
+    return null;
 }

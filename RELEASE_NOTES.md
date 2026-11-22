@@ -10,6 +10,43 @@
 - New: `askConfirm({confirmText})`. OK is enabled only when the user types that text in a field. The new label `confirmPrompt` (`Type {text} to confirm`) is the label of the field.
 - Fix: a disabled button in the `buttons` slot has a dashed border and the disabled colors, also when a page style for `button` sets a border or colors. Before, a page style removed the disabled look, and a disabled danger button looked like a button that the user can press.
 
+### `validators` (new package)
+
+- New: validators for the core CSIL types: `int`, `uint`, `float`, `decimal`, `text`, `bool`, `bytes`, `timestamp`, `date`, `uuid`, `oneOf`, and `any`. `parse(text)` gives the typed value, or a reason and a message. The types are the types of the TypeScript code that csilgen makes.
+- New: `validateRecord(record, fields)`, and `validatorsFromCsil(descriptor, ruleName)`, which makes a validator for each field of a CSIL record from a decoded schema descriptor. A CSIL `date` becomes `date()` with its bounds, and gives ISO text.
+- New: locales. `parse(text, {locale})` reads the numbers and dates of a locale (`1.234,5` and `21.11.2026` in German). `format(value, {locale})` writes them. `numberSeparators`, `dateOrder`, and `canonicalNumberText`.
+- New: `timestamp({timeZone})` reads a time with no offset in a time zone (`'local'` or an IANA name). With no time zone, the reason of the problem is `'offset'`.
+- New: `setValidatorMessages(table)` changes the messages of all validators, for example to translate them, and `parse(text, {messages})` gives messages for one parse. `validatorMessages` has the defaults.
+- The package needs `./tools.sh release first-publish` before the merge that releases it.
+
+### `spreadsheet`
+
+- New: data entry. `records` shows the data of the application, `entry-rows` adds empty rows after it, and `onSubmitRow(record, context)` sends a changed row when the person leaves it (`submit-on`: `leave-row`, `enter`, `change`, or `manual`; or `submitWhen`). A row that the person changed is apart from new data, so that no work is lost. Rows have states (`changed`, `draft`, `pending`, `sent`, `error`) in the row header. `validateRow`, `newRecordId`, `submitRow`, `submitAll`, `discardRow`, `setColumns`, and calculated columns with `formula`.
+- New: locked cells, rows, and columns (`model.setColumn(col, {locked})`, `model.setRow`, `model.setLocked`, `lockRule`). A change that touches a locked cell does nothing, and a notice tells why (`locked-cells="skip"`, `locked-notice`, `onLocked`, `spreadsheet-locked`). `skip-locked` makes Tab and Enter go past locked cells.
+- New: column validators (`validate`, `required`) with a default post-invalid handler that marks the cell, `onInvalid` in its place, `afterInvalid` after it, and `onValid`. Columns with `options` or a `oneOf` validator show labels, keep values, and list the options while the person types. Space changes a boolean cell.
+- Changed behavior: Enter after Tab keys goes to the column where the first Tab was, as in other spreadsheets. Tab now goes to the next row after the last column. Tab at the last cell, or Escape then Tab, leaves the grid.
+- New: in a formula, the arrow keys and a click put references in it, Shift makes a range, and F4 changes `$`. Each reference has a box with a color on the grid. A list of functions shows while the person types a name, and Tab completes it.
+- Changed behavior: a scroll does not end an edit. The editor has its own row element.
+- New: locales. The model keeps canonical inputs, and the person types and reads the form of the locale (`locale`, else the `lang` of the page). In a locale with a decimal comma, `;` separates the arguments of a function. `inputText(address)` and `effectiveLocale`. A paste from Excel or Google Sheets reads their exact values. `fromCSV(text, at, {delimiter, locale, decimal, group, order})` and `detectCsvFormat(text)`. `messages` translates the messages of the validators for the sheet.
+- New: a calendar for date and timestamp columns: Alt+Arrow Down, or the button on the active cell.
+- New: `strict: true` on a column keeps an invalid edit in the editor until the person corrects it or presses Escape (`spreadsheet-edit-refused`).
+- New: `display: 'checkbox'` on a boolean column shows check boxes.
+- New: a hint of the arguments of a function, above the editor.
+- New: `setCell` and `setCells` take `{respectLocks: true}` for code that acts for the person. They give `false` when the locks refused the change.
+- New: data entry has `show-conflicts` (a changed row whose record changed elsewhere waits for the person: `rowConflict`, `keepRowChanges`, `discardRow`, `spreadsheet-row-conflict`), `paste-submits`, `quiet-rows`, and `keep-text`.
+- Changed behavior: `lockRule` can only lock a cell. Before, `false` unlocked a cell that the model locked.
+- Changed behavior: a text value of a record goes through the type of its column, so `'0042'` is 42 in a number column. `keep-text` keeps it a text. A text that starts with `=` never becomes a formula.
+- Changed behavior: with `submit-on="change"`, the problems of an incomplete row show at once. `quiet-rows` keeps them until the person leaves the row.
+- Changed behavior: a paste of option labels stores the option values. A calculated column is blank in an empty entry row. The references of an open formula follow their rows when records move.
+- Faster: a move of rows (a new record at the start) moves the cells as objects, with no new parse. A new record at the start of 10,000 records went from 266 ms to about 30 ms in Firefox.
+- The package now depends on `controls`, `date-time-picker`, `menus`, and `validators`.
+
+### `controls`
+
+- New: `attachTypeahead(field, options)`, a list of suggestions for any native input or text area, and `matchSuggestions(items, text)`. It returns a function that removes the list. Commands go through `typeahead.open(field)`, `close`, `accept`, `refresh`, and `setSource`, and the field sends `typeahead-open`, `typeahead-close`, `typeahead-active`, and `typeahead-accept`. `inline: true` types the rest of the first match in the field.
+- New: `text-field` has `suggestions`, `openSuggestions()`, `closeSuggestions()`, `refreshSuggestions()`, and `suggestionsOpen`. Enter on a suggestion does not submit the form.
+- Changed behavior: an editable `combo-box` lists the options that start with the text first, then the options that contain it.
+
 ### `menus`
 
 - New: `danger: true` on a menu item. The item has a warning sign and the danger color. Its mnemonic only moves the focus to it.

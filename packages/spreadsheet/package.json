@@ -39,6 +39,10 @@
   "dependencies": {
     "@catalystcommunity/actions": ">=0.1.2 <1.0.0",
     "@catalystcommunity/base-components": ">=0.2.7 <1.0.0",
-    "@catalystcommunity/date-model": ">=0.1.2 <1.0.0"
+    "@catalystcommunity/controls": ">=0.1.2 <1.0.0",
+    "@catalystcommunity/date-model": ">=0.1.2 <1.0.0",
+    "@catalystcommunity/date-time-picker": ">=0.2.8 <1.0.0",
+    "@catalystcommunity/menus": ">=0.1.2 <1.0.0",
+    "@catalystcommunity/validators": ">=0.1.0 <1.0.0"
   }
 }

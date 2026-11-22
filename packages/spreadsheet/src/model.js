@@ -4,7 +4,7 @@
 import { dateFormat, numberFormat, dayNumber, fromDayNumber, formatDate } from "@catalystcommunity/date-model";
 import {
     MAX_COLUMNS, SheetDate, SheetError, adjustForInsertDelete, evaluate, formatAddress, formatRange, normalizeRange,
-    parseAddress, parseFormula, parseRange, references, shiftFormula, toText,
+    parseAddress, parseFormula, parseRange, references, rewriteFormula, shiftFormula, toText, moveTreeReferences,
 } from "./formula.js";
 
 export const TYPES = ['auto', 'text', 'number', 'currency', 'percent', 'date', 'boolean'];
@@ -18,6 +18,28 @@ const rowOf = (key) => Math.floor(key / MAX_COLUMNS);
 const colOf = (key) => key % MAX_COLUMNS;
 const inRange = (range, row, col) => row >= range.top && row <= range.bottom && col >= range.left && col <= range.right;
 const sameStyle = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+// The sheet type that shows the value of a validator from @catalystcommunity/validators
+const VALIDATOR_TYPES = {int: 'number', uint: 'number', float: 'number', decimal: 'number', bool: 'boolean', date: 'date', text: 'text', uuid: 'text', bytes: 'text', timestamp: 'text', enum: 'auto', any: 'auto'};
+
+// The options of a column: from `options`, or from a `oneOf` validator. [{value, label}] or null.
+export function columnOptions(info) {
+    const list = info?.options ?? info?.validate?.options ?? null;
+    if (!list) { return null; }
+    return list.map(item => (typeof item === 'object' && item !== null ? {value: item.value, label: String(item.label ?? item.value)} : {value: item, label: String(item)}));
+}
+// The label of each option value, made one time for each list
+const optionLabels = new WeakMap();
+function labelMap(info) {
+    const list = info?.options ?? info?.validate?.options;
+    if (!list) { return null; }
+    let map = optionLabels.get(list);
+    if (!map) {
+        map = new Map(columnOptions(info).map(item => [String(item.value), item.label]));
+        optionLabels.set(list, map);
+    }
+    return map;
+}
 
 const NUMBER = /^[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)?(?:\.\d+)?(?:[eE][-+]?\d+)?$/;
 const CURRENCY = /^([-+]?)\s*([$€£¥])\s*(.+)$/;
@@ -96,6 +118,13 @@ export class SheetModel extends EventTarget {
     #rows;
     #columns;
     #columnInfo = [];
+    // The settings of a row: {locked}, by row
+    #rowInfo = new Map();
+    // What is not data and not an undo step, by the key of the cell: {locked, mark}. A mark is
+    // {invalid: true, message} from a validation. Both move with the cell when rows or columns move.
+    #notes = new Map();
+    // A guard for a change by the user: {mode: 'probe' or 'skip', locked(row, col), hits: [keys]}
+    #guard = null;
 
     // rows, columns: the size. columns can also be a list: [{title, type, decimals, currency, width}]
     constructor({rows = 1000, columns = 26, locale = undefined} = {}) {
@@ -117,6 +146,102 @@ export class SheetModel extends EventTarget {
     get cellCount() { return this.#cells.size; }
 
     column(col) { return this.#columnInfo[col] ?? {}; }
+    row(row) { return this.#rowInfo.get(row) ?? {}; }
+
+    // Changes the settings of a row, for example {locked: true}. It is not an undo step.
+    setRow(row, changes) {
+        const next = {...this.row(row), ...changes};
+        for (const [name, value] of Object.entries(next)) { if (value === null || value === undefined) { delete next[name]; } }
+        if (Object.keys(next).length) { this.#rowInfo.set(row, next); } else { this.#rowInfo.delete(row); }
+        const keys = new Set();
+        for (let col = 0; col < this.#columns; col++) { keys.add(keyOf(row, col)); }
+        this.#send({changes: [], keys, rows: [row]});
+    }
+
+    // ---------- Locks and marks ----------
+
+    // A cell is locked by its own setting, then by its row, then by its column. Locks stop the user,
+    // not code: the sheet element checks them for each change that the user makes.
+    isLocked(row, col) {
+        const own = this.#notes.get(keyOf(row, col))?.locked;
+        if (own === true || own === false) { return own; }
+        const byRow = this.#rowInfo.get(row)?.locked;
+        if (byRow === true || byRow === false) { return byRow; }
+        return Boolean(this.column(col).locked);
+    }
+
+    // Locks (true), unlocks (false), or clears the setting (null) of each cell of a range. It is not an undo step.
+    setLocked(range, locked) {
+        this.#setNotes(range, 'locked', locked === null || locked === undefined ? null : Boolean(locked));
+    }
+
+    // A mark on a cell, such as {invalid: true, message}. It is not an undo step, and it is not data.
+    getMark(row, col) { return this.#notes.get(keyOf(row, col))?.mark ?? null; }
+    setMark(row, col, mark) { this.setMarks([{row, col, mark}]); }
+
+    // [{row, col, mark}], with one change event
+    setMarks(list) {
+        const keys = new Set();
+        for (const {row, col, mark} of list) {
+            const key = keyOf(row, col);
+            const old = this.#notes.get(key)?.mark ?? null;
+            if (JSON.stringify(old) === JSON.stringify(mark ?? null)) { continue; }
+            this.#note(key, 'mark', mark ?? null);
+            keys.add(key);
+        }
+        if (keys.size) { this.#send({changes: [], keys, marks: true}); }
+    }
+
+    #setNotes(range, name, value) {
+        const area = typeof range === 'string' ? parseRange(range) : normalizeRange(range);
+        const keys = new Set();
+        for (let row = area.top; row <= area.bottom; row++) {
+            for (let col = area.left; col <= area.right; col++) {
+                const key = keyOf(row, col);
+                this.#note(key, name, value);
+                keys.add(key);
+            }
+        }
+        this.#send({changes: [], keys});
+    }
+
+    #note(key, name, value) {
+        const note = {...(this.#notes.get(key) ?? {})};
+        if (value === null) { delete note[name]; } else { note[name] = value; }
+        if (Object.keys(note).length) { this.#notes.set(key, note); } else { this.#notes.delete(key); }
+    }
+
+    // Runs fn with a guard for each cell that it changes. In 'probe' mode nothing changes, and
+    // the guard collects the keys of the locked cells that fn would change. In 'skip' mode the
+    // locked cells do not change, and the other cells do.
+    withGuard(guard, fn) {
+        const old = this.#guard;
+        this.#guard = guard;
+        try {
+            return fn();
+        } finally {
+            this.#guard = old;
+        }
+    }
+
+    // The cells that the next undo (or redo) changes: [{row, col}], or null for a change of rows or columns
+    historyCells(side = 'undo') {
+        const entry = (side === 'undo' ? this.#undo : this.#redo).at(-1);
+        if (!entry) { return []; }
+        if (entry.structure) { return null; }
+        return entry.cells.map(change => ({row: rowOf(change.key), col: colOf(change.key)}));
+    }
+
+    // Replaces the settings of all columns: [{key, title, type, validate, options, locked, width}].
+    // The number of columns becomes the length of the list. The cells stay.
+    setColumns(list) {
+        this.#columnInfo = list.map(info => ({...info}));
+        this.#columns = Math.max(1, list.length);
+        for (const cell of this.#cells.values()) { if (!cell.formula) { this.#read(cell); } }
+        const keys = new Set(this.#cells.keys());
+        this.#recalculate(keys, keys);
+        this.#send({changes: [], keys, columns: list.map((_, col) => col)});
+    }
 
     // Changes the type, the format, the title, or the width of a column, and shows each cell again
     setColumn(col, changes) {
@@ -124,11 +249,11 @@ export class SheetModel extends EventTarget {
         const keys = new Set();
         for (const [key, cell] of this.#cells) {
             if (colOf(key) === col) {
-                if ('type' in changes && !cell.formula) { this.#read(cell); }
+                if (('type' in changes || 'validate' in changes) && !cell.formula) { this.#read(cell); }
                 keys.add(key);
             }
         }
-        if ('type' in changes) { this.#recalculate(keys, keys); }
+        if ('type' in changes || 'validate' in changes) { this.#recalculate(keys, keys); }
         this.#send({changes: [], keys, columns: [col]});
     }
 
@@ -160,6 +285,7 @@ export class SheetModel extends EventTarget {
             display: this.format(value, type, cell, column),
             style: cell?.style ?? null,
             error: value instanceof SheetError ? value : null,
+            mark: this.#notes.get(key)?.mark ?? null,
         };
     }
 
@@ -171,10 +297,16 @@ export class SheetModel extends EventTarget {
         return this.#cells.get(this.#key(where, col))?.input ?? '';
     }
 
+    // The type of a column: its type, or the type that its validator gives
+    columnType(col) {
+        const info = this.column(col);
+        return info.type ?? (info.validate?.kind ? VALIDATOR_TYPES[info.validate.kind] : undefined);
+    }
+
     // The type that shows the value: the type of the cell, then the column, then what the input showed
     typeAt(row, col) {
         const cell = this.#cells.get(keyOf(row, col));
-        const set = cell?.type ?? this.column(col).type;
+        const set = cell?.type ?? this.columnType(col);
         if (set && set !== 'auto') { return set; }
         if (cell?.value instanceof SheetDate) { return 'date'; }
         return cell?.shown ?? (cell?.value === null || cell?.value === undefined ? 'auto' : typeof cell.value === 'boolean' ? 'boolean' : typeof cell.value === 'number' ? 'number' : 'text');
@@ -184,7 +316,13 @@ export class SheetModel extends EventTarget {
     format(value, type, cell = null, col = cell ? colOf(cell.key) : -1) {
         if (value === null || value === undefined) { return ''; }
         if (value instanceof SheetError) { return value.code; }
-        const info = {...this.column(col), ...(cell?.format ?? {})};
+        const column = this.column(col);
+        const labels = cell && !cell.formula ? labelMap(column) : null;
+        if (labels) {
+            const label = labels.get(String(value));
+            if (label !== undefined) { return label; }
+        }
+        const info = {...column, ...(cell?.format ?? {})};
         if (typeof value === 'boolean') { return value ? 'TRUE' : 'FALSE'; }
         const number = typeof value === 'number' ? value : value instanceof SheetDate ? value.days : null;
         if (number === null) { return String(value); }
@@ -230,18 +368,165 @@ export class SheetModel extends EventTarget {
         this.batch(() => this.#write(key, {input: String(input ?? '')}));
     }
 
-    // [{row, col, input}] or [{address, input}], also with style or type
-    setCells(changes) {
-        this.batch(() => {
-            for (const change of changes) {
-                const key = change.address ? this.#key(change.address) : keyOf(change.row, change.col);
-                const patch = {};
-                if ('input' in change) { patch.input = String(change.input ?? ''); }
-                if ('style' in change) { patch.style = change.style; }
-                if ('type' in change) { patch.type = change.type; }
-                this.#write(key, patch);
+    // [{row, col, input}] or [{address, input}], also with style or type. With history: false, the
+    // change is not an undo step, for example data from a server.
+    setCells(changes, {history = true} = {}) {
+        if (!history) {
+            if (this.#batch) { throw new Error('setCells with history: false cannot be in a batch'); }
+            this.#batch = {changes: new Map(), keys: new Set(), history: false};
+            try {
+                for (const change of changes) { this.#writeChange(change); }
+            } finally {
+                const batch = this.#batch;
+                this.#batch = null;
+                this.#finish(batch, false);
             }
+            return;
+        }
+        this.batch(() => {
+            for (const change of changes) { this.#writeChange(change); }
         });
+    }
+
+    #writeChange(change) {
+        const key = change.address ? this.#key(change.address) : keyOf(change.row, change.col);
+        const patch = {};
+        if ('input' in change) { patch.input = String(change.input ?? ''); }
+        if ('style' in change) { patch.style = change.style; }
+        if ('type' in change) { patch.type = change.type; }
+        this.#write(key, patch);
+    }
+
+    // Changes the number of rows, with no undo step. Cells in rows that go away are removed.
+    setRowCount(count) {
+        const rows = Math.max(1, count);
+        if (rows === this.#rows) { return; }
+        if (rows < this.#rows) {
+            const mapping = new Int32Array(this.#rows);
+            for (let row = 0; row < this.#rows; row++) { mapping[row] = row < rows ? row : -1; }
+            this.remapRows(mapping, rows);
+            return;
+        }
+        this.#rows = rows;
+        this.#send({changes: [], keys: new Set(), structure: {axis: 'row', count: 0, resize: true}});
+    }
+
+    // Moves rows to new places, as one change that is not an undo step. mapping[oldRow] is the new
+    // row, or -1 to remove the row. Each reference to a moved row follows it, and a reference to a
+    // removed row becomes #REF!. The undo steps follow the rows too; a step of rows or columns
+    // cannot follow them, so it goes away. Only the moved cells and the formulas that read them
+    // change, so that new data at the end of a large sheet costs little.
+    remapRows(mapping, rowCount = this.#rows) {
+        const moveRow = (row) => (row < mapping.length ? mapping[row] : row);
+        const moveRef = (ref) => {
+            const row = moveRow(ref.row);
+            return row < 0 ? null : (row === ref.row ? ref : {...ref, row});
+        };
+        const moveKey = (key) => {
+            const row = rowOf(key);
+            const to = moveRow(row);
+            return to < 0 ? -1 : (to === row ? key : keyOf(to, colOf(key)));
+        };
+        const movedRows = new Set();
+        for (let row = 0; row < mapping.length; row++) { if (mapping[row] !== row) { movedRows.add(row); } }
+        // The cells move as objects: a cell keeps its parsed formula and its value, so that a move
+        // of rows costs no new parse and no new calculation for most cells.
+        // 1. The formulas that read a moved or removed row: their text changes
+        const rewrite = [];
+        if (movedRows.size) {
+            for (const cell of this.#cells.values()) {
+                if (!cell.formula) { continue; }
+                const found = references(cell.formula);
+                const reads = found.cells.some(ref => movedRows.has(ref.row))
+                    || found.ranges.some(range => movedRows.has(range.top) || movedRows.has(range.bottom) || range.bottom - range.top >= 1);
+                if (reads) { rewrite.push({cell, ranges: found.ranges.length > 0}); }
+            }
+        }
+        // 2. The removed cells go. The cells that read them calculate again.
+        const recalc = new Set();
+        for (const [key, cell] of this.#cells) {
+            if (moveKey(key) >= 0) { continue; }
+            for (const dependent of this.#dependentsOf(key)) { recalc.add(dependent); }
+            this.#unlink(cell);
+        }
+        // 3. New keys for the cells, the links, and the dependents
+        const cells = new Map();
+        for (const [key, cell] of this.#cells) {
+            const to = moveKey(key);
+            if (to < 0) { continue; }
+            cell.key = to;
+            if (cell.links) {
+                const links = [];
+                for (const link of cell.links) { const moved = moveKey(link); if (moved >= 0) { links.push(moved); } }
+                cell.links = links;
+            }
+            cells.set(to, cell);
+        }
+        const dependents = new Map();
+        for (const [key, set] of this.#dependents) {
+            const to = moveKey(key);
+            if (to < 0) { continue; }
+            const moved = new Set();
+            for (const dependent of set) { const next = moveKey(dependent); if (next >= 0) { moved.add(next); } }
+            if (moved.size) { dependents.set(to, moved); }
+        }
+        this.#cells = cells;
+        this.#dependents = dependents;
+        this.#wideRanges = this.#wideRanges.flatMap(item => {
+            const key = moveKey(item.key);
+            return key < 0 ? [] : [{...item, key}];
+        });
+        const keyMoves = new Map();
+        for (const key of recalc) { const to = moveKey(key); if (to >= 0) { keyMoves.set(key, to); } }
+        recalc.clear();
+        for (const to of keyMoves.values()) { recalc.add(to); }
+        // 4. The new text of each formula that reads a moved row. A formula with a range links and
+        // calculates again, because the rows in the range can be others now.
+        for (const {cell, ranges} of rewrite) {
+            if (cells.get(cell.key) !== cell) { continue; }
+            const body = cell.input.slice(1);
+            const text = moveTreeReferences(cell.formula, body, moveRef);
+            if (text === null) {
+                // A reference to a removed row becomes #REF!
+                this.#unlink(cell);
+                cell.input = '=' + rewriteFormula(body, {move: moveRef});
+                this.#read(cell);
+                if (cell.formula) { this.#link(cell); }
+                recalc.add(cell.key);
+            } else {
+                cell.input = '=' + text;
+                if (ranges) {
+                    this.#unlink(cell);
+                    this.#link(cell);
+                    recalc.add(cell.key);
+                }
+            }
+        }
+        const notes = new Map();
+        for (const [key, note] of this.#notes) {
+            const row = moveRow(rowOf(key));
+            if (row >= 0) { notes.set(keyOf(row, colOf(key)), note); }
+        }
+        this.#notes = notes;
+        const rowInfo = new Map();
+        for (const [row, info] of this.#rowInfo) {
+            const target = moveRow(row);
+            if (target >= 0) { rowInfo.set(target, info); }
+        }
+        this.#rowInfo = rowInfo;
+        this.#rows = Math.max(1, rowCount);
+        const rebase = (stack) => stack.flatMap(entry => {
+            if (entry.structure) { return []; }
+            const cells = entry.cells.flatMap(change => {
+                const row = moveRow(rowOf(change.key));
+                return row < 0 ? [] : [{...change, key: keyOf(row, colOf(change.key))}];
+            });
+            return cells.length ? [{cells}] : [];
+        });
+        this.#undo = rebase(this.#undo);
+        this.#redo = rebase(this.#redo);
+        this.#recalculate(recalc, new Set());
+        this.#send({changes: [], keys: new Set(), structure: {axis: 'row', count: 0, remap: mapping}});
     }
 
     // Merges a style into each cell of a range: {bold: true}. A value of null removes that part.
@@ -298,6 +583,12 @@ export class SheetModel extends EventTarget {
         const before = snapshotOf(old);
         const after = {...before, ...patch};
         if (after.input === before.input && sameStyle(after.style, before.style) && after.type === before.type) { return; }
+        const guard = this.#guard;
+        if (guard) {
+            const locked = guard.locked(rowOf(key), colOf(key));
+            if (locked) { guard.hits.push(key); }
+            if (locked || guard.mode === 'probe') { return; }
+        }
         const batch = this.#batch;
         if (!batch.changes.has(key)) { batch.changes.set(key, {key, before}); }
         batch.changes.get(key).after = after;
@@ -331,7 +622,7 @@ export class SheetModel extends EventTarget {
     }
 
     #read(cell) {
-        const set = cell.type ?? this.column(colOf(cell.key)).type ?? 'auto';
+        const set = cell.type ?? this.columnType(colOf(cell.key)) ?? 'auto';
         const read = readInput(cell.input, set);
         cell.formula = read.formula ?? null;
         cell.shown = read.type;
@@ -439,6 +730,7 @@ export class SheetModel extends EventTarget {
 
     #finish(batch, record = true) {
         if (!batch.changes.size && !batch.structure) { return; }
+        if (batch.history === false) { record = false; }
         const changed = [...batch.changes.values()].filter(change => change.before.input !== change.after.input || change.before.type !== change.after.type);
         const keys = new Set(batch.keys);
         this.lastRecalculated = this.#recalculate(new Set(changed.map(change => change.key)), keys);
@@ -522,6 +814,25 @@ export class SheetModel extends EventTarget {
             const newKey = axis === 'row' ? keyOf(row + shift, col) : keyOf(row, col + shift);
             moved.set(newKey, {input, style: cell.style ?? null, type: cell.type ?? null});
         }
+        const notes = new Map();
+        for (const [key, note] of this.#notes) {
+            const row = rowOf(key);
+            const col = colOf(key);
+            const at = axis === 'row' ? row : col;
+            if (count < 0 && at >= index && at < removedEnd) { continue; }
+            const shift = count > 0 ? (at >= index ? count : 0) : (at >= removedEnd ? count : 0);
+            notes.set(axis === 'row' ? keyOf(row + shift, col) : keyOf(row, col + shift), note);
+        }
+        this.#notes = notes;
+        if (axis === 'row' && this.#rowInfo.size) {
+            const rows = new Map();
+            for (const [row, info] of this.#rowInfo) {
+                if (count < 0 && row >= index && row < removedEnd) { continue; }
+                const shift = count > 0 ? (row >= index ? count : 0) : (row >= removedEnd ? count : 0);
+                rows.set(row + shift, info);
+            }
+            this.#rowInfo = rows;
+        }
         let removedColumns = null;
         if (axis === 'row') {
             this.#rows = Math.max(1, this.#rows + count);
@@ -583,7 +894,9 @@ export class SheetModel extends EventTarget {
 
     // Pastes a copy at a cell. Relative references move with the cells, as in other spreadsheets.
     // A copy of one cell fills all of a larger target range.
-    paste(target, clip) {
+    // `mapInput(input, row, col, item)` can change each pasted input that is not a formula, for example
+    // a label of an option to its value
+    paste(target, clip, {mapInput = null} = {}) {
         const at = typeof target === 'string' ? parseRange(target) : normalizeRange(target);
         const height = clip.rows.length;
         const width = clip.rows[0]?.length ?? 0;
@@ -597,7 +910,9 @@ export class SheetModel extends EventTarget {
                 const col = at.left + j;
                 if (row >= this.#rows || col >= this.#columns) { continue; }
                 const source = {row: clip.range.top + (i % height), col: clip.range.left + (j % width)};
-                const input = item.input.startsWith('=') ? '=' + shiftFormula(item.input.slice(1), row - source.row, col - source.col) : item.input;
+                const input = item.input.startsWith('=')
+                    ? '=' + shiftFormula(item.input.slice(1), row - source.row, col - source.col)
+                    : (mapInput ? mapInput(item.input, row, col, item) : item.input);
                 changes.push({row, col, input, style: item.style, type: item.type});
             }
         }
@@ -606,10 +921,10 @@ export class SheetModel extends EventTarget {
     }
 
     // Pastes text from another program: tabs between cells, and lines between rows
-    pasteText(target, text) {
+    pasteText(target, text, options) {
         const rows = parseDelimited(text.replace(/\r?\n$/, ''), '\t');
         const at = typeof target === 'string' ? parseRange(target) : normalizeRange(target);
-        return this.paste(at, {range: {top: at.top, left: at.left}, rows: rows.map(line => line.map(input => ({input, style: null, type: null})))});
+        return this.paste(at, {range: {top: at.top, left: at.left}, rows: rows.map(line => line.map(input => ({input, style: null, type: null})))}, options);
     }
 
     // Copies the top row of a range to the other rows, or the first column to the other columns
@@ -644,6 +959,13 @@ export class SheetModel extends EventTarget {
             right = Math.max(right, colOf(key));
         }
         return {top: 0, left: 0, bottom, right};
+    }
+
+    // Calls fn(row, col, input) for each cell with an input, in no order
+    forEachCell(fn) {
+        for (const [key, cell] of this.#cells) {
+            if (cell.input) { fn(rowOf(key), colOf(key), cell.input); }
+        }
     }
 
     isEmpty(row, col) {
@@ -705,16 +1027,21 @@ export class SheetModel extends EventTarget {
         return toDelimited(rows, ',') + '\n';
     }
 
-    // Reads CSV into the sheet at a cell, as one undo step
-    fromCSV(text, at = 'A1') {
+    // Reads CSV into the sheet at a cell, as one undo step. `mapInput(input, row, col)` can change
+    // each input, for example a number of a locale to the canonical form.
+    fromCSV(text, at = 'A1', {delimiter = ',', mapInput = null} = {}) {
         const start = parseAddress(at);
-        const rows = parseDelimited(text.replace(/\r?\n$/, ''), ',');
+        const rows = parseDelimited(text.replace(/\r?\n$/, ''), delimiter);
         const needed = start.row + rows.length;
         if (needed > this.#rows) { this.#rows = needed; }
         const width = Math.max(0, ...rows.map(line => line.length));
         if (start.col + width > this.#columns) { this.#columns = start.col + width; }
         const changes = [];
-        rows.forEach((line, i) => line.forEach((input, j) => changes.push({row: start.row + i, col: start.col + j, input})));
+        rows.forEach((line, i) => line.forEach((input, j) => {
+            const row = start.row + i;
+            const col = start.col + j;
+            changes.push({row, col, input: mapInput ? mapInput(input, row, col) : input});
+        }));
         this.setCells(changes);
     }
 
@@ -745,6 +1072,8 @@ export class SheetModel extends EventTarget {
         this.#wideRanges = [];
         this.#undo = [];
         this.#redo = [];
+        this.#notes.clear();
+        this.#rowInfo.clear();
         const lines = Array.isArray(rows) ? rows : data;
         if (lines) {
             this.#rows = Math.max(this.#rows, lines.length);
@@ -754,7 +1083,9 @@ export class SheetModel extends EventTarget {
         }
         for (const [address, item] of Object.entries(cells ?? {})) {
             const value = typeof item === 'object' && item !== null ? item : {input: item};
-            this.#apply(this.#key(address), {input: String(value.input ?? ''), style: value.style ?? null, type: value.type ?? null});
+            const key = this.#key(address);
+            this.#apply(key, {input: String(value.input ?? ''), style: value.style ?? null, type: value.type ?? null});
+            if (value.locked === true || value.locked === false) { this.#note(key, 'locked', value.locked); }
         }
         const all = new Set(this.#cells.keys());
         this.#recalculate(all, new Set());

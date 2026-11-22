@@ -162,8 +162,9 @@ test.describe('controls', () => {
         const input = host.getByRole('combobox');
         await input.fill('pe');
         const options = host.getByRole('option');
-        await expect(options).toHaveText(['Grape', 'Peach', 'Pear']);
-        await options.nth(1).click();
+        // The options that start with the text come first, as in the other type-ahead lists
+        await expect(options).toHaveText(['Peach', 'Pear', 'Grape']);
+        await options.nth(0).click();
         await expect(input).toHaveValue('Peach');
         await expect(host.getByRole('listbox')).toBeHidden();
         await page.getByTestId('combo-shadow').getByRole('combobox').click();

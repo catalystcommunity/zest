@@ -2,6 +2,7 @@
 // file in step with src/*.js. __tests__/types.spec.js checks that each export has a declaration.
 import { BaseComponent, type Removal } from '@catalystcommunity/base-components';
 import type { Action } from '@catalystcommunity/actions';
+import type { ValidationResult, Validator } from '@catalystcommunity/validators';
 
 // Addresses. Rows and columns start at 0.
 
@@ -118,7 +119,12 @@ export interface CellStyle {
     align?: 'start' | 'center' | 'end';
 }
 
+/** A validator from @catalystcommunity/validators, or a function that reads an input. */
+export type SheetValidate = Validator | ((input: string) => ValidationResult<unknown>);
+
 export interface SheetColumn {
+    /** In data entry, the field of the record that the column shows. */
+    key?: string;
     title?: string;
     type?: SheetType;
     decimals?: number;
@@ -128,6 +134,31 @@ export interface SheetColumn {
     dateStyle?: 'medium' | 'short' | 'long' | 'iso' | 'full';
     /** CSS pixels. */
     width?: number;
+    /** Checks each input. Without `type`, the kind of the validator gives the type. */
+    validate?: SheetValidate;
+    /** An empty input is a problem. */
+    required?: boolean;
+    /** 'checkbox' shows the cells of a boolean column as check boxes. Space or a click changes them. */
+    display?: 'text' | 'checkbox';
+    /** An invalid edit stays in the editor with its message, until the person corrects it or presses Escape. */
+    strict?: boolean;
+    /** A list of values. The cells show the labels, and the editor lists the options. A `oneOf` validator also gives them. */
+    options?: readonly (string | number | {value: unknown; label?: string})[];
+    /** The person cannot change the cells, unless a cell or its row says otherwise. */
+    locked?: boolean;
+    /** In data entry, a calculated column: the formula for the first row. Each row gets a copy. */
+    formula?: string;
+}
+
+export interface SheetRow {
+    /** The person cannot change the cells of the row, unless a cell says otherwise. */
+    locked?: boolean;
+}
+
+/** A mark on a cell, from a validation. It is not data and not an undo step. */
+export interface SheetMark {
+    invalid?: boolean;
+    message?: string;
 }
 
 export interface SheetCellInfo {
@@ -141,6 +172,7 @@ export interface SheetCellInfo {
     display: string;
     style: CellStyle | null;
     error: SheetError | null;
+    mark: SheetMark | null;
 }
 
 /** A change for `setCells`: an address, or a row and a column. */
@@ -166,9 +198,22 @@ export interface SheetModelChangeDetail {
     history: {canUndo: boolean; canRedo: boolean};
     /** The columns that `setColumn` changed. */
     columns?: number[];
-    /** Rows or columns that were added or removed. */
-    structure?: {axis: 'row' | 'col'; index: number; count: number};
+    /** Rows or columns that were added or removed, or rows that `remapRows` moved. */
+    structure?: {axis: 'row' | 'col'; index?: number; count: number; remap?: Int32Array; resize?: boolean};
     loaded?: boolean;
+    /** The rows that `setRow` changed. */
+    rows?: number[];
+    /** Marks changed. */
+    marks?: boolean;
+}
+
+/** A guard for a change by the user. `withGuard` sets it. */
+export interface SheetGuard {
+    /** 'probe': nothing changes, and `hits` gets the locked cells. 'skip': the locked cells do not change. */
+    mode: 'probe' | 'skip';
+    locked(row: number, col: number): boolean;
+    /** The keys (`row * SHEET_MAX_COLUMNS + col`) of the locked cells that the change touched. */
+    hits: number[];
 }
 
 export interface SheetData {
@@ -222,6 +267,33 @@ export declare class SheetModel extends EventTarget {
     column(col: number): SheetColumn;
     /** Changes the format, the title, or the width of a column. */
     setColumn(col: number, changes: SheetColumn): void;
+    /** Replaces the settings of all columns. The count of columns becomes the length of the list. */
+    setColumns(list: readonly SheetColumn[]): void;
+    /** The type of a column: its type, or the type of its validator. */
+    columnType(col: number): SheetType | undefined;
+    row(row: number): SheetRow;
+    /** Changes the settings of a row. It is not an undo step. */
+    setRow(row: number, changes: {[K in keyof SheetRow]?: SheetRow[K] | null}): void;
+    /** The cell, then its row, then its column. */
+    isLocked(row: number, col: number): boolean;
+    /** true, false, or null to clear the setting of each cell. It is not an undo step. */
+    setLocked(range: RangeLike, locked: boolean | null): void;
+    getMark(row: number, col: number): SheetMark | null;
+    setMark(row: number, col: number, mark: SheetMark | null): void;
+    setMarks(list: readonly {row: number; col: number; mark: SheetMark | null}[]): void;
+    /** Runs `fn` with a guard for each cell that it changes. */
+    withGuard<T>(guard: SheetGuard, fn: () => T): T;
+    /** The cells that the next undo or redo changes, or null for a change of rows or columns. */
+    historyCells(side?: 'undo' | 'redo'): CellPosition[] | null;
+    /** Calls `fn` for each cell with an input. */
+    forEachCell(fn: (row: number, col: number, input: string) => void): void;
+    /** Changes the count of rows, with no undo step. */
+    setRowCount(count: number): void;
+    /**
+     * Moves rows, with no undo step. `mapping[oldRow]` is the new row, or -1 to remove it. The
+     * references, the locks, the marks, and the undo steps follow the rows.
+     */
+    remapRows(mapping: ArrayLike<number>, rowCount?: number): void;
     getCell(address: string): SheetCellInfo;
     getCell(row: number, col: number): SheetCellInfo;
     getValue(address: string): SheetValue;
@@ -235,7 +307,8 @@ export declare class SheetModel extends EventTarget {
     /** Puts many changes into one undo step and one change event. */
     batch<T>(fn: () => T): T;
     setCell(address: string, input: string | number | null | undefined): void;
-    setCells(changes: readonly SheetCellChange[]): void;
+    /** With `history: false`, the change is not an undo step, for example data from a server. */
+    setCells(changes: readonly SheetCellChange[], options?: {history?: boolean}): void;
     /** Merges a style into each cell. A value of null or false removes that part. */
     setStyle(range: RangeLike, style: {[K in keyof CellStyle]?: CellStyle[K] | null}): void;
     setType(range: RangeLike, type: SheetType | null): void;
@@ -249,9 +322,10 @@ export declare class SheetModel extends EventTarget {
     deleteColumns(index: number, count?: number): void;
     copy(range: RangeLike): Required<SheetClip>;
     /** Relative references move with the cells. A copy of one cell fills all of a larger target. Returns the changed range. */
-    paste(target: RangeLike, clip: SheetClip): CellRange;
+    /** `mapInput` can change each pasted input that is not a formula. */
+    paste(target: RangeLike, clip: SheetClip, options?: {mapInput?: (input: string, row: number, col: number) => string}): CellRange;
     /** Pastes text with tabs between cells and lines between rows. */
-    pasteText(target: RangeLike, text: string): CellRange;
+    pasteText(target: RangeLike, text: string, options?: {mapInput?: (input: string, row: number, col: number) => string}): CellRange;
     /** Copies the top row to the other rows, or the first column to the other columns. */
     fill(range: CellRange, direction?: 'down' | 'right'): void;
     /** The last row and column with content, or -1. */
@@ -263,7 +337,7 @@ export declare class SheetModel extends EventTarget {
     /** `values: false` gives the inputs, so that formulas stay formulas. */
     toCSV(options?: {range?: CellRange | null; values?: boolean}): string;
     /** Reads CSV at a cell, as one undo step. */
-    fromCSV(text: string, at?: string): void;
+    fromCSV(text: string, at?: string, options?: {delimiter?: string; mapInput?: (input: string, row: number, col: number) => string}): void;
     toJSON(): SheetJSON;
     /** Replaces all of the data. A load is not an undo step. */
     load(data?: SheetData): void;
@@ -288,7 +362,7 @@ export declare class SheetCell extends BaseComponent {
     readonly editing: boolean;
     readonly editor: HTMLTextAreaElement | null;
     /** The sheet calls this. It changes the DOM only when the text or the classes change. */
-    show(cell: SheetCellInfo): void;
+    show(cell: SheetCellInfo, locked?: boolean): void;
     /** Puts an editor in the cell. */
     startEdit(text: string, options?: {caret?: 'end' | 'start' | 'select'; label?: string}): HTMLTextAreaElement;
     /** Removes the editor and gives its text, or null. */
@@ -309,7 +383,74 @@ export declare class FormulaBar extends BaseComponent {
 }
 
 export type SpreadSheetActionId = 'undo' | 'redo' | 'cut' | 'copy' | 'paste' | 'clear' | 'fillDown' | 'fillRight'
-    | 'bold' | 'italic' | 'today' | 'selectAll' | 'insertRow' | 'deleteRow' | 'insertColumn' | 'deleteColumn';
+    | 'bold' | 'italic' | 'today' | 'selectAll' | 'insertRow' | 'deleteRow' | 'insertColumn' | 'deleteColumn'
+    | 'submitRow' | 'discardRow';
+
+export interface SpreadSheetLockedDetail {
+    /** For example 'edit', 'paste', 'clear', 'cut', 'undo', 'deleteRow'. */
+    operation: string;
+    cells: (CellPosition & {address: string})[];
+    message: string;
+}
+
+export interface SheetCellContext {
+    row: number;
+    col: number;
+    address: string;
+    input: string;
+    /** 'user' for a change by the person, 'code' for a load or data from outside. */
+    source: 'user' | 'code';
+    sheet: SpreadSheet;
+    column: SheetColumn;
+}
+export interface SheetValidContext extends SheetCellContext { value: unknown; }
+export interface SheetInvalidContext extends SheetCellContext {
+    message: string;
+    reason: string;
+    /** Adds the default mark: a red border, `aria-invalid`, and the message as the title. */
+    mark(message?: string): void;
+}
+
+export type SheetRowState = 'clean' | 'changed' | 'empty' | 'draft' | 'pending' | 'sent' | 'error';
+export type SheetSubmitReason = 'change' | 'leave' | 'enter' | 'manual' | 'paste' | 'check';
+export type SheetSubmitOn = 'leave-row' | 'enter' | 'change' | 'manual';
+
+export interface SheetRowContext {
+    row: number;
+    reason: SheetSubmitReason;
+    /** 'new' for an entry row, 'update' for a record row. */
+    kind: 'new' | 'update';
+    /** The value of the `record-key` field of the record. */
+    id: unknown;
+    /** The record that the row showed before the person changed it. */
+    original: Record<string, unknown> | null;
+    /** A newer record from outside, which waits until the row is sent or discarded. */
+    incoming: Record<string, unknown> | null;
+    /** The conflict of the row, also when the sheet does not show conflicts. */
+    conflict: SheetRowConflict | null;
+    /** The record went away from `records` while the person changed the row. */
+    gone: boolean;
+    record: Record<string, unknown> | null;
+    sheet: SpreadSheet;
+}
+export interface SheetSubmitContext extends SheetRowContext {
+    errors: Record<string, string>;
+    valid: boolean;
+}
+
+/** A row that the person changed, and that also changed elsewhere. `fields` are the keys that the new version changed. */
+export interface SheetRowConflict {
+    original: Record<string, unknown> | null;
+    incoming: Record<string, unknown>;
+    fields: string[];
+}
+
+export interface SpreadSheetRowStateDetail {
+    row: number;
+    state: SheetRowState;
+    value?: unknown;
+    error?: string;
+}
 
 export interface SpreadSheetChangeDetail { changes: SheetChange[]; }
 export interface SpreadSheetSelectDetail {
@@ -332,6 +473,47 @@ export declare class SpreadSheet extends BaseComponent {
     locale: string;
     /** The accessible name of the grid. */
     label: string;
+    /** Tab and Enter go past locked cells. Attribute `skip-locked`. */
+    skipLocked: boolean;
+    /** 'refuse' (the default): a change that touches a locked cell does nothing. 'skip': the other cells change. Attribute `locked-cells`. */
+    lockedCells: 'refuse' | 'skip';
+    /** A notice tells the person about a refused change. The default is true. Attribute `locked-notice`. */
+    lockedNotice: boolean;
+    /** Data entry: the count of empty rows after the records. Attribute `entry-rows`. */
+    entryRows: number;
+    /** The field that identifies a record. The default is 'id'. Attribute `record-key`. */
+    recordKey: string;
+    /** When a changed row goes to `onSubmitRow`. The default is 'leave-row'. Attribute `submit-on`. */
+    submitOn: SheetSubmitOn;
+    /** With `submitOn` 'change', the problems of a row show when the person leaves it. Attribute `quiet-rows`. */
+    quietRows: boolean;
+    /** Data entry: a paste of many rows sends each complete row at once. Attribute `paste-submits`. */
+    pasteSubmits: boolean;
+    /** Data entry: a text value of a record stays a text (with an apostrophe in the input), also when it reads as a number or a date. Attribute `keep-text`. */
+    keepText: boolean;
+    /** Data entry: a changed row that also changed elsewhere shows it, and does not go until the person decides. Attribute `show-conflicts`. */
+    showConflicts: boolean;
+    /** Messages of the validators for this sheet, by reason, for example a translation. They win over `setValidatorMessages`; the messages of a validator win over them. */
+    messages: Partial<Record<string, string | ((...args: any[]) => string)>> | null;
+
+    /** A rule that locks more cells, after `readonly` and before the model. Return true to lock the cell; another value lets the model decide, so the rule cannot unlock a cell. */
+    lockRule: ((cell: {row: number; col: number; address: string; sheet: SpreadSheet}) => boolean | undefined | null) | null;
+    /** In place of the notice for a refused change. */
+    onLocked: ((detail: SpreadSheetLockedDetail) => void) | null;
+    /** In place of the default mark on an invalid cell. `context.mark()` adds it. */
+    onInvalid: ((context: SheetInvalidContext) => void) | null;
+    /** After the mark (or `onInvalid`) for an invalid cell. */
+    afterInvalid: ((context: SheetInvalidContext) => void) | null;
+    /** After a cell becomes valid. The mark goes away first. */
+    onValid: ((context: SheetValidContext) => void) | null;
+    /** Sends a row. A promise keeps the row locked until it settles. A rejection makes the row 'error'. */
+    onSubmitRow: ((record: Record<string, unknown>, context: SheetSubmitContext) => unknown) | null;
+    /** In place of `submitOn`. A row with a problem never goes. */
+    submitWhen: ((context: SheetSubmitContext) => boolean) | null;
+    /** An id for a new row before its send, for example `() => crypto.randomUUID()`. The record from outside then finds the row. */
+    newRecordId: ((record: Record<string, unknown>, context: SheetSubmitContext) => unknown) | null;
+    /** The checks of more than one cell: a message for each field, a message for the row, or null. */
+    validateRow: ((record: Record<string, unknown>, context: SheetRowContext) => Record<string, string | null | undefined> | string | null | undefined) | null;
 
     /** The commands of the sheet. A menu or a toolbar can use the same actions. */
     actions: Record<SpreadSheetActionId, Action>;
@@ -342,12 +524,20 @@ export declare class SpreadSheet extends BaseComponent {
     getCell(row: number, col: number): SheetCellInfo;
     getValue(address: string): SheetValue;
     getValue(row: number, col: number): SheetValue;
-    setCell(address: string, input: string | number | null | undefined): void;
-    setCells(changes: readonly SheetCellChange[]): void;
+    /** Code changes locked cells too. With `respectLocks`, the change follows the locks as a change by the person does. Gives false when the locks refused it. */
+    setCell(address: string, input: string | number | null | undefined, options?: {respectLocks?: boolean}): boolean;
+    /** The input of a cell in the form of the locale of the sheet, as the editor and the formula bar show it: '1234,5' in German. */
+    inputText(address: string): string;
+    inputText(row: number, col: number): string;
+    /** `locale`, else the `lang` of the page, else the language of the browser. */
+    readonly effectiveLocale: string | null;
+    /** Code changes locked cells too. With `respectLocks`, the change follows the locks as a change by the person does. Gives false when the locks refused it. */
+    setCells(changes: readonly SheetCellChange[], options?: {respectLocks?: boolean}): boolean;
     load(data?: SheetData): void;
     toJSON(): SheetJSON;
     toCSV(options?: {range?: CellRange | null; values?: boolean}): string;
-    fromCSV(text: string, at?: string): void;
+    /** `locale`, or `decimal`, `group`, and `order`, are the signs of the file. `detectCsvFormat` finds them. */
+    fromCSV(text: string, at?: string, options?: {delimiter?: string; locale?: string; decimal?: ',' | '.'; group?: string; order?: ('year' | 'month' | 'day')[]}): void;
     insertRows(index: number, count?: number): void;
     deleteRows(index: number, count?: number): void;
     insertColumns(index: number, count?: number): void;
@@ -369,6 +559,33 @@ export declare class SpreadSheet extends BaseComponent {
     widthOf(col: number): number;
     /** CSS pixels. */
     setColumnWidth(col: number, width: number): void;
+
+    /** True when the person cannot change the cell. */
+    isLocked(row: number, col: number): boolean;
+    /** Shows each cell again, for example after the data that `lockRule` reads changed. */
+    refresh(): void;
+    /** The options of a column: [{value, label}], or null. */
+    optionsOf(col: number): {value: unknown; label: string}[] | null;
+
+    /** The settings of all columns. In data entry, the cells of the records follow. */
+    setColumns(list: readonly SheetColumn[]): void;
+    /** Data entry: the data of the application, one object for each row. Set it again each time that the data changes. */
+    get records(): readonly Record<string, unknown>[] | null;
+    set records(list: readonly Record<string, unknown>[] | null);
+    rowState(row: number): SheetRowState | null;
+    rowError(row: number): string | null;
+    /** The conflict of a changed row whose record also changed elsewhere, or null. */
+    rowConflict(row: number): SheetRowConflict | null;
+    /** Keeps the changes of the person on top of the new version, so that the row can go. `discardRow` takes the new version. */
+    keepRowChanges(row?: number): boolean;
+    /** The values of a row, from the validators. */
+    rowRecord(row: number): {record: Record<string, unknown>; errors: Record<string, string>; valid: boolean; empty: boolean} | null;
+    /** Sends a row now, if it has changes and no problem. */
+    submitRow(row?: number): boolean;
+    /** Sends each row with changes and no problem. Returns the count. */
+    submitAll(): number;
+    /** Puts a row back as its record, or empties an entry row. */
+    discardRow(row?: number): boolean;
 }
 
 export declare class ShadowSpreadSheet extends SpreadSheet {
@@ -388,5 +605,28 @@ declare global {
     interface HTMLElementEventMap {
         'spreadsheet-change': CustomEvent<SpreadSheetChangeDetail>;
         'spreadsheet-select': CustomEvent<SpreadSheetSelectDetail>;
+        'spreadsheet-locked': CustomEvent<SpreadSheetLockedDetail>;
+        'spreadsheet-edit-refused': CustomEvent<{row: number; col: number; address: string; text: string; message: string}>;
+        'spreadsheet-row-submit': CustomEvent<SheetSubmitContext>;
+        'spreadsheet-row-state': CustomEvent<SpreadSheetRowStateDetail>;
+        'spreadsheet-row-conflict': CustomEvent<SheetRowConflict & {row: number}>;
     }
 }
+
+/** The signs of a CSV file, from its data. `decimal` is null and `confident` false when the numbers can be read both ways, for example only "1,234". */
+export interface CsvFormat {
+    delimiter: ',' | ';' | '\t';
+    decimal: ',' | '.' | null;
+    group: ',' | '.' | null;
+    order: ('year' | 'month' | 'day')[] | null;
+    confident: boolean;
+    /** Some cells that can be read both ways. */
+    ambiguous: string[];
+}
+export declare function detectCsvFormat(text: string, options?: {sample?: number}): CsvFormat;
+/** The cells of an HTML table from the clipboard. `raw` is true for an exact value from Excel or Google Sheets. null when the HTML has no table. */
+export declare function readClipboardTable(html: string): {input: string; raw: boolean}[][] | null;
+/** A text in the form of a locale to the canonical input of the model: '1.234,5' in 'de-DE' to '1234.5'. */
+export declare function canonicalCellInput(text: string, locale: string | null | undefined): string;
+/** A canonical input in the form of a locale. `type` is the shown type of the cell, such as 'number' or 'date'. */
+export declare function localCellInput(input: string, locale: string | null | undefined, type?: string | null): string;
