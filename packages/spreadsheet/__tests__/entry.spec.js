@@ -909,3 +909,178 @@ describe('data entry, when the data comes before the answer', () => {
         expect(sheet.getValue('B1')).toBe(3);
     });
 });
+
+describe('record register', () => {
+    it('keeps the source record and its key through edits, reordering, and conflicts', () => {
+        const original = {code: 0, item: 'First', quantity: 1};
+        const sheet = entrySheet([original], {'record-key': 'code', 'submit-on': 'manual'});
+        sheet.lockRule = ({row, col}) => sheet.rowKey(row) === 0 && col === 2;
+        sheet.writeByUser('A1', 'Local');
+        const incoming = {...original, item: 'Remote'};
+        sheet.records = [{code: 'next', item: 'Second'}, incoming, {item: 'No key'}];
+        expect(sheet.rowKey(0)).toBe('next');
+        expect(sheet.rowKey(1)).toBe(0);
+        expect(sheet.isLocked(1, 2)).toBe(true);
+        expect(sheet.rowOriginal(1)).toBe(original);
+        expect(sheet.rowRecord(1).record.item).toBe('Local');
+        expect(sheet.rowKey(2)).toBeNull();
+        for (const row of [3, 99]) {
+            expect(sheet.rowKey(row)).toBeNull();
+            expect(sheet.rowOriginal(row)).toBeNull();
+        }
+        sheet.discardRow(1);
+        expect(sheet.rowOriginal(1)).toBe(incoming);
+    });
+
+    it('updates the hint and its words on reused cells without changing validation or values', () => {
+        const sheet = make({rows: '1000', columns: '2'}, {A1: 'Review'});
+        let indicated = 0;
+        sheet.cellHint = ({row, col}) => row === indicated && col === 0 ? 'attention' : null;
+        flushRenders();
+        const cell = cellElement(sheet, 'A1');
+        expect(cell.textContent).toBe('Review Needs attention');
+        expect(cell.classList.contains('zest-hint-attention')).toBe(true);
+        expect(cell.hasAttribute('aria-invalid')).toBe(false);
+        expect(sheet.getValue('A1')).toBe('Review');
+        sheet.labels = {hints: {attention: 'Assess this row'}};
+        flushRenders();
+        expect(cell.textContent).toBe('Review Assess this row');
+        indicated = 1;
+        sheet.refresh();
+        flushRenders();
+        expect(cell.textContent).toBe('Review');
+        expect(cell.classList.contains('zest-hint-attention')).toBe(false);
+        expect(cellElement(sheet, 'A2').textContent.trim()).toBe('Assess this row');
+        grid(sheet).scrollTop = 5000;
+        grid(sheet).dispatchEvent(new Event('scroll'));
+        flushRenders();
+        expect(sheet.querySelector('.zest-hint-attention')).toBeNull();
+    });
+
+    it('updates row and header labels, and uses the translated lock message for the event and live region', () => {
+        const sheet = entrySheet([]);
+        const corner = sheet.querySelector('.zest-corner');
+        expect(corner.textContent).toBe('Rows and columns');
+        sheet.labels = {
+            corner: 'Lignes et colonnes', rowStates: {empty: 'Nouvelle ligne'},
+            lockedNotice: (address, count) => `${address} verrouillée (${count})`,
+        };
+        flushRenders();
+        expect(corner.textContent).toBe('Lignes et colonnes');
+        expect(sheet.querySelector('.zest-row-head').title).toBe('Nouvelle ligne');
+        sheet.onLocked = vi.fn();
+        sheet.selection = 'D1';
+        key(sheet, {key: 'F2'});
+        expect(sheet.onLocked.mock.calls[0][0].message).toBe('D1 verrouillée (1)');
+        expect(sheet.querySelector('.zest-live').textContent).toBe('D1 verrouillée (1)');
+    });
+
+    it('uses the column alignment for option labels unless the cell has its own alignment', () => {
+        const sheet = make();
+        const options = [{value: 3, label: '3 – Possible'}];
+        sheet.setColumns([{options}, {validate: v.oneOf(options), align: 'center'}, {type: 'number'}]);
+        sheet.setCells([0, 1, 2].map(col => ({row: 0, col, input: '3'})));
+        flushRenders();
+        expect(cellElement(sheet, 'A1').textContent).toBe('3 – Possible');
+        expect(cellElement(sheet, 'A1').classList.contains('zest-align-start')).toBe(true);
+        expect(cellElement(sheet, 'B1').classList.contains('zest-align-center')).toBe(true);
+        expect(cellElement(sheet, 'C1').classList.contains('zest-align-start')).toBe(false);
+        sheet.model.setStyle('A1', {align: 'end'});
+        flushRenders();
+        expect(cellElement(sheet, 'A1').classList.contains('zest-align-end')).toBe(true);
+        expect(sheet.getValue('A1')).toBe(3);
+    });
+
+    it('announces the result when Tab skips a locked column and submits the row', async () => {
+        const sheet = entrySheet([{id: 1, item: 'Pens', quantity: 2}], {'skip-locked': ''});
+        sheet.labels = {rowSending: row => `Sending ${row}`, rowSent: row => `Saved ${row}`};
+        const response = Promise.withResolvers();
+        sheet.onSubmitRow = vi.fn(() => response.promise);
+        const state = vi.fn();
+        sheet.addEventListener('spreadsheet-row-state', state);
+        sheet.selection = 'C1';
+        type(sheet, '5');
+        key(sheet, {key: 'Tab'});
+        expect(sheet.activeAddress).toBe('A2');
+        expect(sheet.onSubmitRow).toHaveBeenCalledTimes(1);
+        expect(sheet.querySelector('.zest-live').textContent).toBe('Sending 1');
+        response.resolve();
+        await flush();
+        expect(sheet.querySelector('.zest-live').textContent).toBe('Saved 1');
+        expect(state.mock.calls[0][0].detail).toMatchObject({row: 0, state: 'sent'});
+    });
+});
+
+describe('register validation and row options', () => {
+    it.each(['check', 'manual', 'change', 'enter', 'leave'])('passes %s to the row validator once', reason => {
+        const sheet = entrySheet([{id: 1, item: 'Pens', quantity: 1}], {
+            'submit-on': ['check', 'manual'].includes(reason) ? 'manual' : reason === 'leave' ? 'leave-row' : reason,
+        });
+        sheet.selection = 'B1';
+        sheet.validateRow = vi.fn(() => ({quantity: 'Review quantity'}));
+        sheet.onSubmitRow = vi.fn();
+        if (reason === 'check') {
+            expect(sheet.rowRecord(0).valid).toBe(false);
+        } else {
+            sheet.writeByUser('B1', '2');
+            if (reason === 'manual') { expect(sheet.submitRow(0)).toBe(false); }
+            if (reason === 'enter') { key(sheet, {key: 'Enter'}); }
+            if (reason === 'leave') { key(sheet, {key: 'ArrowDown'}); }
+            expect(sheet.getCell('B1').mark?.message).toBe('Review quantity');
+        }
+        expect(sheet.validateRow.mock.calls.map(([, context]) => context.reason)).toEqual([reason]);
+        expect(sheet.onSubmitRow).not.toHaveBeenCalled();
+    });
+
+    it('uses each destination row for a paste and reports its validation reason once', () => {
+        const sheet = entrySheet([], {'paste-submits': '', 'submit-on': 'manual'});
+        sheet.setColumns([{key: 'action', options: [{value: 9, label: 'Choose'}]}]);
+        sheet.optionsRule = ({row}) => row < 2 ? [{value: row, label: 'Choose'}] : null;
+        sheet.validateRow = vi.fn(() => ({action: 'Confirm'}));
+        sheet.selection = 'A1';
+        grid(sheet).focus();
+        const paste = new Event('paste', {bubbles: true, cancelable: true});
+        paste.clipboardData = {getData: type => type === 'text/plain' ? 'Choose\nChoose\nChoose' : ''};
+        document.dispatchEvent(paste);
+        flushRenders();
+        expect([0, 1, 2].map(row => sheet.getValue(row, 0))).toEqual([0, 1, 9]);
+        expect(sheet.validateRow.mock.calls.map(([, context]) => [context.row, context.reason])).toEqual([[0, 'paste'], [1, 'paste'], [2, 'paste']]);
+    });
+
+    it('uses the record options for display, editing and lookup after the records move', () => {
+        const sheet = entrySheet([], {'submit-on': 'manual'});
+        sheet.setColumns([{key: 'action', options: [{value: 1, label: 'Default'}]}]);
+        const a = {id: 'a', action: 1};
+        const b = {id: 'b', action: 1};
+        sheet.records = [a, b];
+        let choices = [{value: 1, label: 'Review'}, {value: 2, label: 'Approve'}];
+        sheet.optionsRule = ({row, col, address, sheet}) => {
+            expect(sheet.getCell(address).col).toBe(col);
+            return sheet.rowKey(row) === 'a' ? choices : null;
+        };
+        sheet.records = [b, a];
+        flushRenders();
+        expect(sheet.optionsOf(0)).toEqual([{value: 1, label: 'Default'}]);
+        expect(sheet.optionsOf(0, 1)).toEqual(choices);
+        expect(cellElement(sheet, 'A1').textContent).toBe('Default');
+        expect(cellElement(sheet, 'A2').textContent).toBe('Review');
+        sheet.selection = 'A2';
+        key(sheet, {key: 'F2'});
+        expect(editor(sheet).value).toBe('Review');
+        key(sheet, {key: 'Escape'});
+        type(sheet, 'app');
+        expect(document.querySelector('type-ahead-list [role="option"]').textContent).toBe('Approve');
+        key(sheet, {key: 'Enter'});
+        expect(sheet.getValue('A2')).toBe(2);
+        expect(sheet.getCell('A2').display).toBe('Approve');
+        choices[1].label = 'Approved';
+        sheet.refresh();
+        flushRenders();
+        expect(cellElement(sheet, 'A2').textContent).toBe('Approved');
+        choices = [];
+        sheet.refresh();
+        flushRenders();
+        expect(sheet.optionsOf(0, 1)).toEqual([]);
+        expect(cellElement(sheet, 'A2').textContent).toBe('2');
+    });
+});

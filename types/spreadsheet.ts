@@ -41,7 +41,7 @@ entry.submitOn = 'leave-row';
 entry.setColumns([
     {key: 'item', title: 'Item', validate: v.text({required: true})},
     {key: 'quantity', title: 'Quantity', validate: v.uint()},
-    {key: 'size', title: 'Size', validate: v.oneOf(['S', 'M', 'L'])},
+    {key: 'size', title: 'Size', align: 'start', validate: v.oneOf(['S', 'M', 'L'])},
     {title: 'Total', formula: '=B1*2'},
 ]);
 entry.records = [{id: 1, item: 'Pens', quantity: 3, size: 'M'}];
@@ -53,7 +53,15 @@ entry.validateRow = (row) => (Number(row.quantity) > 10 ? {quantity: 'Ten or few
 entry.submitWhen = (context) => context.valid && context.reason !== 'change';
 entry.onInvalid = (context) => { if (context.source === 'user') { context.mark(); } };
 entry.afterInvalid = (context) => console.log(context.address, context.message);
-entry.lockRule = ({row}) => (row === 0 ? true : undefined);
+entry.lockRule = ({row, sheet}) => sheet.rowKey(row) === 0;
+entry.cellHint = ({row, col, sheet}) => col === 1 && sheet.rowOriginal(row)?.needsReview ? 'attention' : null;
+entry.labels = {
+    hints: {attention: 'Review quantity'},
+    rowStates: {pending: 'Saving'},
+    rowSent: row => `Row ${row} saved`,
+};
+entry.optionsRule = ({row, col, sheet}) => col === 2 && sheet.rowKey(row) === 1 ? [{value: 'S', label: 'Small'}] : null;
+console.log(entry.optionsOf(2, 0));
 entry.lockedCells = 'skip';
 entry.onLocked = (detail) => console.log(detail.operation, detail.cells.length);
 entry.addEventListener('spreadsheet-row-state', (e) => console.log(e.detail.row, e.detail.state));

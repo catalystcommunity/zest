@@ -15,6 +15,8 @@
 //   sent     the answer came. An entry row stays, locked, until its record is in `records`.
 //   error    the send failed. The row stays, and the person can change it and send it again.
 
+import { sheetLabel } from './labels.js';
+
 const SANDBOXED = new Set(['changed', 'pending', 'error']);
 
 export class RecordRows {
@@ -343,11 +345,10 @@ export class RecordRows {
     // ---------- Sending ----------
 
     // The values of a row, and a message for each problem: {record, errors, valid, empty}
-    check(row, {report = false} = {}) {
+    check(row, reason = 'check', problems = []) {
         const host = this.#host;
         const record = {};
         const errors = {};
-        const problems = [];
         for (const {key, col} of host.columns()) {
             if (key === undefined || key === null) { continue; }
             const result = host.parseCell(row, col);
@@ -360,7 +361,7 @@ export class RecordRows {
         }
         const item = this.rows[row];
         if (!problems.length && host.validateRow()) {
-            const extra = host.validateRow()(record, this.#context(row, 'check', record));
+            const extra = host.validateRow()(record, this.#context(row, reason, record));
             if (typeof extra === 'string' && extra) {
                 errors[''] = extra;
             } else if (extra && typeof extra === 'object') {
@@ -372,7 +373,6 @@ export class RecordRows {
                 }
             }
         }
-        if (report && problems.length) { host.reportProblems(problems); }
         const valid = Object.keys(errors).length === 0;
         return {record, errors, valid, empty: item?.kind === 'entry' && this.#isEmpty(row)};
     }
@@ -407,31 +407,22 @@ export class RecordRows {
         if (!wanted && !custom) { return false; }
         if (this.#host.showConflicts() && this.conflictOf(row)) {
             // The person decides first: keep the changes, or take the new version
-            if (reason !== 'change') { this.#host.say(`Row ${row + 1} was not sent. It changed elsewhere. Keep your changes, or take the new version.`); }
+            if (reason !== 'change') { this.#host.say(sheetLabel(host.sheet, 'conflictBlocked', row + 1)); }
             return false;
         }
-        const check = this.check(row);
+        const problems = [];
+        const check = this.check(row, reason, problems);
         if (check.empty) { return false; }
         const context = {...this.#context(row, reason, check.record), errors: check.errors, valid: check.valid};
         // submitWhen decides when a row goes. A row with a problem never goes.
         const go = custom ? Boolean(custom(context)) : wanted;
         if (!go) { return false; }
         if (!check.valid) {
-            if (reason === 'paste') {
-                // The sheet tells the result of all pasted rows in one message
-                this.check(row, {report: true});
-                return false;
-            }
-            if (reason === 'change') {
-                // The problems show at once, with no message. With quiet-rows, they wait until the
-                // person leaves the row.
-                if (!host.quietRows()) { this.check(row, {report: true}); }
-                return false;
-            }
-            // The person asked for the send, so the problems show, also for empty required cells
-            this.check(row, {report: true});
+            if (problems.length && (reason !== 'change' || !host.quietRows())) { host.reportProblems(problems); }
+            // A paste has one summary. A change shows marks without an announcement.
+            if (reason === 'paste' || reason === 'change') { return false; }
             const count = Object.keys(check.errors).length;
-            host.say(`Row ${row + 1} was not sent. ${count === 1 ? 'One cell has a problem' : `${count} cells have problems`}: ${Object.values(check.errors)[0]}`);
+            host.say(sheetLabel(host.sheet, 'rowInvalid', row + 1, count, Object.values(check.errors)[0]));
             return false;
         }
         this.send(row, context);
@@ -451,7 +442,7 @@ export class RecordRows {
         item.state = 'pending';
         item.error = null;
         host.rowsChanged();
-        host.say(`Row ${row + 1} is sending`);
+        host.say(sheetLabel(host.sheet, 'rowSending', row + 1));
         const done = (value) => {
             if (item.state !== 'pending') { return; }
             item.state = 'sent';
@@ -468,16 +459,16 @@ export class RecordRows {
             let at = this.rows.indexOf(item);
             if (at < 0 && item.sentId !== null && item.sentId !== undefined) { at = this.rows.findIndex(other => other.kind === 'record' && other.id === item.sentId); }
             host.rowsChanged();
-            if (at >= 0) { host.say(`Row ${at + 1} was sent`); }
+            if (at >= 0) { host.say(sheetLabel(host.sheet, 'rowSent', at + 1)); }
             host.emit('spreadsheet-row-state', {row: at, state: 'sent', value: value ?? null});
         };
         const fail = (error) => {
             if (item.state !== 'pending') { return; }
             item.state = 'error';
-            item.error = error?.message ?? String(error ?? 'The send failed');
+            item.error = error?.message ?? String(error ?? sheetLabel(host.sheet, 'sendFailed'));
             const at = this.rows.indexOf(item);
             host.rowsChanged();
-            if (at >= 0) { host.say(`Row ${at + 1} was not sent: ${item.error}`); }
+            if (at >= 0) { host.say(sheetLabel(host.sheet, 'rowFailed', at + 1, item.error)); }
             host.emit('spreadsheet-row-state', {row: at, state: 'error', error: item.error});
         };
         let result;

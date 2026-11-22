@@ -22,20 +22,22 @@ const sameStyle = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? nu
 // The sheet type that shows the value of a validator from @catalystcommunity/validators
 const VALIDATOR_TYPES = {int: 'number', uint: 'number', float: 'number', decimal: 'number', bool: 'boolean', date: 'date', text: 'text', uuid: 'text', bytes: 'text', timestamp: 'text', enum: 'auto', any: 'auto'};
 
-// The options of a column: from `options`, or from a `oneOf` validator. [{value, label}] or null.
-export function columnOptions(info) {
-    const list = info?.options ?? info?.validate?.options ?? null;
+// The options for a list editor, as [{value, label}] or null.
+function normalizeOptions(list) {
     if (!list) { return null; }
     return list.map(item => (typeof item === 'object' && item !== null ? {value: item.value, label: String(item.label ?? item.value)} : {value: item, label: String(item)}));
 }
+export function columnOptions(info, options) {
+    return normalizeOptions(options ?? info?.options ?? info?.validate?.options);
+}
+
 // The label of each option value, made one time for each list
 const optionLabels = new WeakMap();
-function labelMap(info) {
-    const list = info?.options ?? info?.validate?.options;
+function labelMap(list) {
     if (!list) { return null; }
     let map = optionLabels.get(list);
     if (!map) {
-        map = new Map(columnOptions(info).map(item => [String(item.value), item.label]));
+        map = new Map(normalizeOptions(list).map(item => [String(item.value), item.label]));
         optionLabels.set(list, map);
     }
     return map;
@@ -267,7 +269,7 @@ export class SheetModel extends EventTarget {
     }
 
     // The cell at 'B2' or at (row, col): {address, row, col, input, type, value, display, style, error}
-    getCell(where, col) {
+    getCell(where, col, options) {
         const key = this.#key(where, col);
         const row = rowOf(key);
         const column = colOf(key);
@@ -282,7 +284,7 @@ export class SheetModel extends EventTarget {
             formula: Boolean(cell?.formula),
             type,
             value,
-            display: this.format(value, type, cell, column),
+            display: this.format(value, type, cell, column, options),
             style: cell?.style ?? null,
             error: value instanceof SheetError ? value : null,
             mark: this.#notes.get(key)?.mark ?? null,
@@ -313,13 +315,16 @@ export class SheetModel extends EventTarget {
     }
 
     // The text that a cell shows
-    format(value, type, cell = null, col = cell ? colOf(cell.key) : -1) {
+    format(value, type, cell = null, col = cell ? colOf(cell.key) : -1, options) {
         if (value === null || value === undefined) { return ''; }
         if (value instanceof SheetError) { return value.code; }
         const column = this.column(col);
-        const labels = cell && !cell.formula ? labelMap(column) : null;
-        if (labels) {
-            const label = labels.get(String(value));
+        if (cell && !cell.formula) {
+            // A rule can change its list in place before the application calls refresh().
+            const key = String(value);
+            const label = options
+                ? normalizeOptions(options).find(item => String(item.value) === key)?.label
+                : labelMap(column.options ?? column.validate?.options)?.get(key);
             if (label !== undefined) { return label; }
         }
         const info = {...column, ...(cell?.format ?? {})};
@@ -878,14 +883,14 @@ export class SheetModel extends EventTarget {
     // ---------- Clipboard ----------
 
     // A copy of a range: the inputs, for a paste in this sheet, and TSV text for other programs
-    copy(range) {
+    copy(range, displayAt) {
         const area = typeof range === 'string' ? parseRange(range) : normalizeRange(range);
         const rows = [];
         for (let row = area.top; row <= area.bottom; row++) {
             const line = [];
             for (let col = area.left; col <= area.right; col++) {
                 const cell = this.#cells.get(keyOf(row, col));
-                line.push({...snapshotOf(cell), display: this.getCell(row, col).display});
+                line.push({...snapshotOf(cell), display: displayAt ? displayAt(row, col) : this.getCell(row, col).display});
             }
             rows.push(line);
         }

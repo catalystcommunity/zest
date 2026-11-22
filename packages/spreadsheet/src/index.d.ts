@@ -126,6 +126,7 @@ export interface SheetColumn {
     /** In data entry, the field of the record that the column shows. */
     key?: string;
     title?: string;
+    align?: CellStyle['align'];
     type?: SheetType;
     decimals?: number;
     /** The default is `USD`. */
@@ -386,6 +387,60 @@ export type SpreadSheetActionId = 'undo' | 'redo' | 'cut' | 'copy' | 'paste' | '
     | 'bold' | 'italic' | 'today' | 'selectAll' | 'insertRow' | 'deleteRow' | 'insertColumn' | 'deleteColumn'
     | 'submitRow' | 'discardRow';
 
+export interface SheetCellLocation extends CellPosition {
+    address: string;
+    sheet: SpreadSheet;
+}
+
+/** Set the labels that the application needs. Message functions receive row numbers that start at 1. */
+export interface SheetLabels {
+    hints?: Record<string, string>;
+    rowStates?: Partial<Record<SheetRowState | 'conflict', string>>;
+    corner?: string;
+    keyboardHelp?: string;
+    rowSending?: (row: number) => string;
+    rowSent?: (row: number) => string;
+    rowFailed?: (row: number, error: string) => string;
+    sendFailed?: string;
+    rowInvalid?: (row: number, count: number, problem: string) => string;
+    rowConflict?: (row: number, fields: string[]) => string;
+    conflictFields?: (fields: string[]) => string;
+    conflictBlocked?: (row: number) => string;
+    lockedNotice?: (address: string, count: number) => string;
+    lockedSkipped?: (count: number) => string;
+    fixedStructure?: string;
+    blank?: string;
+    cellSelected?: (cell: {address: string; content: string; formula: string | null; locked: boolean; invalid: string | null; hint: string | null}) => string;
+    rangeSelected?: (range: string, count: number, address: string, content: string) => string;
+    columnWidth?: (column: string, width: number) => string;
+    cutStopped?: string;
+    leaveSheet?: string;
+    readOnly?: string;
+    calendarTitle?: string;
+    calendar?: (address: string) => string;
+    dateFor?: (address: string) => string;
+    calendarOpened?: (address: string) => string;
+    editCell?: (address: string) => string;
+    editing?: (address: string) => string;
+    reference?: (text: string) => string;
+    editMode?: string;
+    enterMode?: string;
+    invalidEdit?: (message: string) => string;
+    canceledEdit?: (address: string) => string;
+    cut?: (range: string) => string;
+    copied?: (range: string) => string;
+    pasted?: (range: string) => string;
+    pastedRows?: (range: string, sent: number, held: number) => string;
+    argument?: (name: string, argument: string) => string;
+    cellAddress?: string;
+    inputOf?: (address: string) => string;
+    options?: (title: string) => string;
+    functions?: string;
+    column?: (name: string) => string;
+    formulaError?: (code: string) => string;
+    invalidValue?: string;
+}
+
 export interface SpreadSheetLockedDetail {
     /** For example 'edit', 'paste', 'clear', 'cut', 'undo', 'deleteRow'. */
     operation: string;
@@ -496,8 +551,13 @@ export declare class SpreadSheet extends BaseComponent {
     /** Messages of the validators for this sheet, by reason, for example a translation. They win over `setValidatorMessages`; the messages of a validator win over them. */
     messages: Partial<Record<string, string | ((...args: any[]) => string)>> | null;
 
+    /** Return the options for this cell. Use null for the column options or [] for an empty list. */
+    optionsRule: ((cell: SheetCellLocation) => SheetColumn['options'] | null) | null;
+    labels: SheetLabels;
+    /** Return a hint name for the cell or null to clear the hint. */
+    cellHint: ((cell: SheetCellLocation) => string | null | undefined) | null;
     /** A rule that locks more cells, after `readonly` and before the model. Return true to lock the cell; another value lets the model decide, so the rule cannot unlock a cell. */
-    lockRule: ((cell: {row: number; col: number; address: string; sheet: SpreadSheet}) => boolean | undefined | null) | null;
+    lockRule: ((cell: SheetCellLocation) => boolean | undefined | null) | null;
     /** In place of the notice for a refused change. */
     onLocked: ((detail: SpreadSheetLockedDetail) => void) | null;
     /** In place of the default mark on an invalid cell. `context.mark()` adds it. */
@@ -562,16 +622,20 @@ export declare class SpreadSheet extends BaseComponent {
 
     /** True when the person cannot change the cell. */
     isLocked(row: number, col: number): boolean;
-    /** Shows each cell again, for example after the data that `lockRule` reads changed. */
+    /** Shows each cell again, for example after the data used by a lock, hint, or option rule changed. */
     refresh(): void;
     /** The options of a column: [{value, label}], or null. */
-    optionsOf(col: number): {value: unknown; label: string}[] | null;
+    optionsOf(col: number, row?: number): {value: unknown; label: string}[] | null;
 
     /** The settings of all columns. In data entry, the cells of the records follow. */
     setColumns(list: readonly SheetColumn[]): void;
     /** Data entry: the data of the application, one object for each row. Set it again each time that the data changes. */
     get records(): readonly Record<string, unknown>[] | null;
     set records(list: readonly Record<string, unknown>[] | null);
+    /** The value of the record-key field. An entry row or a missing key gives null. */
+    rowKey(row: number): unknown;
+    /** The source record before local edits. An entry row gives null. */
+    rowOriginal(row: number): Record<string, unknown> | null;
     rowState(row: number): SheetRowState | null;
     rowError(row: number): string | null;
     /** The conflict of a changed row whose record also changed elsewhere, or null. */

@@ -4,6 +4,7 @@ import { Action, ShortcutMap } from "@catalystcommunity/actions";
 import { attachTypeahead } from "@catalystcommunity/controls";
 import { showNotice } from "@catalystcommunity/menus";
 import { validators } from "@catalystcommunity/validators";
+import { namedLabel, sheetLabel } from "./labels.js";
 import { RecordRows } from "./records.js";
 import { toCanonicalInput, toLocalInput, sheetLocale, textFormat, detectCsvFormat } from "./locale.js";
 import { readClipboardTable } from "./clipboard.js";
@@ -196,7 +197,7 @@ spread-sheet, :host {
     margin-inline-start: 0.2em;
     font-weight: bold;
 }
-.zest-sheet .zest-row-head .zest-words, .zest-sheet .zest-help {
+.zest-sheet .zest-words, .zest-sheet .zest-help {
     ${visuallyHidden}
 }
 .zest-sheet .zest-row[data-state="error"] .zest-row-head, .zest-sheet .zest-row[data-state="conflict"] .zest-row-head {
@@ -311,6 +312,9 @@ const cellCss = `.zest-sheet-cell {
 .zest-cell.zest-error {
     color: var(--_invalid);
     font-weight: bold;
+}
+.zest-cell.zest-hint-attention {
+    border-inline-start: 3px solid var(--_highlight);
 }
 .zest-cell.zest-bold {
     font-weight: bold;
@@ -464,19 +468,21 @@ class SheetCell extends BaseComponent {
 
     // The sheet calls this. It changes the DOM only when the text or the classes change.
     // `checkbox` is the name of the column, when its boolean cells show as check boxes.
-    show(cell, locked = false, checkbox = null) {
+    show(cell, locked = false, checkbox = null, {align, hint, hintText} = {}) {
         if (this.#editor) { return; }
         const asCheck = checkbox !== null && (cell.type === 'boolean' || cell.input === '');
         const display = asCheck ? `\u0001${cell.value === true}\u0001${locked}\u0001${checkbox}` : cell.display;
         const parts = [cell.error ? 'zest-error' : `zest-${cell.type}`];
         if (cell.style?.bold) { parts.push('zest-bold'); }
         if (cell.style?.italic) { parts.push('zest-italic'); }
-        if (cell.style?.align) { parts.push(`zest-align-${cell.style.align}`); }
+        const alignment = cell.style?.align ?? align;
+        if (alignment) { parts.push(`zest-align-${alignment}`); }
+        if (hint) { parts.push(`zest-hint-${hint}`); }
         const invalid = Boolean(cell.mark?.invalid);
         if (locked) { parts.push('zest-locked'); }
         if (invalid) { parts.push('zest-invalid'); }
         const className = `zest-in-sheet zest-cell ${parts.join(' ')}`;
-        if (this.#shown.display !== display) {
+        if (this.#shown.display !== display || this.#shown.hintText !== hintText) {
             if (asCheck) {
                 // A check box that a screen reader knows. Space or a click on it changes the cell.
                 const box = Object.assign(document.createElement('span'), {className: 'zest-check'});
@@ -488,6 +494,10 @@ class SheetCell extends BaseComponent {
             } else {
                 this.textContent = display;
             }
+            if (hintText) {
+                this.append(Object.assign(document.createElement('span'), {className: 'zest-words', textContent: ` ${hintText}`}));
+            }
+            this.#shown.hintText = hintText;
             this.#shown.display = display;
         }
         if (this.#shown.className !== className) {
@@ -630,9 +640,9 @@ class FormulaBar extends BaseComponent {
         const wrapper = document.createElement('div');
         wrapper.className = 'zest-formula-bar';
         wrapper.setAttribute('part', 'formula-bar');
-        wrapper.innerHTML = `<input class="zest-name" aria-label="Cell address" autocomplete="off" spellcheck="false">`
+        wrapper.innerHTML = `<input class="zest-name" autocomplete="off" spellcheck="false">`
             + `<span class="zest-fx" aria-hidden="true">fx</span>`
-            + `<input class="zest-formula" aria-label="Cell input" autocomplete="off" spellcheck="false">`;
+            + `<input class="zest-formula" autocomplete="off" spellcheck="false">`;
         this.replaceChildren(wrapper);
         const [name, formula] = wrapper.querySelectorAll('input');
         this.#built = {name, formula};
@@ -673,6 +683,8 @@ class FormulaBar extends BaseComponent {
         const disabled = !sheet;
         name.disabled = disabled;
         formula.disabled = disabled || Boolean(sheet?.readOnly);
+        name.setAttribute('aria-label', sheetLabel(sheet, 'cellAddress'));
+        formula.setAttribute('aria-label', sheet ? sheetLabel(sheet, 'inputOf', sheet.activeAddress) : sheetLabel(null, 'cellInput'));
         if (!sheet) { return; }
         const range = sheet.selection;
         if (document.activeElement !== name && this.getRootNode().activeElement !== name) {
@@ -682,7 +694,6 @@ class FormulaBar extends BaseComponent {
         if (this.getRootNode().activeElement !== formula) {
             formula.value = sheet.inputText(sheet.activeAddress);
         }
-        formula.setAttribute('aria-label', `Input of cell ${sheet.activeAddress}`);
     }
 }
 
@@ -690,7 +701,6 @@ const NAV = {ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight
 const IMPLICIT = {number: validators.float(), boolean: validators.bool()};
 // The sign in the row header for each state of a row in data entry. The words also tell it.
 const ROW_SIGNS = {changed: '•', draft: '•', empty: '*', pending: '…', sent: '✓', error: '!', conflict: '≠'};
-const ROW_WORDS = {changed: 'changed, not sent', draft: 'new, not sent', empty: 'new row', pending: 'sending', sent: 'sent', error: 'not sent', conflict: 'changed here and elsewhere, not sent'};
 // A required column with a validator: the copy, made one time for each validator
 const requiredCopies = new WeakMap();
 const ANY = validators.any();
@@ -766,6 +776,9 @@ class SpreadSheet extends BaseComponent {
         keepText: {type: Boolean, attribute: 'keep-text', render: false},
         // Data entry: a changed row that also changed elsewhere shows it, and does not go until the person decides
         showConflicts: {type: Boolean, attribute: 'show-conflicts', render: false},
+        labels: {type: Object, attribute: false, default: () => ({})},
+        cellHint: {attribute: false, default: null},
+        optionsRule: {type: Function, attribute: false, default: null},
         // Messages of the validators for this sheet, by reason, for example a translation
         messages: {type: Object, default: null, attribute: false, render: false},
     };
@@ -867,6 +880,24 @@ class SpreadSheet extends BaseComponent {
     }
 
     propertyChanged(name, oldValue, value) {
+        if (name === 'optionsRule') {
+            this.#all = true;
+            this.#refreshOptions();
+            return;
+        }
+        if (name === 'labels' || name === 'cellHint') {
+            this.#all = true;
+            if (name === 'labels' && this.#built) {
+                this.#updateGridLabels();
+                for (const slot of this.#pool) { slot.state = undefined; }
+                if (this.#edit) {
+                    this.#tell('edit', this.#edit.editor.value);
+                } else {
+                    this.#tell('select');
+                }
+            }
+            return;
+        }
         if (name === 'entryRows') {
             if (this.#records || value > 0) { this.#startRecords().setRecords(this.#records?.records ?? []); }
             return;
@@ -882,7 +913,12 @@ class SpreadSheet extends BaseComponent {
         }
     }
 
-    getCell(where, col) { return this.model.getCell(where, col); }
+    getCell(where, col) {
+        if (!this.optionsRule || this.#readingOptions) { return this.model.getCell(where, col); }
+        const at = typeof where === 'string' ? parseAddress(where) : {row: where, col};
+        const options = at && this.#rowOptions(at.row, at.col);
+        return this.model.getCell(where, col, options);
+    }
     getValue(where, col) { return this.model.getValue(where, col); }
     // Code changes cells also when they are locked. With `respectLocks`, the change follows the
     // locks as a change by the person does (for code that acts for the person, as a macro does).
@@ -927,12 +963,13 @@ class SpreadSheet extends BaseComponent {
     set records(list) {
         const records = this.#startRecords();
         records.setRecords(list ?? []);
+        if (this.optionsRule && this.#edit?.editor) { this.#attachTypeahead(this.#edit); }
         const rows = records.takeConflicts();
         if (!this.showConflicts) { return; }
         for (const row of rows) {
             const conflict = records.conflictOf(row);
             this.emit('spreadsheet-row-conflict', {row, ...conflict});
-            this.#say(`Row ${row + 1} changed elsewhere: ${conflict.fields.join(', ')}`);
+            this.#say(sheetLabel(this, 'rowConflict', row + 1, conflict.fields));
         }
     }
 
@@ -951,6 +988,9 @@ class SpreadSheet extends BaseComponent {
     rowError(row) { return this.#records?.rowInfo(row)?.error ?? null; }
     // The values of a row, from the validators: {record, errors, valid, empty}
     rowRecord(row) { return this.#records?.check(row) ?? null; }
+
+    rowOriginal(row) { return this.#records?.rowInfo(row)?.record ?? null; }
+    rowKey(row) { return this.rowOriginal(row)?.[this.recordKey || 'id'] ?? null; }
 
     // Sends a row now, if it has changes and no problem. Returns true if it went.
     submitRow(row = this.#anchor.row) {
@@ -1036,7 +1076,7 @@ class SpreadSheet extends BaseComponent {
         const validator = this.#validatorOf(col);
         const type = this.model.columnType(col);
         let text;
-        if (columnOptions(info)) {
+        if (info.options ?? info.validate?.options) {
             text = String(value);
         } else if (value instanceof Date) {
             text = type === 'date' || validator?.kind === 'date' ? value.toISOString().slice(0, 10) : value.toISOString();
@@ -1067,7 +1107,7 @@ class SpreadSheet extends BaseComponent {
         const validator = this.#validatorOf(col) ?? this.#implicitValidator(col);
         if (input.startsWith('=')) {
             const value = this.model.getValue(row, col);
-            if (value instanceof SheetError) { return {valid: false, message: `The formula gives ${value.code}.`, reason: 'formula'}; }
+            if (value instanceof SheetError) { return {valid: false, message: sheetLabel(this, 'formulaError', value.code), reason: 'formula'}; }
             const plain = value instanceof SheetDate ? formatDate(fromDayNumber(value.days)) : value;
             return validator ? validator.parse(plain === null ? '' : String(plain), this.#parseContext()) : {valid: true, value: plain};
         }
@@ -1181,9 +1221,15 @@ class SpreadSheet extends BaseComponent {
         return this.model.isLocked(row, col);
     }
 
-    // Shows each cell again, for example after the data that lockRule reads changed
+    #hintOf({row, col, address}) {
+        const hint = this.cellHint?.({row, col, address, sheet: this});
+        return typeof hint === 'string' && hint && !/\s/.test(hint) ? hint : null;
+    }
+
+    // Shows each cell again after a change to data used by a rule
     refresh() {
         this.#all = true;
+        if (this.optionsRule) { this.#refreshOptions(); }
         this.invalidate();
     }
 
@@ -1199,7 +1245,7 @@ class SpreadSheet extends BaseComponent {
         if (this.lockedCells === 'skip') {
             const guard = {mode: 'skip', locked, hits: []};
             const result = this.model.withGuard(guard, fn);
-            if (guard.hits.length) { this.#say(`${guard.hits.length} locked ${guard.hits.length === 1 ? 'cell' : 'cells'} did not change`); }
+            if (guard.hits.length) { this.#say(sheetLabel(this, 'lockedSkipped', guard.hits.length)); }
             return result;
         }
         const probe = {mode: 'probe', locked, hits: []};
@@ -1215,9 +1261,7 @@ class SpreadSheet extends BaseComponent {
     #refuse(operation, cells) {
         const first = cells[0];
         const address = formatAddress(first.row, first.col);
-        const message = cells.length === 1
-            ? `Cell ${address} is locked. You cannot change it.`
-            : `${cells.length} cells are locked, for example ${address}. Nothing changed.`;
+        const message = sheetLabel(this, 'lockedNotice', address, cells.length);
         this.#say(message);
         const detail = {operation, cells: cells.map(cell => ({...cell, address: formatAddress(cell.row, cell.col)})), message};
         const go = this.emit('spreadsheet-locked', detail, {cancelable: true});
@@ -1248,7 +1292,7 @@ class SpreadSheet extends BaseComponent {
     }
 
     #changeStructure(operation, axis, range, fn) {
-        if (this.#records) { this.#say('In data entry, rows and columns do not change'); return; }
+        if (this.#records) { this.#say(sheetLabel(this, 'fixedStructure')); return; }
         if (operation.startsWith('delete')) {
             const locked = this.#lockedIn(axis, range);
             if (locked.length) { this.#refuse(operation, locked); return; }
@@ -1266,7 +1310,30 @@ class SpreadSheet extends BaseComponent {
     // ---------- Validation ----------
 
     // The options of a column with a list: [{value, label}], or null
-    optionsOf(col) { return columnOptions(this.model.column(col)); }
+    optionsOf(col, row) {
+        const options = row === undefined ? undefined : this.#rowOptions(row, col);
+        return columnOptions(this.model.column(col), options);
+    }
+
+    #refreshOptions() {
+        if (this.#edit?.editor) {
+            this.#attachTypeahead(this.#edit);
+        } else {
+            this.#tell('select');
+        }
+    }
+
+    // A rule can read another cell with getCell(). Give it the underlying model during that read.
+    #readingOptions = false;
+    #rowOptions(row, col) {
+        if (!this.optionsRule || this.#readingOptions) { return undefined; }
+        this.#readingOptions = true;
+        try {
+            return this.optionsRule({row, col, address: formatAddress(row, col), sheet: this}) ?? undefined;
+        } finally {
+            this.#readingOptions = false;
+        }
+    }
 
     #validatorOf(col) {
         const info = this.model.column(col);
@@ -1294,7 +1361,7 @@ class SpreadSheet extends BaseComponent {
     // The text of the input in the form of the locale: '1234,5' in German. The formula bar shows it too.
     #editText(row, col) {
         const input = this.model.getInput(row, col);
-        const options = this.optionsOf(col);
+        const options = this.optionsOf(col, row);
         if (!options || input.startsWith('=')) {
             if (this.model.columnType(col) === 'text') { return input; }
             return toLocalInput(input, this.effectiveLocale, this.model.getCell(row, col).type);
@@ -1308,8 +1375,8 @@ class SpreadSheet extends BaseComponent {
 
     // The input to save: an option label becomes the value of the option, and a number, a date, or
     // a formula of the locale becomes canonical. `raw` is an input that is canonical already.
-    #inputFor(col, text, {raw = false} = {}) {
-        const options = this.optionsOf(col);
+    #inputFor(row, col, text, {raw = false} = {}) {
+        const options = this.optionsOf(col, row);
         if (!options || text.startsWith('=')) {
             if (raw || this.model.columnType(col) === 'text') { return text; }
             return toCanonicalInput(text, this.effectiveLocale);
@@ -1356,8 +1423,8 @@ class SpreadSheet extends BaseComponent {
     // A change that the user made, from a part of the sheet or a formula bar. It sends events.
     writeByUser(address, input) {
         if (this.readOnly) { return; }
-        const {col} = parseAddress(address);
-        this.#asUser(() => this.#guarded('edit', () => this.model.setCell(address, this.#inputFor(col, input))));
+        const {row, col} = parseAddress(address);
+        this.#asUser(() => this.#guarded('edit', () => this.model.setCell(address, this.#inputFor(row, col, input))));
     }
     selectByUser(range) {
         this.#asUser(() => this.#select({row: range.top, col: range.left}, {row: range.bottom, col: range.right}));
@@ -1536,6 +1603,8 @@ class SpreadSheet extends BaseComponent {
         corner.setAttribute('role', 'columnheader');
         corner.setAttribute('aria-colindex', '1');
         corner.dataset.kind = 'corner';
+        const cornerText = Object.assign(document.createElement('span'), {className: 'zest-words'});
+        corner.append(cornerText);
         headRow.append(corner);
         const selection = document.createElement('div');
         selection.className = 'zest-selection';
@@ -1543,7 +1612,7 @@ class SpreadSheet extends BaseComponent {
         const active = document.createElement('div');
         active.className = 'zest-active';
         active.setAttribute('aria-hidden', 'true');
-        const dateButton = Object.assign(document.createElement('span'), {className: 'zest-date-button', textContent: '▾', title: 'Calendar (Alt+Arrow Down)'});
+        const dateButton = Object.assign(document.createElement('span'), {className: 'zest-date-button', textContent: '▾'});
         dateButton.addEventListener('pointerdown', (e) => {
             if (e.button !== 0) { return; }
             e.preventDefault();
@@ -1558,11 +1627,18 @@ class SpreadSheet extends BaseComponent {
         live.setAttribute('aria-live', 'polite');
         // Tab goes from row to row, so the grid tells how to leave it (WCAG 2.1.2, No Keyboard Trap)
         const help = Object.assign(document.createElement('div'), {className: 'zest-help', id: `zest-sheet-help-${++helpCount}`});
-        help.textContent = 'Tab goes to the next cell. Press Escape, then Tab, to leave the sheet.';
         viewport.setAttribute('aria-describedby', help.id);
         wrapper.append(viewport, live, help);
         this.root.replaceChildren(wrapper);
-        this.#built = {wrapper, viewport, sizer, headRow, selection, active, live, bar: null};
+        this.#built = {wrapper, viewport, sizer, headRow, selection, active, live, help, dateButton, cornerText, bar: null};
+        this.#updateGridLabels();
+    }
+
+    #updateGridLabels() {
+        const {help, dateButton, cornerText} = this.#built;
+        help.textContent = sheetLabel(this, 'keyboardHelp');
+        dateButton.title = sheetLabel(this, 'calendarTitle');
+        cornerText.textContent = sheetLabel(this, 'corner');
     }
 
     #measure() {
@@ -1693,7 +1769,7 @@ class SpreadSheet extends BaseComponent {
             const newRow = slot.row !== row;
             const rowState = this.#records?.shownStateOf(row) ?? null;
             const rowError = rowState === 'error' ? this.#records.rowInfo(row).error
-                : (rowState === 'conflict' ? `Changed elsewhere: ${this.#records.conflictOf(row).fields.join(', ')}` : null);
+                : (rowState === 'conflict' ? sheetLabel(this, 'conflictFields', this.#records.conflictOf(row).fields) : null);
             if (newRow) {
                 slot.row = row;
                 slot.element.hidden = false;
@@ -1729,8 +1805,16 @@ class SpreadSheet extends BaseComponent {
                     cell.col = col;
                 }
                 if (moved || all || rowRedraw || dirty?.has(row * MAX_COLUMNS + col)) {
-                    const info = model.getCell(row, col);
-                    cell.show(blank && model.column(col).formula ? {...info, display: '', error: null} : info, this.isLocked(row, col), this.#checkboxOf(col));
+                    const rowOptions = this.#rowOptions(row, col);
+                    const info = model.getCell(row, col, rowOptions);
+                    const column = model.column(col);
+                    const options = rowOptions ?? column.options ?? column.validate?.options;
+                    const align = column.align ?? (!info.formula && options ? 'start' : null);
+                    const hint = this.#hintOf(info);
+                    cell.show(blank && column.formula ? {...info, display: '', error: null} : info,
+                        this.isLocked(row, col), this.#checkboxOf(col), {
+                            align, hint, hintText: hint && namedLabel(this, 'hints', hint),
+                        });
                 }
                 const selected = rowInRange && col >= selection.left && col <= selection.right;
                 if (cell.selected !== selected) {
@@ -1853,7 +1937,7 @@ class SpreadSheet extends BaseComponent {
             });
             children.push(')');
             this.#argHint.replaceChildren(...children);
-            if (current >= 0) { this.#say(`${call.name}, ${parts[current]}`); }
+            if (current >= 0) { this.#say(sheetLabel(this, 'argument', call.name, parts[current])); }
         }
         this.#argHint.hidden = false;
         const left = this.#headPx + this.#lefts[edit.col];
@@ -1866,7 +1950,7 @@ class SpreadSheet extends BaseComponent {
     // The number of a row, and its state in data entry: a sign, and words for a screen reader
     #showRowHead(slot, row, state, error) {
         const sign = ROW_SIGNS[state] ?? '';
-        const words = ROW_WORDS[state] ?? '';
+        const words = namedLabel(this, 'rowStates', state);
         if (!sign && !words) {
             slot.head.textContent = row + 1;
             slot.element.removeAttribute('data-state');
@@ -1878,7 +1962,7 @@ class SpreadSheet extends BaseComponent {
         const text = Object.assign(document.createElement('span'), {className: 'zest-words', textContent: `, ${words}${error ? `: ${error}` : ''}`});
         slot.head.replaceChildren(String(row + 1), mark, text);
         slot.element.dataset.state = state;
-        if (error) { slot.head.title = error; } else if (words) { slot.head.title = words; }
+        slot.head.title = error || words;
     }
 
     #makePool(rows, cols) {
@@ -2039,13 +2123,20 @@ class SpreadSheet extends BaseComponent {
         clearTimeout(this.#announceTimer);
         this.#announceTimer = setTimeout(() => {
             const range = this.selection;
-            const cell = this.model.getCell(this.#anchor.row, this.#anchor.col);
+            const cell = this.getCell(this.#anchor.row, this.#anchor.col);
             const size = (range.bottom - range.top + 1) * (range.right - range.left + 1);
-            const content = cell.display || 'blank';
-            const formula = cell.formula ? `, formula ${cell.input}` : '';
-            const locked = this.isLocked(cell.row, cell.col) && !this.readOnly ? ', locked' : '';
-            const invalid = cell.mark?.invalid ? `, invalid: ${cell.mark.message}` : '';
-            this.#say(size > 1 ? `${formatRange(range)} selected, ${size} cells. ${cell.address} ${content}` : `${cell.address} ${content}${formula}${locked}${invalid}`);
+            const content = cell.display || sheetLabel(this, 'blank');
+            if (size > 1) {
+                this.#say(sheetLabel(this, 'rangeSelected', formatRange(range), size, cell.address, content));
+                return;
+            }
+            const hint = this.#hintOf(cell);
+            this.#say(sheetLabel(this, 'cellSelected', {
+                address: cell.address, content, formula: cell.formula ? cell.input : null,
+                locked: !this.readOnly && this.isLocked(cell.row, cell.col),
+                invalid: cell.mark?.invalid ? cell.mark.message : null,
+                hint: hint && namedLabel(this, 'hints', hint),
+            }));
         }, 120);
     }
 
@@ -2084,7 +2175,7 @@ class SpreadSheet extends BaseComponent {
             if (this.readOnly) { return; }
             const col = this.#anchor.col;
             this.#asUser(() => this.setColumnWidth(col, this.widthOf(col) + (e.key === 'ArrowRight' ? 16 : -16)));
-            this.#say(`Column ${columnName(col)} width ${this.widthOf(col)} pixels`);
+            this.#say(sheetLabel(this, 'columnWidth', columnName(col), this.widthOf(col)));
             return;
         }
         const page = Math.max(1, Math.floor(((this.#built.viewport.clientHeight || 400) - this.#rowPx) / this.#rowPx));
@@ -2153,12 +2244,12 @@ class SpreadSheet extends BaseComponent {
                 if (this.#cut) {
                     e.preventDefault();
                     this.#cut = null;
-                    this.#say('The cut stopped');
+                    this.#say(sheetLabel(this, 'cutStopped'));
                     return;
                 }
                 // The way out of the grid: the next Tab goes to the next control of the page
                 this.#leaveArmed = true;
-                this.#say('Press Tab to leave the sheet');
+                this.#say(sheetLabel(this, 'leaveSheet'));
                 return;
             case 'Process':
             case 'Unidentified':
@@ -2272,12 +2363,12 @@ class SpreadSheet extends BaseComponent {
         const address = formatAddress(row, col);
         const popup = Object.assign(document.createElement('div'), {className: 'zest-date-popup'});
         popup.setAttribute('role', 'dialog');
-        popup.setAttribute('aria-label', `Calendar for ${address}`);
+        popup.setAttribute('aria-label', sheetLabel(this, 'calendar', address));
         if (typeof popup.showPopover === 'function') { popup.setAttribute('popover', 'manual'); }
         const picker = createElementOf(DateTimePicker, 'date-time-picker');
         picker.setAttribute('inline', '');
         picker.setAttribute('mode', kind === 'timestamp' ? 'datetime' : 'date');
-        picker.setAttribute('label', `Date for ${address}`);
+        picker.setAttribute('label', sheetLabel(this, 'dateFor', address));
         const locale = this.effectiveLocale;
         if (locale) { picker.setAttribute('locale', locale); }
         const zone = this.#validatorOf(col)?.timeZone;
@@ -2315,7 +2406,7 @@ class SpreadSheet extends BaseComponent {
         if (popup.showPopover) { try { popup.showPopover(); } catch { /* It is open */ } }
         const anchor = this.#built.active;
         placePopup(popup, anchor, {placement: 'bottom-start'});
-        this.#say(`Calendar for ${address}. Press Escape to close it.`);
+        this.#say(sheetLabel(this, 'calendarOpened', address));
         requestAnimationFrame(() => {
             if (this.#datePicker !== state) { return; }
             const target = picker.querySelector?.('[aria-selected="true"], [tabindex="0"], button') ?? picker.shadowRoot?.querySelector('[tabindex="0"], button');
@@ -2339,7 +2430,7 @@ class SpreadSheet extends BaseComponent {
     #checkboxOf(col) {
         const info = this.model.column(col);
         if (info.display !== 'checkbox' || !this.#isBooleanColumn(col)) { return null; }
-        return info.title || `Column ${columnName(col)}`;
+        return info.title || sheetLabel(this, 'column', columnName(col));
     }
 
     #toggleBoolean() {
@@ -2352,7 +2443,7 @@ class SpreadSheet extends BaseComponent {
     }
 
     #startEdit(mode, text = null, {keepKey = false} = {}) {
-        if (this.readOnly) { this.#say('The sheet is read only'); return; }
+        if (this.readOnly) { this.#say(sheetLabel(this, 'readOnly')); return; }
         const {row, col} = this.#anchor;
         if (this.isLocked(row, col)) { this.#refuse('edit', [{row, col}]); return; }
         this.#reveal(row, col);
@@ -2374,13 +2465,13 @@ class SpreadSheet extends BaseComponent {
         this.#built.sizer.append(this.#editorRow);
         this.#edit = {row, col, cell, editor: null, mode, original};
         this.#placeEditor();
-        const editor = cell.startEdit(text ?? original, {caret: 'end', label: `Edit ${address}`});
+        const editor = cell.startEdit(text ?? original, {caret: 'end', label: sheetLabel(this, 'editCell', address)});
         const inputMode = this.#validatorOf(col)?.inputMode;
         if (inputMode && inputMode !== 'text') { editor.inputMode = inputMode; }
         this.#edit.editor = editor;
         this.#point = null;
         this.#attachTypeahead(this.#edit);
-        this.#say(`Editing ${address}`);
+        this.#say(sheetLabel(this, 'editing', address));
         this.#tell('edit', editor.value);
         if (keepKey) { editor.value = ''; }
         this.#updateRefBoxes();
@@ -2390,18 +2481,24 @@ class SpreadSheet extends BaseComponent {
 
     // The list under the editor: the options of a column with a list, or the names of functions
     #attachTypeahead(edit) {
+        const labels = this.optionsOf(edit.col, edit.row)?.map(item => item.label) ?? null;
+        // Keep the open list and the active suggestion when an unrelated record changes.
+        const previous = edit.optionLabels;
+        const unchanged = labels === null ? previous === null
+            : previous?.length === labels.length && labels.every((label, index) => label === previous[index]);
+        if (unchanged) { return; }
+        edit.optionLabels = labels;
         this.#typeahead?.();
         this.#typeahead = null;
-        const options = this.optionsOf(edit.col);
         const title = this.model.column(edit.col).title || columnName(edit.col);
-        if (options) {
+        if (labels) {
             this.#typeahead = attachTypeahead(edit.editor, {
-                source: options.map(item => item.label),
+                source: labels,
                 autoSelect: true,
                 arrowOpens: false,
                 enter: 'accept-continue',
                 tab: 'accept-continue',
-                label: `${title} options`,
+                label: sheetLabel(this, 'options', title),
             });
         } else {
             this.#typeahead = attachTypeahead(edit.editor, {
@@ -2412,7 +2509,7 @@ class SpreadSheet extends BaseComponent {
                 arrowOpens: false,
                 enter: 'none',
                 tab: 'accept',
-                label: 'Functions',
+                label: sheetLabel(this, 'functions'),
             });
         }
     }
@@ -2468,7 +2565,7 @@ class SpreadSheet extends BaseComponent {
             this.#pointWriting = false;
         }
         this.#reveal(point.focus.row, point.focus.col);
-        this.#say(`Reference ${text}`);
+        this.#say(sheetLabel(this, 'reference', text));
     }
 
     #pointMove(dRow, dCol, extend, toEdge) {
@@ -2531,7 +2628,7 @@ class SpreadSheet extends BaseComponent {
             case 'F2':
                 e.preventDefault();
                 edit.mode = edit.mode === 'enter' ? 'edit' : 'enter';
-                this.#say(edit.mode === 'edit' ? 'Edit mode: the arrow keys move in the text' : 'Enter mode: the arrow keys go to another cell');
+                this.#say(sheetLabel(this, edit.mode === 'edit' ? 'editMode' : 'enterMode'));
                 return;
         }
         if (NAV[e.key] && !e.altKey && this.#pointable()) {
@@ -2572,17 +2669,17 @@ class SpreadSheet extends BaseComponent {
         const address = formatAddress(edit.row, edit.col);
         if (fillSelection) {
             const range = this.selection;
-            const base = this.#inputFor(edit.col, text);
+            const base = this.#inputFor(edit.row, edit.col, text);
             const changes = [];
             for (let row = range.top; row <= range.bottom; row++) {
                 for (let col = range.left; col <= range.right; col++) {
-                    const input = base.startsWith('=') ? '=' + shiftFormula(base.slice(1), row - edit.row, col - edit.col) : this.#inputFor(col, text);
+                    const input = base.startsWith('=') ? '=' + shiftFormula(base.slice(1), row - edit.row, col - edit.col) : this.#inputFor(row, col, text);
                     changes.push({row, col, input});
                 }
             }
             this.#guarded('fill', () => this.model.setCells(changes));
         } else if (text !== edit.original) {
-            const input = this.#inputFor(edit.col, text);
+            const input = this.#inputFor(edit.row, edit.col, text);
             if (input !== this.model.getInput(edit.row, edit.col)) { this.#guarded('edit', () => this.model.setCell(address, input)); }
         }
         if (this.#records) { this.#asCode(() => this.#records.editEnded(edit.row)); }
@@ -2606,8 +2703,8 @@ class SpreadSheet extends BaseComponent {
         if (text === edit.original || text.startsWith('=')) { return null; }
         const validator = this.#validatorOf(edit.col) ?? (this.#records ? this.#implicitValidator(edit.col) : null);
         if (!validator) { return null; }
-        const result = validator.parse(this.#inputFor(edit.col, text), this.#parseContext());
-        return result.valid ? null : (result.message || 'The value is not valid.');
+        const result = validator.parse(this.#inputFor(edit.row, edit.col, text), this.#parseContext());
+        return result.valid ? null : (result.message || sheetLabel(this, 'invalidValue'));
     }
 
     #holdEdit(edit, message) {
@@ -2615,7 +2712,7 @@ class SpreadSheet extends BaseComponent {
         edit.editor.title = message;
         edit.cell.classList.add('zest-invalid');
         edit.editor.focus({preventScroll: true});
-        this.#say(`${message} Press Escape to cancel the edit.`);
+        this.#say(sheetLabel(this, 'invalidEdit', message));
         this.emit('spreadsheet-edit-refused', {row: edit.row, col: edit.col, address: formatAddress(edit.row, edit.col), text: edit.editor.value, message});
     }
 
@@ -2626,7 +2723,7 @@ class SpreadSheet extends BaseComponent {
         this.#endEditor(edit);
         if (this.#records) { this.#asCode(() => this.#records.editEnded(edit.row)); }
         this.#built.viewport.focus({preventScroll: true});
-        this.#say(`Edit of ${formatAddress(edit.row, edit.col)} canceled`);
+        this.#say(sheetLabel(this, 'canceledEdit', formatAddress(edit.row, edit.col)));
         this.#tell('select');
     }
 
@@ -2740,7 +2837,7 @@ class SpreadSheet extends BaseComponent {
             const width = this.#widths.get(drag.col);
             if (width !== undefined) {
                 this.#asUser(() => this.setColumnWidth(drag.col, width));
-                this.#say(`Column ${columnName(drag.col)} width ${this.widthOf(drag.col)} pixels`);
+                this.#say(sheetLabel(this, 'columnWidth', columnName(drag.col), this.widthOf(drag.col)));
             }
         }
     }
@@ -2764,11 +2861,12 @@ class SpreadSheet extends BaseComponent {
                 cut = false;
             }
         }
-        const clip = this.model.copy(this.selection);
+        const displayAt = this.optionsRule ? (row, col) => this.getCell(row, col).display : undefined;
+        const clip = this.model.copy(this.selection, displayAt);
         this.#clip = clip;
         this.#cut = cut ? this.selection : null;
         navigator.clipboard?.writeText?.(clip.text).catch(() => {});
-        this.#say(`${cut ? 'Cut' : 'Copied'} ${formatRange(this.selection)}`);
+        this.#say(sheetLabel(this, cut ? 'cut' : 'copied', formatRange(this.selection)));
         return clip;
     }
 
@@ -2817,10 +2915,10 @@ class SpreadSheet extends BaseComponent {
         const pasted = this.#guarded('paste', () => this.model.batch(() => {
             // A label of an option becomes the value of the option, so that the model keeps values
             // The inputs of a copy in this page are canonical already. A text from another program is in the form of the locale.
-            const mapInput = (input, row, col, item) => this.#inputFor(col, input, {raw: Boolean(item?.raw)});
+            const mapInput = (input, row, col, item) => this.#inputFor(row, col, input, {raw: Boolean(item?.raw)});
             let range;
             if (own) {
-                range = this.model.paste(target, clip, {mapInput: (input, row, col) => this.#inputFor(col, input, {raw: true})});
+                range = this.model.paste(target, clip, {mapInput: (input, row, col) => this.#inputFor(row, col, input, {raw: true})});
             } else if (table) {
                 const rows = table.map(line => line.map(item => ({input: item.input, raw: item.raw, style: null, type: null})));
                 range = this.model.paste(target, {range: {top: target.top, left: target.left}, rows}, {mapInput});
@@ -2846,7 +2944,7 @@ class SpreadSheet extends BaseComponent {
         }
         if (pasted) {
             this.#select({row: pasted.top, col: pasted.left}, {row: pasted.bottom, col: pasted.right});
-            let message = `Pasted to ${formatRange(pasted)}`;
+            let message = sheetLabel(this, 'pasted', formatRange(pasted));
             if (this.#records && this.pasteSubmits && pasted.bottom > pasted.top) {
                 let sent = 0;
                 let held = 0;
@@ -2857,7 +2955,7 @@ class SpreadSheet extends BaseComponent {
                         if (this.#records.consider(row, 'paste')) { sent++; } else { held++; }
                     }
                 });
-                message += `. ${sent} ${sent === 1 ? 'row' : 'rows'} sent${held ? `, ${held} with problems` : ''}`;
+                message = sheetLabel(this, 'pastedRows', formatRange(pasted), sent, held);
             }
             this.#say(message);
         }
