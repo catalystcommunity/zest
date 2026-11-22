@@ -239,7 +239,7 @@ The model sends `change` for each change, also from code: `{changes, cells, hist
 - `selection`: `{top, left, bottom, right}`. Set it with a range or with text: `sheet.selection = 'B2:C4'`.
 - `activeAddress`, `editing`, `undo()`, `redo()`, `focus()`.
 - `setColumnWidth(col, pixels)`, `widthOf(col)`.
-- `isLocked(row, col)`, `refresh()`, `optionsOf(col)`. See "Locked Cells" and "Validation".
+- `isLocked(row, col)`, `refresh()`, `optionsOf(col, row?)`. See "Locked Cells" and "Validation".
 - `setColumns(list)`, `records`, `rowState(row)`, `rowError(row)`, `rowRecord(row)`, `submitRow(row)`, `submitAll()`, `discardRow(row)`. See "Data Entry".
 - `watch(callback)` calls back after each change of the selection, the data, or the editor text. It returns the removal function. `FormulaBar` uses it.
 
@@ -271,7 +271,7 @@ A locked cell is like a field of a form that only shows data. The person can sel
 - Lock a row: `sheet.model.setRow(3, {locked: true})`.
 - Lock or unlock cells: `sheet.model.setLocked('B2:C4', true)`. `false` unlocks a cell in a locked row or column. `null` removes the setting of the cell.
 - The cell setting wins over the row, and the row wins over the column. These settings are not undo steps and are not data.
-- `lockRule` locks more cells: `sheet.lockRule = ({row, col}) => Boolean(orders[row]?.paid)`. Return `true` to lock the cell. Another value lets the model decide, so a rule cannot unlock a cell that the model locks. Call `sheet.refresh()` after the data that the rule reads changes.
+- `lockRule` locks more cells: `sheet.lockRule = ({row, col}) => Boolean(sheet.rowOriginal(row)?.paid)`. Return `true` to lock the cell. Another value lets the model decide, so a rule cannot unlock a cell that the model locks. Call `sheet.refresh()` after the data that the rule reads changes.
 - The order: `readonly`, a row that is sending, a calculated column in data entry, `lockRule`, then the model. The first source that locks the cell wins.
 - A lock stops the person, not code: `setCell` and `records` change a locked cell. For code that acts for the person, as a macro does, give `{respectLocks: true}` to `setCell` or `setCells`. The change then follows the locks and `locked-cells`, and the result is `false` when the locks refused it.
 - `readonly` locks all cells. In data entry, a row that is sending is locked, and a calculated column is locked.
@@ -286,6 +286,24 @@ Each change by the person goes through the locks: an edit, Delete, a paste, a cu
 | `skip` | The unlocked cells change, and the locked cells do not. The live region says how many cells did not change. |
 
 To change the notice, set `onLocked = (detail) => {...}`: it runs in place of the notice. `locked-notice="false"` shows no notice. `preventDefault()` on `spreadsheet-locked` also stops it. Only one notice shows at a time, so a held key does not make a stack of notices.
+
+## Cell Hints and Labels
+
+Use `cellHint` to mark a cell that needs attention. The rule receives `{row, col, address, sheet}`. Return a hint name with no spaces, or return `null` to clear the hint.
+
+```js
+sheet.cellHint = ({row, col}) =>
+  col === 2 && needsAssessment.has(sheet.rowKey(row)) ? 'attention' : null;
+sheet.labels = {
+  hints: {attention: 'Assess this row'},
+  rowStates: {pending: 'Saving'},
+  rowSent: row => `Row ${row} saved`,
+};
+```
+
+The sheet adds the class `zest-hint-attention` and hidden text to the cell. The default attention hint has a line at the start of the cell and the text “Needs attention”. To use a custom hint, set its text in `labels.hints` and style its `zest-hint-<name>` class. A hint has no effect on validation. Call `sheet.refresh()` after you change external data that the rule uses.
+
+Set `labels` to translate row states, hints, notices, and live messages. Each omitted label keeps its default. For example, `lockedNotice(address, count)` supplies the text for the notice, the live region, and the lock event. The sheet gives message functions the row number shown in the grid. Set `messages` to translate validator errors. The [SheetLabels type](src/index.d.ts) lists the label names and function parameters.
 
 ## Validation
 
@@ -325,6 +343,17 @@ A column with `strict: true` does not take an invalid input. When the person sav
 ### Columns with Options
 
 A column with `options`, or with a `oneOf` validator, is a list of values. The cells show the labels and keep the values: `{value: 's', label: 'Small'}` shows "Small", and the input of the cell is `s`. The editor shows the label. A paste stores the value too: a pasted label or value of an option becomes the value of the option. A pasted text that is not an option stays as it is, and gets the invalid mark.
+
+Set `optionsRule` when each record has its own list. The rule receives `{row, col, address, sheet}`. For example, a register can get the actions for a record from a map.
+
+```js
+sheet.optionsRule = ({row, col}) =>
+  col === actionColumn ? actionsById.get(sheet.rowKey(row)) ?? null : null;
+```
+
+Return an array of options for the cell. Return `null` to use the column list. An empty array gives the cell no suggestions. The editor and grid show the labels for that row. A paste looks up the label in each destination row. `optionsOf(col, row)` gives the effective list. `optionsOf(col)` gives the column list. Call `refresh()` when the application changes the lists. To reject an unlisted value on submission, use a validator or `validateRow`.
+
+Option labels align to the start of the cell, including labels for numeric values. Set the column `align` to `start`, `center`, or `end` to change the alignment. A cell with its own alignment uses that setting.
 
 While the person types, a list of the options that match shows under the cell. The first match is active. Enter or Tab takes it, saves the cell, and goes to the next cell, so that a person can type `sm` and Tab. Alt+Arrow Down shows all of the options. The list is the same type-ahead as `attachTypeahead` in `@catalystcommunity/controls`.
 
@@ -387,6 +416,7 @@ socket.addEventListener('message', () => {
 - `entry-rows` is the number of empty rows after the records. When the person types in the last empty row, a new empty row comes after it, so the number of empty rows stays the same.
 - A column with `formula` is calculated. Write the formula for the first row, for example `=B1*C1`. Each row gets a copy of it, with its own row. A calculated column is locked. It is blank in an entry row with no input.
 - `record-key` (default `id`) identifies a record. A row follows its record when the order of `records` changes. A record with no id is identified by its place.
+- `rowKey(row)` gives the value of the `record-key` field. A missing key gives `null`. `rowOriginal(row)` gives the source record, including fields that have no column. During a conflict, it gives the version before the local changes. Both methods use a row index that starts at 0. Both give `null` for an entry row or a row outside the register.
 - The column decides the type of a value. A text value goes through the type or the validator of its column, as typed input does: in a number column, `'0042'` becomes the number 42. With `keep-text`, a text value stays a text, also when it reads as a number or a date.
 - A text from the data never becomes a formula. `'=1+1'` stays the text `=1+1`, so that a value from outside cannot calculate.
 - A record cell that the data writes is not an undo step. The undo of the person stays correct when rows move.
@@ -435,9 +465,11 @@ When does a row go? `submit-on` decides:
 | `change` | Each change of a cell. A row that is not complete waits. Its problem cells get marks at once, with no message. With `quiet-rows`, the marks wait until the person leaves the row. |
 | `manual` | The application calls `submitRow(row)` or `submitAll()`, for example from a Save button. |
 
+With `skip-locked`, Tab moves from the last editable cell to the next editable row. With the default `submit-on="leave-row"`, this move sends a valid row that has changes. The live region gives the result. To show the result elsewhere, listen for `spreadsheet-row-state` and read `detail.row` and `detail.state` (`sent` or `error`). In a wide sheet, Tab and Shift+Tab scroll the grid horizontally to show the active cell.
+
 For full control, set `submitWhen = (context) => boolean`. It runs in place of `submit-on`, for each reason: `change`, `leave`, `enter`, `paste` (with `paste-submits`), and `manual`. A row with a problem never goes. When the person asked for the send and the row has problems, the problem cells get marks, also empty required cells, and the live region tells the first problem.
 
-`validateRow(record, context)` checks more than one cell, for example "a quantity of more than 10 needs a price". It gives `{key: message}`, a message for the row, or `null`.
+`validateRow(record, context)` checks more than one cell, for example "a quantity of more than 10 needs a price". It gives `{key: message}`, a message for the row, or `null`. The `context.reason` field identifies the action that triggered validation. Its value is `check` for `rowRecord(row)`. For a submission attempt, its value is `change`, `leave`, `enter`, `manual`, or `paste`. The sheet calls this handler once per row per attempt after the cell checks pass.
 
 `discardRow(row)` puts a record row back as its record, or empties an entry row. A paste of many lines makes enough entry rows for them. `submitAll()` sends each row with changes and no problem.
 

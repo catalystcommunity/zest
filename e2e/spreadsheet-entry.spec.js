@@ -191,6 +191,9 @@ test.describe('spreadsheet data entry', () => {
 
     test('has no accessibility violations, also while the list of options is open', async ({page}) => {
         const sheet = await open(page, 'sheet-entry-element');
+        await expect(sheet.locator('.zest-corner')).toHaveAccessibleName('Rows and columns');
+        const headers = await new AxeBuilder({page}).withRules(['empty-table-header']).include('[data-testid="sheet-entry"]').analyze();
+        expect(headers.violations).toEqual([]);
         await cell(sheet, 'B4').click();
         await page.keyboard.type('s');
         await expect(page.locator('type-ahead-list [role="option"]').first()).toBeVisible();

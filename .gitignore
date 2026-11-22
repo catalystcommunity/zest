@@ -118,6 +118,9 @@ dist
 dist-ssr
 *.local
 
+# Requests
+request*.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

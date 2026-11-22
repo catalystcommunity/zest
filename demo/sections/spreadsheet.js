@@ -145,7 +145,7 @@ function entryCard() {
   ]);
   sheet.showConflicts = true;
   // A paid order is protected, as in a form that shows it
-  sheet.lockRule = ({row}) => Boolean(sheet.records?.[row]?.paid);
+  sheet.lockRule = ({row}) => Boolean(sheet.rowOriginal(row)?.paid);
   sheet.records = store;
   sheet.onSubmitRow = (record, context) => new Promise((resolve, reject) => {
     log.add(`send ${context.kind} ${JSON.stringify(record)}`);

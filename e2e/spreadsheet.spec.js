@@ -47,6 +47,28 @@ test.describe('spreadsheet', () => {
         await expect(page.getByTestId('sheet-log')).toContainText('change A13: "=A11*A12"');
     });
 
+    test('scrolls horizontally with Tab and Shift+Tab in a narrow grid', async ({page}) => {
+        const sheet = await open(page);
+        await sheet.evaluate(element => {
+            element.style.width = '300px';
+            element.skipLocked = true;
+            element.lockRule = ({col}) => col === 1;
+        });
+        await cell(sheet, 'A2').click();
+        await page.keyboard.press('F2');
+        for (const [key, address] of [['Tab', 'C2'], ['Tab', 'D2'], ['Shift+Tab', 'C2'], ['Shift+Tab', 'A2']]) {
+            await page.keyboard.press(key);
+            await expect.poll(() => sheet.evaluate(element => element.activeAddress)).toBe(address);
+            await expect.poll(() => cell(sheet, address).evaluate(active => {
+                const grid = active.closest('[role="grid"]');
+                const bounds = active.getBoundingClientRect();
+                const header = grid.querySelector('.zest-corner').getBoundingClientRect();
+                const right = grid.getBoundingClientRect().left + grid.clientLeft + grid.clientWidth;
+                return bounds.left >= header.right - 1 && bounds.right <= right + 1;
+            })).toBe(true);
+        }
+    });
+
     test('edits with F2, and Escape keeps the old input', async ({page}) => {
         const sheet = await open(page);
         await cell(sheet, 'A2').click();
