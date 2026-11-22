@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/controls",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Controls: buttons, check boxes, radio groups, switches, text fields, spin boxes, sliders, progress bars, combo boxes, and list boxes.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/controls#readme",
   "main": "src/index.js",

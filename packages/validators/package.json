@@ -1,6 +1,6 @@
 {
   "name": "@catalystcommunity/validators",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Validators for the core CSIL types: read typed text into values, with messages for each problem. No DOM.",
   "homepage": "https://github.com/catalystcommunity/zest/tree/main/packages/validators#readme",
   "main": "src/index.js",
