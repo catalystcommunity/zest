@@ -627,7 +627,7 @@ export declare class SpreadSheet extends BaseComponent {
     /** The options of a column: [{value, label}], or null. */
     optionsOf(col: number, row?: number): {value: unknown; label: string}[] | null;
 
-    /** The settings of all columns. In data entry, the cells of the records follow. */
+    /** Replaces the column settings. Record drafts follow their field keys, including fields hidden in the new view. */
     setColumns(list: readonly SheetColumn[]): void;
     /** Data entry: the data of the application, one object for each row. Set it again each time that the data changes. */
     get records(): readonly Record<string, unknown>[] | null;

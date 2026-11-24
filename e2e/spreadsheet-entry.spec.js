@@ -85,6 +85,144 @@ test.describe('spreadsheet data entry', () => {
         await expect(cell(sheet, 'F4')).toHaveText('$7.50');
     });
 
+    test('Enter on an option takes it and keeps the cell; the next Enter saves and moves', async ({page}) => {
+        const sheet = await open(page, 'sheet-entry-element');
+        await cell(sheet, 'B4').click();
+        await page.keyboard.type('ha');
+        await expect(page.locator('type-ahead-list [role="option"]', {hasText: 'Hardware'})).toBeVisible();
+        await page.keyboard.press('Enter');
+        expect(await active(sheet)).toBe('B4');
+        expect(await sheet.evaluate(element => element.editing)).toBe(true);
+        await page.keyboard.press('Enter');
+        expect(await active(sheet)).toBe('B5');
+        await expect(cell(sheet, 'B4')).toHaveText('Hardware');
+    });
+
+    test('an option can be canceled or submitted once after a separate Enter press', async ({page}) => {
+        const sheet = await open(page, 'sheet-entry-element');
+        await page.getByTestId('sheet-entry-policy').selectOption('change');
+        const log = page.getByTestId('sheet-entry-log');
+        const list = page.getByRole('listbox', {name: 'Category options'});
+        await cell(sheet, 'B2').click();
+        await page.keyboard.type('s');
+        await expect(list.getByRole('option')).toHaveCount(2);
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('Enter');
+        await expect(sheet.locator('.zest-editor')).toHaveValue('Services');
+        await expect(list).toBeHidden();
+        await page.keyboard.press('Escape');
+        await expect(cell(sheet, 'B2')).toHaveText('Software');
+        await expect(log).not.toContainText('send update');
+
+        await page.keyboard.type('ha');
+        await expect(list.getByRole('option', {name: 'Hardware'})).toBeVisible();
+        await page.keyboard.down('Enter');
+        await page.keyboard.down('Enter'); // Auto-repeat from the same press.
+        await page.keyboard.up('Enter');
+        await expect(sheet.locator('.zest-editor')).toBeFocused();
+        await expect(sheet.locator('.zest-editor')).toHaveValue('Hardware');
+        expect(await active(sheet)).toBe('B2');
+        expect(await sheet.evaluate(element => element.getValue('B2'))).toBe('software');
+        await expect(log).not.toContainText('send update');
+        await page.keyboard.press('Enter');
+        await expect(cell(sheet, 'B2')).toHaveText('Hardware');
+        expect(await active(sheet)).toBe('B3');
+        await expect.poll(() => sheet.evaluate(element => element.rowState(1))).toBe('clean');
+        const messages = await log.textContent();
+        expect(messages).toContain('"category":"hardware"');
+        expect(messages.match(/send update/g)).toHaveLength(1);
+    });
+
+    test('a buffered row returns with the current column positions, labels and values', async ({page}) => {
+        const sheet = await open(page, 'sheet-entry-element');
+        const columns = Array.from({length: 10}, (_, i) => ({key: 'field' + i, title: 'Field ' + i, width: 70}));
+        await sheet.evaluate((element, columns) => {
+            element.style.width = '440px';
+            element.style.setProperty('--zest-spread-sheet-height', '170px');
+            element.setColumns(columns);
+            element.records = Array.from({length: 28}, (_, index) => ({
+                id: index + 1,
+                ...Object.fromEntries(columns.map(c => [c.key, (index + 1) + ' ' + c.title])),
+            }));
+        }, columns);
+        const firstRow = sheet.locator('[role="row"][aria-rowindex="2"]');
+        const headers = sheet.locator('[role="columnheader"][data-kind="column"]:visible');
+        const grid = sheet.getByRole('grid');
+        await expect(cell(sheet, 'F1')).toHaveText('1 Field 5');
+        await grid.evaluate(element => { element.scrollTop = 40; });
+        await expect(cell(sheet, 'A7')).toBeVisible();
+        const wide = [...columns].reverse().map(c => ({...c, width: 220}));
+        await sheet.evaluate((element, cols) => element.setColumns(cols), wide);
+        await expect(headers).toHaveText(['A Field 9', 'B Field 8']);
+        await expect(firstRow).toBeHidden();
+        await grid.evaluate(element => { element.scrollTop = 0; });
+        await expect(firstRow.getByRole('gridcell')).toHaveText(['1 Field 9', '1 Field 8']);
+        const header = await headers.nth(1).boundingBox();
+        const data = await cell(sheet, 'B1').boundingBox();
+        expect([data.x, data.width]).toEqual([header.x, header.width]);
+        await cell(sheet, 'B1').click();
+        expect(await active(sheet)).toBe('B1');
+
+        // Scroll on both axes, then replace the records while the last row is on screen.
+        await grid.evaluate(element => element.scrollTo(element.scrollWidth, element.scrollHeight));
+        await expect(cell(sheet, 'J28')).toHaveText('28 Field 0');
+        await sheet.evaluate(element => { element.records = element.records.slice(0, 12); });
+        await expect(cell(sheet, 'J12')).toHaveText('12 Field 0');
+        await expect(sheet.locator('[role="row"][aria-rowindex="29"]:visible')).toHaveCount(0);
+        await grid.evaluate(element => element.scrollTo(0, 0));
+        await sheet.evaluate((element, cols) => element.setColumns(cols), columns);
+        await expect(cell(sheet, 'F1')).toHaveText('1 Field 5');
+        await expect(headers).toContainText(['A Field 0', 'F Field 5']);
+    });
+
+    test('fewer columns show the kept fields and an edit updates the correct record field', async ({page}) => {
+        const sheet = await open(page, 'sheet-entry-element');
+        await sheet.evaluate(element => element.setColumns([
+            {key: 'due', title: 'Due date', width: 200},
+            {key: 'item', title: 'Item name', width: 260},
+        ]));
+        await expect(sheet.locator('[role="columnheader"][data-kind="column"]:visible')).toHaveText(['A Due date', 'B Item name']);
+        const cells = sheet.getByRole('gridcell');
+        await expect(cells).toHaveCount(10); // Three records and two entry rows.
+        await expect(cells.and(sheet.locator('[aria-colindex="2"]'))).toHaveText(['', '', '', '', '']);
+        await expect(cells.and(sheet.locator('[aria-colindex="3"]'))).toHaveText(['Laptops', 'Licenses', 'Training', '', '']);
+        await cell(sheet, 'B2').click();
+        await page.keyboard.type('Annual licenses');
+        await page.keyboard.press('Enter');
+        await expect.poll(() => sheet.evaluate(element => element.records.find(record => record.id === 2))).toMatchObject({
+            item: 'Annual licenses', category: 'software', due: null,
+        });
+        await expect(cell(sheet, 'B2')).toHaveText('Annual licenses');
+    });
+
+    test('the open option editor follows its field and a hidden edit goes with its record', async ({page}) => {
+        const sheet = await open(page, 'sheet-entry-element');
+        await page.getByTestId('sheet-entry-policy').selectOption('change');
+        await cell(sheet, 'B2').click();
+        await page.keyboard.type('ha');
+        await page.keyboard.press('Enter');
+        const fields = [{key: 'category', options: [{value: 'hardware', label: 'Hardware'}, {value: 'software', label: 'Software'}]},
+            {key: 'item', title: 'Item'}];
+        await sheet.evaluate((element, cols) => element.setColumns(cols), fields);
+        const editor = sheet.locator('.zest-editor');
+        await expect(editor).toBeFocused();
+        await expect(editor).toHaveValue('Hardware');
+        expect(await active(sheet)).toBe('A2');
+        expect(await sheet.evaluate(element => element.getValue('A2'))).toBe('software');
+        await sheet.evaluate((element, cols) => element.setColumns(cols), fields.slice(1));
+        await expect(editor).toHaveCount(0);
+        await expect(cell(sheet, 'A2')).toHaveText('Licenses');
+        await expect(sheet.getByRole('grid')).toBeFocused();
+        const log = page.getByTestId('sheet-entry-log');
+        await expect(log).not.toContainText('send update');
+        expect(await sheet.evaluate(element => element.rowRecord(1).record)).toEqual({item: 'Licenses', category: 'hardware'});
+        expect(await sheet.evaluate(element => element.submitRow(1))).toBe(true);
+        await expect.poll(() => sheet.evaluate(element => element.rowState(1))).toBe('clean');
+        await sheet.evaluate((element, cols) => element.setColumns(cols), fields);
+        await expect(cell(sheet, 'A2')).toHaveText('Hardware');
+        await expect(cell(sheet, 'B2')).toHaveText('Licenses');
+    });
+
     test('a row with a problem does not go, and the problem cells are marked', async ({page}) => {
         const sheet = await open(page, 'sheet-entry-element');
         await cell(sheet, 'A4').click();

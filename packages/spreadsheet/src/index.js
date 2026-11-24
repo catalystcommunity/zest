@@ -9,7 +9,7 @@ import { RecordRows } from "./records.js";
 import { toCanonicalInput, toLocalInput, sheetLocale, textFormat, detectCsvFormat } from "./locale.js";
 import { readClipboardTable } from "./clipboard.js";
 import { formatDate, fromDayNumber } from "@catalystcommunity/date-model";
-import { SheetModel, readInput, TYPES, parseDelimited, toDelimited, columnOptions } from "./model.js";
+import { SheetModel, readInput, TYPES, parseDelimited, toDelimited, columnOptions, recordColumnLayout } from "./model.js";
 import {
     SheetDate, SheetError, FUNCTIONS, MAX_ROWS, MAX_COLUMNS, columnName, columnIndex, evaluate, formatAddress, formatRange,
     normalizeRange, parseAddress, parseFormula, parseRange, references, shiftFormula, adjustForInsertDelete, tokenize,
@@ -741,6 +741,13 @@ function wallTime(date, timeZone) {
 }
 const isMacPlatform = () => /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '');
 
+// Visit each slot once, starting at the first index in the window. After the last
+// visible index, keep the slot's previous assignment only while it is still valid.
+function pooledIndex(index, last, previous, count, reset) {
+    if (index <= last) { return index; }
+    return reset || previous >= count ? -1 : previous;
+}
+
 let sheetCount = 0;
 let helpCount = 0;
 const functionValidators = new WeakMap();
@@ -839,6 +846,8 @@ class SpreadSheet extends BaseComponent {
     #refBoxes = [];
     #argHint = null;
     #leaveArmed = false;
+    #leaveTimer = null;
+    #parkingEdit = false;
     #datePicker = null;
     #datePickerOutside = null;
     #argHintKey = '';
@@ -952,8 +961,55 @@ class SpreadSheet extends BaseComponent {
 
     // The settings of each column: [{key, title, type, validate, options, required, formula, locked, width}]
     setColumns(list) {
-        this.model.setColumns(list);
-        if (this.#records) { this.#records.setRecords(this.#records.records, {force: true}); }
+        if (!this.#records) { this.model.setColumns(list); return; }
+        const model = this.model;
+        const keepDrafts = this.editing || this.#records.rows.some(item => item.state !== 'clean' && item.state !== 'empty');
+        const layout = recordColumnLayout(model, list, keepDrafts);
+        const edit = this.#edit;
+        const target = edit && layout.mapping[edit.col];
+        if (edit && (target < 0 || target >= layout.visible)) {
+            this.#asCode(() => this.#parkEditor(edit));
+        } else if (edit) {
+            if (edit.editor.value.startsWith('=') && model.columnType(edit.col) !== 'text') {
+                const {value, selectionStart, selectionEnd} = edit.editor;
+                const rewrite = layout.rewrite;
+                edit.editor.value = rewrite(value);
+                edit.editor.setSelectionRange(rewrite(value.slice(0, selectionStart)).length, rewrite(value.slice(0, selectionEnd)).length);
+                if (edit.original.startsWith('=')) { edit.original = rewrite(edit.original); }
+            }
+            edit.col = target;
+            this.#anchor.col = target;
+            this.#focus.col = target;
+        }
+        if (layout.mapping.some((col, previous) => col !== previous || col >= layout.visible)) {
+            this.#closeDatePicker(false);
+            this.#tabStart = null;
+            this.#point = null;
+            this.#cut = null;
+            this.#clip = null;
+        }
+        model.setRecordColumns(layout, () => this.#records.inputsForColumns(new Set(layout.mapping)));
+        clearTimeout(this.#leaveTimer);
+        if (this.#edit) {
+            this.#attachTypeahead(this.#edit);
+            this.#edit.editor.setAttribute('aria-label', sheetLabel(this, 'editCell', this.activeAddress));
+            this.#reveal(this.#edit.row, this.#edit.col);
+        }
+    }
+
+    // A view switch can hide the active editor. Keep even incomplete input in the
+    // row so it can be corrected when the field returns. The switch does not send it.
+    #parkEditor(edit) {
+        const focused = edit.editor.matches(':focus');
+        this.#edit = null;
+        const text = this.#endEditor(edit);
+        if (text !== edit.original) {
+            this.#parkingEdit = true;
+            try { this.writeByUser(formatAddress(edit.row, edit.col), text); }
+            finally { this.#parkingEdit = false; }
+        }
+        this.#records.editEnded(edit.row);
+        if (focused) { this.focus(); }
     }
 
     // The data of the application: an array of objects, one for each row. Set it again each time
@@ -1040,9 +1096,9 @@ class SpreadSheet extends BaseComponent {
             editingRow: () => (this.#edit ? this.#edit.row : -1),
             columns: () => {
                 const list = [];
-                for (let col = 0; col < this.model.columnCount; col++) {
+                for (let col = 0; col < this.model.recordColumnCount; col++) {
                     const info = this.model.column(col);
-                    list.push({key: info.key, col, formula: info.formula ?? null});
+                    list.push({key: info.key, col, formula: info.formula ?? null, hidden: col >= this.model.columnCount});
                 }
                 return list;
             },
@@ -1056,7 +1112,7 @@ class SpreadSheet extends BaseComponent {
             reportProblems: (problems) => this.#reportProblems(problems),
             clearMarks: (row) => {
                 const marks = [];
-                for (let col = 0; col < this.model.columnCount; col++) { if (this.model.getMark(row, col)) { marks.push({row, col, mark: null}); } }
+                for (let col = 0; col < this.model.recordColumnCount; col++) { if (this.model.getMark(row, col)) { marks.push({row, col, mark: null}); } }
                 if (marks.length) { this.model.setMarks(marks); }
             },
             rowsChanged: () => {
@@ -1538,7 +1594,8 @@ class SpreadSheet extends BaseComponent {
             if (!this.#records || inside(e.relatedTarget)) { return; }
             // The end of an edit removes the editor, and the browser then sends a focusout with
             // no relatedTarget. So the sheet looks where the focus is after the move.
-            setTimeout(() => {
+            clearTimeout(this.#leaveTimer);
+            this.#leaveTimer = setTimeout(() => {
                 const focused = this.root.activeElement ?? document.activeElement;
                 if (!this.isConnected || this.#edit || inside(focused) || this.#built.viewport.matches(':focus-within')) { return; }
                 const row = this.#anchor.row;
@@ -1573,6 +1630,7 @@ class SpreadSheet extends BaseComponent {
         this.listen(viewport, 'pointerup', caretMoved);
         this.own(observeResize(viewport, () => this.invalidate()));
         this.own(() => clearTimeout(this.#announceTimer));
+        this.own(() => clearTimeout(this.#leaveTimer));
         this.own(() => this.#closeDatePicker(false));
         this.#measure();
         this.#layoutColumns();
@@ -1739,13 +1797,17 @@ class SpreadSheet extends BaseComponent {
         const dirty = this.#dirty;
         this.#all = false;
         this.#dirty = null;
-        const cellTag = tagFor(SheetCell, 'sheet-cell');
         const C = this.#poolSize.cols;
         const R = this.#poolSize.rows;
 
         // Column headers
-        for (let col = view.c0; col <= view.c1; col++) {
-            const head = this.#headPool[col % C];
+        for (let index = view.c0; index < view.c0 + C; index++) {
+            const head = this.#headPool[index % C];
+            const col = pooledIndex(index, view.c1, head.col, colCount, all);
+            if (col === -1) {
+                if (head.col !== -1) { head.col = -1; head.element.hidden = true; }
+                continue;
+            }
             const inRange = col >= selection.left && col <= selection.right;
             if (all || head.col !== col) {
                 head.col = col;
@@ -1764,8 +1826,13 @@ class SpreadSheet extends BaseComponent {
         }
 
         let activeId = null;
-        for (let row = view.r0; row <= view.r1; row++) {
-            const slot = this.#pool[row % R];
+        for (let rowIndex = view.r0; rowIndex < view.r0 + R; rowIndex++) {
+            const slot = this.#pool[rowIndex % R];
+            const row = pooledIndex(rowIndex, view.r1, slot.row, rowCount, all);
+            if (row === -1) {
+                if (slot.row !== -1) { slot.row = -1; slot.element.hidden = true; }
+                continue;
+            }
             const newRow = slot.row !== row;
             const rowState = this.#records?.shownStateOf(row) ?? null;
             const rowError = rowState === 'error' ? this.#records.rowInfo(row).error
@@ -1773,7 +1840,6 @@ class SpreadSheet extends BaseComponent {
             if (newRow) {
                 slot.row = row;
                 slot.element.hidden = false;
-                slot.element.style.top = `${this.#rowPx * (row + 1)}px`;
                 slot.element.setAttribute('aria-rowindex', row + 2);
             }
             if (newRow || slot.state !== rowState || slot.error !== rowError) {
@@ -1781,7 +1847,10 @@ class SpreadSheet extends BaseComponent {
                 slot.error = rowError;
                 this.#showRowHead(slot, row, rowState, rowError);
             }
-            if (newRow || all) { slot.element.style.width = `${totalWidth}px`; }
+            if (newRow || all) {
+                slot.element.style.top = `${this.#rowPx * (row + 1)}px`;
+                slot.element.style.width = `${totalWidth}px`;
+            }
             // A calculated column is blank in an empty entry row, so that the row looks empty
             const blank = rowState === 'empty';
             const rowRedraw = slot.blank !== blank;
@@ -1791,9 +1860,15 @@ class SpreadSheet extends BaseComponent {
                 slot.inRange = rowInRange;
                 slot.head.classList.toggle('zest-in-range', rowInRange);
             }
-            for (let col = view.c0; col <= view.c1; col++) {
-                const q = col % C;
+            for (let index = view.c0; index < view.c0 + C; index++) {
+                const q = index % C;
                 const cell = slot.cells[q];
+                // A reassigned row cannot keep buffer cells from its previous row or layout.
+                const col = pooledIndex(index, view.c1, slot.cols[q], colCount, all || newRow);
+                if (col === -1) {
+                    if (slot.cols[q] !== -1) { slot.cols[q] = -1; cell.hidden = true; }
+                    continue;
+                }
                 const moved = newRow || slot.cols[q] !== col;
                 if (moved || all) {
                     slot.cols[q] = col;
@@ -1821,7 +1896,9 @@ class SpreadSheet extends BaseComponent {
                     cell.selected = selected;
                     cell.setAttribute('aria-selected', String(selected));
                 }
-                if (row === this.#anchor.row && col === this.#anchor.col) { activeId = cell.id; }
+                if (rowIndex <= view.r1 && index <= view.c1 && row === this.#anchor.row && col === this.#anchor.col) {
+                    activeId = cell.id;
+                }
             }
         }
         if (activeId) {
@@ -2058,7 +2135,7 @@ class SpreadSheet extends BaseComponent {
             this.emit('spreadsheet-change', {changes: detail.changes});
             if (this.#records) {
                 const rows = new Set(detail.changes.map(change => change.row));
-                this.#asCode(() => this.#records.userChanged(rows));
+                this.#asCode(() => this.#records.userChanged(rows, {submit: !this.#parkingEdit}));
             }
         }
     }
@@ -2496,7 +2573,7 @@ class SpreadSheet extends BaseComponent {
                 source: labels,
                 autoSelect: true,
                 arrowOpens: false,
-                enter: 'accept-continue',
+                enter: 'accept',
                 tab: 'accept-continue',
                 label: sheetLabel(this, 'options', title),
             });
@@ -2591,6 +2668,8 @@ class SpreadSheet extends BaseComponent {
                 return;
             case 'Enter':
                 e.preventDefault();
+                // Holding the key that took an option must not also submit the row.
+                if (e.repeat && edit.optionLabels && !e.altKey && !mod) { return; }
                 if (e.altKey) {
                     edit.editor.setRangeText('\n', edit.editor.selectionStart, edit.editor.selectionEnd, 'end');
                     edit.editor.dispatchEvent(new Event('input', {bubbles: true}));

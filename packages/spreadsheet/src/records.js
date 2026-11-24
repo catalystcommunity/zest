@@ -43,8 +43,9 @@ export class RecordRows {
         if (!item || item.kind !== 'record' || !item.incoming || !(item.state === 'changed' || item.state === 'error')) { return null; }
         const host = this.#host;
         const fields = [];
-        for (const {key, col, formula} of host.columns()) {
+        for (const {key, col, formula, hidden} of host.columns()) {
             if (formula || key === undefined || key === null) { continue; }
+            if (hidden && host.inputAt(row, col) === host.inputOf(item.record?.[key], col)) { continue; }
             if (host.inputOf(item.incoming[key], col) !== host.inputOf(item.record?.[key], col)) { fields.push(key); }
         }
         return fields.length ? {original: item.record, incoming: item.incoming, fields} : null;
@@ -67,7 +68,7 @@ export class RecordRows {
         const host = this.#host;
         const writes = [];
         for (const {key, col, formula} of host.columns()) {
-            if (formula || !conflict.fields.includes(key)) { continue; }
+            if (formula || key == null) { continue; }
             if (host.inputAt(row, col) === host.inputOf(conflict.original?.[key], col)) {
                 writes.push({row, col, input: host.inputOf(conflict.incoming[key], col)});
             }
@@ -96,7 +97,7 @@ export class RecordRows {
     // ---------- Data from outside ----------
 
     // Shows the records. The rows that the person changed stay as they are.
-    setRecords(list, {force = false} = {}) {
+    setRecords(list) {
         const records = Array.isArray(list) ? list : [];
         this.records = records;
         const host = this.#host;
@@ -146,7 +147,7 @@ export class RecordRows {
                     conflicts.push(item);
                 }
             } else {
-                if (force || item.record !== record || item.state !== 'clean') { writes.push({item, record}); }
+                if (item.record !== record || item.state !== 'clean') { writes.push({item, record}); }
                 item.record = record;
                 item.incoming = null;
                 item.state = 'clean';
@@ -184,11 +185,28 @@ export class RecordRows {
         const written = new Set(writes.map(write => write.item));
         const formulaRows = [];
         this.rows.forEach((item, index) => {
-            if (force || written.has(item) || item.fresh) { formulaRows.push(index); }
+            if (written.has(item) || item.fresh) { formulaRows.push(index); }
             item.fresh = false;
         });
         this.#writeFormulas(formulaRows);
         host.rowsChanged();
+    }
+
+    // Load each new field from the row's original record. A draft keeps the inputs
+    // that the model moved, including fields outside the new view.
+    *inputsForColumns(kept) {
+        const host = this.#host;
+        const columns = host.columns();
+        for (const [row, item] of this.rows.entries()) {
+            for (const column of columns) {
+                const {key, col, formula} = column;
+                if (formula) {
+                    yield {row, col, input: host.formulaFor(column, row)};
+                } else if (key != null && (item.state === 'clean' || !kept.has(col))) {
+                    yield {row, col, input: host.inputOf(item.record?.[key], col)};
+                }
+            }
+        }
     }
 
     // The entry rows at the end: `entryRows` empty rows after the last row with input
@@ -249,7 +267,7 @@ export class RecordRows {
     // ---------- Changes by the person ----------
 
     // After the person changed cells in these rows
-    userChanged(rows) {
+    userChanged(rows, {submit = true} = {}) {
         const host = this.#host;
         let added = false;
         for (const row of rows) {
@@ -277,7 +295,7 @@ export class RecordRows {
             added = true;
         }
         host.rowsChanged();
-        for (const row of rows) { this.consider(row, 'change'); }
+        if (submit) { for (const row of rows) { this.consider(row, 'change'); } }
         return added;
     }
 
@@ -349,18 +367,19 @@ export class RecordRows {
         const host = this.#host;
         const record = {};
         const errors = {};
-        for (const {key, col} of host.columns()) {
+        const item = this.rows[row];
+        for (const {key, col, formula, hidden} of host.columns()) {
             if (key === undefined || key === null) { continue; }
+            if (hidden && (formula || host.inputAt(row, col) === host.inputOf(item?.record?.[key], col))) { continue; }
             const result = host.parseCell(row, col);
             if (result.valid) {
                 record[key] = result.value;
             } else {
                 errors[key] = result.message;
-                problems.push({row, col, message: result.message, reason: result.reason});
+                if (!hidden) { problems.push({row, col, message: result.message, reason: result.reason}); }
             }
         }
-        const item = this.rows[row];
-        if (!problems.length && host.validateRow()) {
+        if (!Object.keys(errors).length && host.validateRow()) {
             const extra = host.validateRow()(record, this.#context(row, reason, record));
             if (typeof extra === 'string' && extra) {
                 errors[''] = extra;
@@ -369,7 +388,7 @@ export class RecordRows {
                     if (!message) { continue; }
                     errors[key] = message;
                     const column = host.columns().find(item2 => item2.key === key);
-                    if (column) { problems.push({row, col: column.col, message, reason: 'row'}); }
+                    if (column && !column.hidden) { problems.push({row, col: column.col, message, reason: 'row'}); }
                 }
             }
         }
