@@ -355,7 +355,9 @@ Return an array of options for the cell. Return `null` to use the column list. A
 
 Option labels align to the start of the cell, including labels for numeric values. Set the column `align` to `start`, `center`, or `end` to change the alignment. A cell with its own alignment uses that setting.
 
-While the person types, a list of the options that match shows under the cell. The first match is active. Enter or Tab takes it, saves the cell, and goes to the next cell, so that a person can type `sm` and Tab. Alt+Arrow Down shows all of the options. The list is the same type-ahead as `attachTypeahead` in `@catalystcommunity/controls`.
+As you type, the list below the cell shows the options that match. The first match is active. Press Enter to select the active option. The editor stays open and shows the label. Press Enter again to save the value and move down. With `submit-on="change"`, the sheet can now send the row. To cancel the edit after you select an option, press Escape.
+
+To select the active option, save the value, and move to the next cell in one step, press Tab. To show all options, press Alt+Arrow Down. The list uses `attachTypeahead` from `@catalystcommunity/controls`.
 
 A boolean column (type `boolean`, or a `bool` validator) shows `TRUE` and `FALSE`. With `display: 'checkbox'`, it shows a check box in each cell. A screen reader hears a check box and its state, with the column title as its name. Space or a click on the check box changes the cell. A locked cell has a check box that does not change.
 
@@ -426,6 +428,9 @@ socket.addEventListener('message', () => {
 
 The rows that the person does not change follow `records` at once. A row that the person changed, or edits now, is apart from the data: new data does not change it. So a message from the server never removes what the person typed.
 
+- Use the same `key` for a field in every column set. When `sheet.setColumns()` moves a field, its unsent value moves with it. An open editor also moves with the field.
+- If the new view hides the open field, the editor closes. The sheet keeps the input in the row. The view change does not send the row. Show the field again to continue the edit.
+- `rowRecord()` and `onSubmitRow` include changed hidden fields. A hidden field that has its original value adds nothing to the submission. An invalid hidden edit prevents submission. The field key appears in `rowRecord(row).errors`. Use `discardRow(row)` to discard all edits in the row, including hidden edits.
 - A new record from outside goes above the entry rows. If the person edits an entry row, the open editor moves with its row and keeps its text and the focus. The references in an open formula follow their rows. The active row stays at the same place on the screen when the sheet can scroll.
 - A new version of a changed record waits. It goes into the row when the person discards the changes, or when the row is sent.
 - With `show-conflicts`, a changed row whose record also changed elsewhere shows it. The row header has the sign ≠ and the changed fields, and the sheet sends `spreadsheet-row-conflict` with `{row, original, incoming, fields}`. The row does not go until the person decides: `keepRowChanges(row)` keeps the changes on top of the new version, and `discardRow(row)` takes the new version. `rowConflict(row)` gives the conflict. Without `show-conflicts`, the context of a send has `conflict`, so that the application can decide.

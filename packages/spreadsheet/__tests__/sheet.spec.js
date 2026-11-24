@@ -79,6 +79,24 @@ describe('the grid', () => {
         show.mockRestore();
     });
 
+    it('updates a buffered value and its formula when both axes have scrolled', () => {
+        const sheet = make({rows: '100', columns: '30'}, {A1: '1', B1: '=A1+1'});
+        const viewport = grid(sheet);
+        const scroll = (left, top) => {
+            viewport.scrollLeft = left;
+            viewport.scrollTop = top;
+            viewport.dispatchEvent(new Event('scroll'));
+            flushRenders();
+        };
+        scroll(110, 30);
+        sheet.setCell('A1', '8');
+        flushRenders();
+        scroll(0, 0);
+        const row = sheet.querySelector('[role="row"][aria-rowindex="2"]');
+        expect(row.querySelector('[aria-colindex="2"]').textContent).toBe('8');
+        expect(row.querySelector('[aria-colindex="3"]').textContent).toBe('9');
+    });
+
     it('works in a shadow root, and two sheets can show one model', () => {
         const model = new SheetModel({rows: 20, columns: 5});
         const first = document.body.appendChild(document.createElement('shadow-spread-sheet'));

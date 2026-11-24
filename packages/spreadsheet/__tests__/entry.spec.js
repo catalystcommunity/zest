@@ -174,6 +174,16 @@ describe('formula editing', () => {
         expect(sheet.editing).toBe(true);
     });
 
+    it('Enter on a formula keeps the typed name when a function suggestion is open', () => {
+        const sheet = make();
+        type(sheet, '=su');
+        expect(document.querySelector('type-ahead-list [role="option"]')).not.toBeNull();
+        key(sheet, {key: 'Enter'});
+        expect(sheet.model.getInput('A1')).toBe('=su');
+        expect(sheet.activeAddress).toBe('A2');
+        expect(sheet.editing).toBe(false);
+    });
+
     it('a scroll does not end the edit', () => {
         const sheet = make({rows: '1000'});
         sheet.selection = 'A1';
@@ -505,6 +515,10 @@ describe('validation', () => {
         const list = document.querySelector('type-ahead-list [role="listbox"]');
         expect(list.getAttribute('aria-label')).toBe('Size options');
         expect([...list.children].map(item => item.textContent)).toEqual(['Small']);
+        // Enter takes the option and keeps the cell; the next Enter saves it and moves.
+        key(sheet, {key: 'Enter'});
+        expect(editor(sheet).value).toBe('Small');
+        expect(sheet.activeAddress).toBe('A1');
         key(sheet, {key: 'Enter'});
         expect(sheet.getCell('A1').input).toBe('s');
         expect(sheet.getCell('A1').display).toBe('Small');
@@ -552,6 +566,112 @@ const flush = async () => {
     for (let i = 0; i < 4; i++) { await Promise.resolve(); }
     flushRenders();
 };
+
+describe('record fields across column sets', () => {
+    const item = {key: 'item', type: 'text'};
+    const category = {key: 'category', type: 'text'};
+    const quantity = {key: 'quantity', validate: v.uint()};
+    const order = {id: 1, item: 'Licenses', category: 'Software', quantity: 4};
+
+    it('uses field keys for an edit, the undo history and the submitted record', () => {
+        const sheet = entrySheet([order], {'submit-on': 'manual'});
+        sheet.setColumns([item, category, quantity]);
+        sheet.onSubmitRow = vi.fn();
+        sheet.writeByUser('A1', 'Annual licenses');
+        sheet.setColumns([category, item]);
+        expect(sheet.getValue('A1')).toBe('Software');
+        expect(sheet.getValue('B1')).toBe('Annual licenses');
+        key(sheet, {key: 'z', ctrlKey: true});
+        expect(sheet.rowState(0)).toBe('clean');
+        expect(sheet.getValue('B1')).toBe('Licenses');
+        key(sheet, {key: 'y', ctrlKey: true});
+        expect(sheet.getValue('B1')).toBe('Annual licenses');
+        sheet.setColumns([quantity]);
+        expect(sheet.rowRecord(0).record).toEqual({quantity: 4, item: 'Annual licenses'});
+        expect(sheet.toCSV()).not.toContain('Annual licenses');
+        expect(sheet.toJSON().columns).toEqual([quantity]);
+        expect(sheet.submitRow(0)).toBe(true);
+        expect(sheet.onSubmitRow).toHaveBeenCalledWith({quantity: 4, item: 'Annual licenses'}, expect.objectContaining({id: 1}));
+    });
+
+    it('keeps a hidden invalid input on a new row, then accepts its correction', () => {
+        const sheet = entrySheet([], {'submit-on': 'change'});
+        sheet.setColumns([item, {...quantity, strict: true}]);
+        sheet.onSubmitRow = vi.fn();
+        sheet.selection = 'B1';
+        type(sheet, 'wrong');
+        sheet.setColumns([item]);
+        expect(sheet.editing).toBe(false);
+        expect(sheet.rowState(0)).toBe('draft');
+        expect(sheet.rowRecord(0).errors.quantity).toBeTruthy();
+        expect(sheet.submitRow(0)).toBe(false);
+        expect(sheet.onSubmitRow).not.toHaveBeenCalled();
+        sheet.records = [order];
+        sheet.setColumns([quantity, item]);
+        expect(sheet.model.getInput('A2')).toBe('wrong');
+        sheet.writeByUser('A2', '7');
+        expect(sheet.onSubmitRow).toHaveBeenCalledWith({quantity: 7, item: null}, expect.objectContaining({kind: 'new'}));
+    });
+
+    it('detects a conflict on a hidden edit and discard restores the incoming value', () => {
+        const sheet = entrySheet([order], {'submit-on': 'manual', 'show-conflicts': ''});
+        sheet.setColumns([item, quantity, category]);
+        sheet.writeByUser('A1', '');
+        sheet.setColumns([quantity]);
+        sheet.records = [{...order, item: 'Remote', category: 'Service'}];
+        expect(sheet.rowConflict(0).fields).toEqual(['item']);
+        expect(sheet.submitRow(0)).toBe(false);
+        expect(sheet.keepRowChanges(0)).toBe(true);
+        expect(sheet.rowRecord(0).record).toEqual({quantity: 4, item: null});
+        expect(sheet.discardRow(0)).toBe(true);
+        sheet.setColumns([category, item]);
+        expect([sheet.getValue('A1'), sheet.getValue('B1')]).toEqual(['Service', 'Remote']);
+        expect(sheet.rowState(0)).toBe('clean');
+    });
+
+    it('loads a newly shown field from the record and keeps the hidden draft through a CSV import', () => {
+        const sheet = entrySheet([order], {'submit-on': 'manual'});
+        sheet.setColumns([item]);
+        sheet.writeByUser('A1', 'Annual licenses');
+        const views = [];
+        const remove = sheet.watch(reason => {
+            if (reason === 'change') { views.push(sheet.rowRecord(0).record); }
+        });
+        sheet.setColumns([category]);
+        remove();
+        expect(views).toEqual([{category: 'Software', item: 'Annual licenses'}]);
+        expect(sheet.getValue('A1')).toBe('Software');
+        sheet.fromCSV('Service,Extra', 'A1');
+        expect(sheet.model.columnCount).toBe(2);
+        expect(sheet.getValue('B1')).toBe('Extra');
+        expect(sheet.rowRecord(0).record).toEqual({category: 'Service', item: 'Annual licenses'});
+        sheet.setColumns([]);
+        expect(sheet.rowRecord(0).record).toEqual({category: 'Service', item: 'Annual licenses'});
+        sheet.setColumns([item, category]);
+        expect(sheet.getValue('A1')).toBe('Annual licenses');
+        expect(sheet.getValue('B1')).toBe('Service');
+    });
+
+    it('keeps a pending formula with its field and its dependencies through a failed send', async () => {
+        const sheet = entrySheet([order], {'submit-on': 'manual'});
+        const total = {key: 'total', type: 'number'};
+        sheet.setColumns([quantity, total, item]);
+        sheet.writeByUser('B1', '=A1*2');
+        let fail;
+        sheet.onSubmitRow = vi.fn(() => new Promise((_, reject) => { fail = reject; }));
+        expect(sheet.submitRow(0)).toBe(true);
+        sheet.setColumns([item, quantity]);
+        expect(sheet.rowState(0)).toBe('pending');
+        fail(new Error('Offline'));
+        await flush();
+        sheet.writeByUser('B1', '6');
+        expect(sheet.rowRecord(0).record.total).toBe(12);
+        sheet.setColumns([total, item, quantity]);
+        expect(sheet.model.getInput('A1')).toBe('=C1*2');
+        expect(sheet.submitRow(0)).toBe(true);
+        expect(sheet.onSubmitRow.mock.lastCall[0]).toEqual({total: 12, item: 'Licenses', quantity: 6});
+    });
+});
 
 describe('data entry', () => {
     it('calculates the formula column also in entry rows made before the columns', () => {
@@ -1012,6 +1132,28 @@ describe('record register', () => {
 });
 
 describe('register validation and row options', () => {
+    it('keeps the selected option with its record if the row moves before the second Enter', () => {
+        const sheet = entrySheet([], {'submit-on': 'change'});
+        sheet.setColumns([{key: 'action', options: ['Review', 'Approve']}]);
+        const first = {id: 1, action: 'Review'};
+        const second = {id: 2, action: 'Review'};
+        sheet.records = [first, second];
+        sheet.onSubmitRow = vi.fn();
+        sheet.selection = 'A2';
+        type(sheet, 'app');
+        key(sheet, {key: 'Enter'});
+        sheet.records = [second, first];
+        flushRenders();
+        expect(sheet.activeAddress).toBe('A1');
+        expect(editor(sheet).value).toBe('Approve');
+        expect(sheet.getValue('A1')).toBe('Review');
+        expect(sheet.onSubmitRow).not.toHaveBeenCalled();
+        key(sheet, {key: 'Enter'});
+        expect(sheet.onSubmitRow).toHaveBeenCalledTimes(1);
+        expect(sheet.onSubmitRow).toHaveBeenCalledWith({action: 'Approve'}, expect.objectContaining({id: 2, row: 0}));
+        expect(sheet.getValue('A2')).toBe('Review');
+    });
+
     it.each(['check', 'manual', 'change', 'enter', 'leave'])('passes %s to the row validator once', reason => {
         const sheet = entrySheet([{id: 1, item: 'Pens', quantity: 1}], {
             'submit-on': ['check', 'manual'].includes(reason) ? 'manual' : reason === 'leave' ? 'leave-row' : reason,
@@ -1070,6 +1212,7 @@ describe('register validation and row options', () => {
         key(sheet, {key: 'Escape'});
         type(sheet, 'app');
         expect(document.querySelector('type-ahead-list [role="option"]').textContent).toBe('Approve');
+        key(sheet, {key: 'Enter'});
         key(sheet, {key: 'Enter'});
         expect(sheet.getValue('A2')).toBe(2);
         expect(sheet.getCell('A2').display).toBe('Approve');

@@ -108,6 +108,32 @@ function snapshotOf(cell) {
     return cell ? {input: cell.input, style: cell.style ?? null, type: cell.type ?? null} : {input: '', style: null, type: null};
 }
 
+// Record cells, formulas and undo steps all use this map from old to new coordinates.
+export function recordColumnLayout(model, list, keepDrafts) {
+    const columns = list.length ? [...list] : [{}];
+    const visible = columns.length;
+    const byKey = new Map();
+    columns.forEach(({key}, col) => { if (key != null) { byKey.set(key, col); } });
+    const mapping = Array.from({length: model.recordColumnCount}, (_, col) => {
+        const old = model.column(col);
+        if (old.key == null) { return col < visible && columns[col].key == null ? col : -1; }
+        if (byKey.has(old.key)) { return byKey.get(old.key); }
+        if (!keepDrafts) { return -1; }
+        return columns.push({...old}) - 1;
+    });
+    if (columns.length > MAX_COLUMNS) {
+        throw new RangeError(`A record grid can hold at most ${MAX_COLUMNS} visible and hidden columns.`);
+    }
+    const move = ref => mapping[ref.col] >= 0 ? {...ref, col: mapping[ref.col]} : null;
+    const rewrite = text => text.startsWith('=') ? '=' + rewriteFormula(text.slice(1), {move}) : text;
+    // Visible column formulas come from the new view. Hidden definitions use the old view.
+    for (let col = visible; col < columns.length; col++) {
+        const info = columns[col];
+        if (info.formula) { info.formula = rewrite('=' + String(info.formula).replace(/^=/, '')); }
+    }
+    return {columns, visible, mapping, rewrite};
+}
+
 export class SheetModel extends EventTarget {
     #cells = new Map();
     // The formula cells that read a cell, by the key of the cell that they read
@@ -120,6 +146,7 @@ export class SheetModel extends EventTarget {
     #rows;
     #columns;
     #columnInfo = [];
+    #hiddenColumns = 0;
     // The settings of a row: {locked}, by row
     #rowInfo = new Map();
     // What is not data and not an undo step, by the key of the cell: {locked, mark}. A mark is
@@ -143,6 +170,7 @@ export class SheetModel extends EventTarget {
 
     get rowCount() { return this.#rows; }
     get columnCount() { return this.#columns; }
+    get recordColumnCount() { return this.#columns + this.#hiddenColumns; }
     get canUndo() { return this.#undo.length > 0; }
     get canRedo() { return this.#redo.length > 0; }
     get cellCount() { return this.#cells.size; }
@@ -237,12 +265,76 @@ export class SheetModel extends EventTarget {
     // Replaces the settings of all columns: [{key, title, type, validate, options, locked, width}].
     // The number of columns becomes the length of the list. The cells stay.
     setColumns(list) {
+        if (this.#hiddenColumns) {
+            // The positional model API starts a regular grid with its visible cells.
+            const columns = list.length ? list : [{}];
+            const mapping = Array.from({length: this.#columns}, (_, col) => col < columns.length ? col : -1);
+            this.setRecordColumns({columns, visible: columns.length, mapping, rewrite: text => text});
+            return;
+        }
         this.#columnInfo = list.map(info => ({...info}));
         this.#columns = Math.max(1, list.length);
         for (const cell of this.#cells.values()) { if (!cell.formula) { this.#read(cell); } }
         const keys = new Set(this.#cells.keys());
         this.#recalculate(keys, keys);
         this.#send({changes: [], keys, columns: list.map((_, col) => col)});
+    }
+
+    // A record view can move a field, or keep it after the visible columns while a row
+    // has edits. Move the cell, its references, its locks and its history together.
+    setRecordColumns({columns, visible, mapping, rewrite}, loadInputs) {
+        const moveKey = key => {
+            const col = mapping[colOf(key)];
+            return col === undefined || col < 0 ? -1 : keyOf(rowOf(key), col);
+        };
+        const snapshot = (cell, col) => {
+            const copy = snapshotOf(cell);
+            if (copy.input.startsWith('=') && (copy.type ?? this.columnType(col)) !== 'text') {
+                copy.input = rewrite(copy.input);
+            }
+            return copy;
+        };
+        const cells = new Map();
+        for (const [key, cell] of this.#cells) {
+            const next = moveKey(key);
+            if (next >= 0) { cells.set(next, snapshot(cell, colOf(key))); }
+        }
+        const notes = new Map();
+        for (const [key, note] of this.#notes) {
+            const next = moveKey(key);
+            if (next >= 0) { notes.set(next, note); }
+        }
+        const rebase = stack => stack.flatMap(entry => {
+            if (entry.structure) { return []; }
+            const changes = [];
+            for (const change of entry.cells) {
+                const key = moveKey(change.key);
+                if (key < 0) { continue; }
+                const col = colOf(change.key);
+                changes.push({key, before: snapshot(change.before, col), after: snapshot(change.after, col)});
+            }
+            return changes.length ? [{cells: changes}] : [];
+        });
+        this.#undo = rebase(this.#undo);
+        this.#redo = rebase(this.#redo);
+        this.#notes = notes;
+        this.#columnInfo = columns.map(info => ({...info}));
+        this.#columns = visible;
+        this.#hiddenColumns = columns.length - visible;
+        this.#cells.clear();
+        this.#dependents.clear();
+        this.#wideRanges = [];
+        for (const [key, cell] of cells) { this.#apply(key, cell); }
+        // Populate the new view before listeners can read a row or submit it.
+        if (loadInputs) {
+            for (const {row, col, input} of loadInputs()) {
+                const key = keyOf(row, col);
+                this.#apply(key, {...snapshotOf(this.#cells.get(key)), input});
+            }
+        }
+        const keys = new Set(this.#cells.keys());
+        this.#recalculate(keys, keys);
+        this.#send({changes: [], keys, columns: columns.map((_, col) => col)});
     }
 
     // Changes the type, the format, the title, or the width of a column, and shows each cell again
@@ -959,6 +1051,7 @@ export class SheetModel extends EventTarget {
         let bottom = -1;
         let right = -1;
         for (const key of this.#cells.keys()) {
+            if (this.#hiddenColumns && colOf(key) >= this.#columns) { continue; }
             if (!this.#cells.get(key).input) { continue; }
             bottom = Math.max(bottom, rowOf(key));
             right = Math.max(right, colOf(key));
@@ -969,6 +1062,7 @@ export class SheetModel extends EventTarget {
     // Calls fn(row, col, input) for each cell with an input, in no order
     forEachCell(fn) {
         for (const [key, cell] of this.#cells) {
+            if (this.#hiddenColumns && colOf(key) >= this.#columns) { continue; }
             if (cell.input) { fn(rowOf(key), colOf(key), cell.input); }
         }
     }
@@ -1040,7 +1134,15 @@ export class SheetModel extends EventTarget {
         const needed = start.row + rows.length;
         if (needed > this.#rows) { this.#rows = needed; }
         const width = Math.max(0, ...rows.map(line => line.length));
-        if (start.col + width > this.#columns) { this.#columns = start.col + width; }
+        const neededColumns = start.col + width;
+        if (neededColumns > this.#columns) {
+            if (this.#hiddenColumns) {
+                const columns = Array.from({length: neededColumns}, (_, col) => col < this.#columns ? this.column(col) : {});
+                this.setRecordColumns(recordColumnLayout(this, columns, true));
+            } else {
+                this.#columns = neededColumns;
+            }
+        }
         const changes = [];
         rows.forEach((line, i) => line.forEach((input, j) => {
             const row = start.row + i;
@@ -1053,17 +1155,21 @@ export class SheetModel extends EventTarget {
     toJSON() {
         const cells = {};
         for (const [key, cell] of this.#cells) {
+            if (this.#hiddenColumns && colOf(key) >= this.#columns) { continue; }
             const item = {input: cell.input};
             if (cell.style) { item.style = cell.style; }
             if (cell.type) { item.type = cell.type; }
             cells[formatAddress(rowOf(key), colOf(key))] = item;
         }
-        return {rows: this.#rows, columns: this.#columnInfo.length ? this.#columnInfo : this.#columns, columnCount: this.#columns, cells};
+        const columns = this.#hiddenColumns ? this.#columnInfo.slice(0, this.#columns) : this.#columnInfo;
+        return {rows: this.#rows, columns: columns.length ? columns : this.#columns, columnCount: this.#columns, cells};
     }
 
     // Replaces all of the data. cells: {A1: '=B1' or {input, style, type}}, or rows: [['a', 1], ...].
     // A load is not an undo step.
     load({rows, columns, columnCount, cells = null, data = null} = {}) {
+        if (this.#hiddenColumns) { this.#columnInfo.length = this.#columns; }
+        this.#hiddenColumns = 0;
         if (Array.isArray(columns)) {
             this.#columnInfo = columns.map(info => ({...info}));
             this.#columns = Math.max(columns.length, columnCount ?? 0);
